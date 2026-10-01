@@ -57,6 +57,17 @@ class Pharmacy(db.Model):
     latitude = db.Column(db.Float, nullable=True)                  # Enlem (Koordinat)
     longitude = db.Column(db.Float, nullable=True)                 # Boylam (Koordinat)
     
+    # Eczacı ve İletişim Bilgileri
+    pharmacist_name = db.Column(db.String(120), nullable=True)         # Eczacı Ad Soyad
+    chamber_registration_no = db.Column(db.String(60), nullable=True) # Oda Sicil / GLN No
+    phone = db.Column(db.String(30), nullable=True)                   # Sabit Telefon
+    mobile_phone = db.Column(db.String(30), nullable=True)            # Eczacı Cep Telefonu
+    address = db.Column(db.Text, nullable=True)                       # Eczanenin Kendi Açık Adresi
+
+    # Nöbetçi Durumu ve Hızlı Test Override
+    is_on_duty_today = db.Column(db.Boolean, default=False)           # Otomatik Nöbetçi Tespiti
+    manual_duty_override_until = db.Column(db.DateTime, nullable=True) # 1 Saatlik Test Nöbeti Bitiş Zamanı
+    
     # Lisans Bilgileri
     license_key = db.Column(db.String(64), unique=True, nullable=False, default=lisans_anahtari_uret)
     expires_at = db.Column(db.DateTime, nullable=False)            # Lisans Bitiş Tarihi
@@ -76,6 +87,19 @@ class Pharmacy(db.Model):
     # TV Ekranı Canlılık Takibi (Heartbeat)
     last_ping = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def nobetci_mi(self) -> bool:
+        """
+        Eczanenin anlık nöbetçi modunda olup olmadığını kontrol eder.
+        1 saatlik manuel test modu veya otomatik sistem tespiti geçerliyse True döner.
+        """
+        if self.manual_duty_override_until and self.manual_duty_override_until > datetime.now():
+            return True
+        return bool(self.is_on_duty_today)
+
+    def duty_test_aktif_mi(self) -> bool:
+        """1 saatlik hızlı nöbet testinin şu an aktif olup olmadığını döndürür."""
+        return bool(self.manual_duty_override_until and self.manual_duty_override_until > datetime.now())
 
     def cihaz_uyumlu_mu(self, gelen_token: str) -> bool:
         """
@@ -133,6 +157,13 @@ class Pharmacy(db.Model):
             "district": self.district,
             "latitude": self.latitude,
             "longitude": self.longitude,
+            "pharmacist_name": self.pharmacist_name or "",
+            "chamber_registration_no": self.chamber_registration_no or "",
+            "phone": self.phone or "",
+            "mobile_phone": self.mobile_phone or "",
+            "address": self.address or "",
+            "is_on_duty_today": self.nobetci_mi(),
+            "duty_test_active": self.duty_test_aktif_mi(),
             "license_key": self.license_key,
             "expires_at": self.expires_at.strftime("%Y-%m-%d %H:%M") if self.expires_at else None,
             "is_active": self.is_active,

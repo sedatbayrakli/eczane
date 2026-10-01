@@ -7,6 +7,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@700;800&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet.js Koyu Tema Haritası -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <link rel="stylesheet" href="/static/style.css">
     <style>
         /* Bu Gece Nöbetçiyiz Özel Bannerı */
@@ -16,10 +21,10 @@
             background-size: 200% 200%;
             animation: gradientShift 4s ease infinite;
             color: #ffffff;
-            font-size: 1.4rem;
+            font-size: 1.35rem;
             font-weight: 900;
             text-align: center;
-            padding: 0.75rem 1.5rem;
+            padding: 0.7rem 1.5rem;
             border-radius: var(--radius-md);
             letter-spacing: 0.05em;
             box-shadow: 0 0 25px rgba(239, 68, 68, 0.6);
@@ -69,6 +74,12 @@
             </div>
 
             <div class="header-badges">
+                <!-- Çevrimdışı Mod Rozeti (İnternet Kesintisinde Görünür) -->
+                <div id="offline-badge" class="badge-offline-status hidden">
+                    <span>⚠️</span>
+                    <span>Çevrimdışı Mod (<span id="offline-sync-time">--:--</span>)</span>
+                </div>
+
                 <div class="info-pill duty-period">
                     <svg class="pill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="10"></circle>
@@ -100,17 +111,29 @@
                 <strong id="alert-title">Bağlantı Kesintisi</strong>
                 <span id="alert-message">Güncel verilere ulaşılamıyor, önbellekteki son kayıtlar listeleniyor.</span>
             </div>
-            <div class="alert-badge">ÖNBELLEK MODU</div>
+            <div class="alert-badge" id="alert-badge-type">ÖNBELLEK MODU</div>
         </div>
 
-        <!-- Eczane Kartları Alanı (TV Optimize Edilmiş CSS Grid) -->
-        <main class="pharmacy-grid-container" id="pharmacy-grid">
-            <div class="loading-state">
-                <div class="spinner"></div>
-                <h2>Bölge nöbetçi eczaneleri yükleniyor...</h2>
-                <p>Veriler taranıyor, lütfen bekleyiniz.</p>
-            </div>
-        </main>
+        <!-- Bölünmüş İçerik Düzeni: Sol Kartlar, Sağ Canlı Harita -->
+        <div class="kiosk-content-layout" id="kiosk-layout">
+            <!-- Sol: Eczane Kartları Alanı (TV Optimize Edilmiş CSS Grid) -->
+            <main class="pharmacy-grid-container" id="pharmacy-grid">
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <h2>Bölge nöbetçi eczaneleri yükleniyor...</h2>
+                    <p>Fallback servisleri taranıyor, lütfen bekleyiniz.</p>
+                </div>
+            </main>
+
+            <!-- Sağ: Canlı Nöbetçi Haritası & Rota Paneli -->
+            <aside class="kiosk-map-panel" id="kiosk-map-panel">
+                <div class="map-panel-header">
+                    <span class="pulse-indicator"></span>
+                    <span>CANLI HARİTA & YOL TARİFİ</span>
+                </div>
+                <div id="kiosk-leaflet-map" class="kiosk-leaflet-map"></div>
+            </aside>
+        </div>
 
         <!-- Alt Bilgi & Kayan Bilgilendirme Bandı (Özelleştirilebilir Ticker) -->
         <footer class="bottom-ticker-bar">
@@ -130,7 +153,7 @@
 
     </div>
 
-    <!-- Kiosk Lisanslı İstemci Motoru -->
+    <!-- Kiosk Lisanslı İstemci Motoru Parametreleri -->
     <script>
         const LISANS_KEY = "{{ lisans_anahtari }}";
     </script>
