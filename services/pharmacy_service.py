@@ -129,12 +129,10 @@ def kaynak_ieo_cek(il: str, ilce: str) -> Tuple[List[Dict[str, Any]], str]:
     if turkce_karakter_temizle(il) != "istanbul":
         return [], "İEO servisi yalnızca İstanbul için geçerlidir"
 
-    ilce_temiz = ilce.strip().upper()
-    # Türkçe büyük karakter düzeltme
-    ilce_temiz = ilce_temiz.replace('i', 'İ').replace('ı', 'I')
+    ilce_temiz = ilce.strip()
 
-    url_ana = "https://www.ieo.org.tr/nobetci-eczane/"
-    url_ajax = "https://www.ieo.org.tr/nobetci-eczane/index.php"
+    url_ana = "https://www.istanbuleczaciodasi.org.tr/nobetci-eczane/"
+    url_ajax = "https://www.istanbuleczaciodasi.org.tr/nobetci-eczane/index.php"
 
     session = requests.Session()
     session.headers.update(TARAYICI_BASLIKLARI)
@@ -175,15 +173,21 @@ def kaynak_ieo_cek(il: str, ilce: str) -> Tuple[List[Dict[str, Any]], str]:
 
         sonuclar = []
         for sira, e in enumerate(ham_eczaneler, start=1):
-            eczane_adi = e.get("adi", "").strip() or f"Eczane #{sira}"
+            eczane_adi = e.get("eczane_ad", "").strip() or e.get("adi", "").strip() or f"Eczane #{sira}"
             semt = e.get("semt", "").strip()
-            adres = e.get("adres", "").strip()
-            telefon_ham = e.get("tel", "").strip()
-            yol_tarifi = e.get("tarif", "").strip()
+            
+            # Adres HTML etiketlerini ve başlığını temizle
+            raw_adres = e.get("adres", "").strip()
+            adres = re.sub(r'<[^>]+>', '', raw_adres).replace("Adres:", "").strip()
+            
+            # Telefon ve tarif temizleme
+            telefon_ham = e.get("eczane_tel", "").strip() or e.get("tel", "").strip()
+            raw_tarif = e.get("tarif", "").strip()
+            yol_tarifi = re.sub(r'<[^>]+>', '', raw_tarif).replace("Tarif:", "").strip()
 
             try:
                 enlem = float(e.get("lat")) if e.get("lat") else None
-                boylam = float(e.get("lon")) if e.get("lon") else None
+                boylam = float(e.get("lng") or e.get("lon")) if (e.get("lng") or e.get("lon")) else None
             except (ValueError, TypeError):
                 enlem, boylam = None, None
 
@@ -200,12 +204,98 @@ def kaynak_ieo_cek(il: str, ilce: str) -> Tuple[List[Dict[str, Any]], str]:
                 "nobet_durumu": "Sabaha kadar açık",
                 "enlem": enlem,
                 "boylam": boylam,
-                "kaynak": "ieo_resmi"
+                "kaynak": "ieo_resmi",
+                "sicil": str(e.get("sicil", "")).strip()
             })
 
         return sonuclar, ""
     except Exception as err:
         return [], f"İEO çekim hatası: {str(err)}"
+
+
+def eczane_detay_bilgisi_ara(eczane_adi: str, ilce: str, il: str = "İstanbul", mevcut_adres: str = "") -> Dict[str, Any]:
+    """
+    Eczane kayıt formunda otomatik adres, telefon, sicil ve koordinat bulucu.
+    Kullanım Sırası:
+    1. Öncelikli Kaynak: İstanbul Eczacı Odası (İEO)
+    2. İkincil Kaynak: Açık Ağ Eczane Dizinleri ve Arama Motoru
+    """
+    from bs4 import BeautifulSoup
+
+    eczane_temiz = re.sub(r'(?i)\beczane(si)?\b', '', eczane_adi).strip()
+    bulunan_adres = mevcut_adres.strip() if mevcut_adres else ""
+    bulunan_tel = ""
+    bulunan_lat = None
+    bulunan_lon = None
+    kaynak_adi = ""
+    oda_sicil = ""
+
+    # ----------------------------------------------------
+    # 1. BİRİNCİL VE ÖNCELİKLİ KAYNAK: İSTANBUL ECZACI ODASI
+    # ----------------------------------------------------
+    if turkce_karakter_temizle(il) == "istanbul":
+        try:
+            ieo_eczaneler, ieo_err = kaynak_ieo_cek(il, ilce)
+            if ieo_eczaneler:
+                aranan_norm = turkce_karakter_temizle(eczane_temiz)
+                for e in ieo_eczaneler:
+                    if aranan_norm in turkce_karakter_temizle(e.get("isim", "")):
+                        kaynak_adi = "İstanbul Eczacı Odası (İEO Resmi)"
+                        bulunan_adres = e.get("adres", "")
+                        bulunan_tel = e.get("telefon", "")
+                        oda_sicil = e.get("sicil", "")
+                        bulunan_lat = e.get("enlem")
+                        bulunan_lon = e.get("boylam")
+                        break
+        except Exception:
+            pass
+
+    # ----------------------------------------------------
+    # 2. İKİNCİL KAYNAK: AKILLI DİZİN VE AĞ TARAMASI
+    # ----------------------------------------------------
+    if not bulunan_adres or not bulunan_tel:
+        try:
+            q = f"{eczane_adi} {ilce} adres telefon eczanesi"
+            url = f"https://html.duckduckgo.com/html/?q={urllib.parse.quote(q)}"
+            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+            r_ddg = requests.post(url, data={"q": q}, headers=headers, timeout=7)
+            if r_ddg.status_code == 200:
+                soup = BeautifulSoup(r_ddg.text, "html.parser")
+                snippets = [s.get_text() for s in soup.find_all("a", class_="result__snippet")]
+                tam_metin = " ".join(snippets)
+
+                # Telefon numarası ayıkla
+                if not bulunan_tel:
+                    tel_m = re.search(r'(?:0\s*\(?2[0-9]{2}\)?|\(?0?2[0-9]{2}\)?)[ \-]?[0-9]{3}[ \-]?[0-9]{2}[ \-]?[0-9]{2}', tam_metin)
+                    if tel_m:
+                        bulunan_tel = telefon_formatla(tel_m.group(0).strip())
+
+                # Açık adres ayıkla
+                if not bulunan_adres:
+                    adr_m = re.search(r'(?:Eczanenin Adresi|Adres|Adresi)\s*:\s*([^.]+?)(?:Telefon|Tel|şeklindedir|\.|$)', tam_metin, re.IGNORECASE)
+                    if adr_m:
+                        bulunan_adres = adr_m.group(1).strip()
+                    else:
+                        mah_sok = re.search(r'([A-Za-zÇŞĞÜÖİçşğüöı0-9\s]+Mahallesi[^\.\,\;]+(?:Sokak|Sk\.|Cad\.|Caddesi)[^\.\,\;]*(?:No\s*:\s*[0-9\/A-Za-z]+)?)', tam_metin, re.IGNORECASE)
+                        if mah_sok:
+                            bulunan_adres = mah_sok.group(1).strip()
+
+                if not kaynak_adi and (bulunan_adres or bulunan_tel):
+                    kaynak_adi = "Eczane Bilgi Portalı (Açık Ağ)"
+        except Exception:
+            pass
+
+    return {
+        "eczane_adi": eczane_adi,
+        "ilce": ilce,
+        "il": il,
+        "adres": bulunan_adres,
+        "telefon": bulunan_tel,
+        "sicil": oda_sicil,
+        "enlem": bulunan_lat,
+        "boylam": bulunan_lon,
+        "kaynak": kaynak_adi
+    }
 
 
 # ==========================================

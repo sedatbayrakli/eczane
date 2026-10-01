@@ -579,14 +579,14 @@
                     </div>
                     <div class="form-group">
                         <label>Oda Sicil / GLN No</label>
-                        <input type="text" name="chamber_registration_no" class="form-control" placeholder="Örn: 34-12345">
+                        <input type="text" id="add-chamber_registration_no" name="chamber_registration_no" class="form-control" placeholder="Örn: 34-12345">
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
                         <label>Sabit Telefon</label>
-                        <input type="text" name="phone" class="form-control" placeholder="Örn: 0212 555 44 33">
+                        <input type="text" id="add-phone" name="phone" class="form-control" placeholder="Örn: 0212 555 44 33">
                     </div>
                     <div class="form-group">
                         <label>Eczacı Cep Telefonu</label>
@@ -604,7 +604,7 @@
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
                         <label style="margin: 0; font-weight: 700; color: #38bdf8;">📍 Konum & Koordinat (Mesafe ve Navigasyon İçin)</label>
                         <button type="button" class="btn btn-sm btn-secondary" onclick="konumOtomatikBul('add')">
-                            🔍 Konumu Otomatik Bul
+                            🔍 Bilgileri & Konumu Getir
                         </button>
                     </div>
                     <div class="form-row">
@@ -703,7 +703,7 @@
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
                         <label style="margin: 0; font-weight: 700; color: #38bdf8;">📍 Konum & Koordinat (Mesafe ve Navigasyon İçin)</label>
                         <button type="button" class="btn btn-sm btn-secondary" onclick="konumOtomatikBul('edit')">
-                            🔍 Konumu Otomatik Bul
+                            🔍 Bilgileri & Konumu Getir
                         </button>
                     </div>
                     <div class="form-row">
@@ -862,7 +862,7 @@
             haritayiBaslat('edit', eczane.latitude, eczane.longitude);
         }
 
-        // Otomatik Koordinat Bulucu (Nominatim API - İlçe Doğrulamalı ve Açık Adres Öncelikli)
+        // Otomatik Eczane Bilgileri ve Koordinat Bulucu (Eczacı Odası & Akıllı Ağ)
         async function konumOtomatikBul(tur) {
             const name = document.getElementById(`${tur}-name`) ? document.getElementById(`${tur}-name`).value.trim() : '';
             const city = document.getElementById(`${tur}-city`) ? document.getElementById(`${tur}-city`).value.trim() : '';
@@ -871,13 +871,13 @@
             const address = addressInput ? addressInput.value.trim() : '';
 
             if (!name && !district && !address) {
-                alert('Lütfen en azından eczane adı, ilçe veya açık adres giriniz.');
+                alert('Lütfen en azından eczane adı ve ilçe giriniz.');
                 return;
             }
 
             const btn = event.target;
             const eskiYazi = btn.textContent;
-            btn.textContent = '⏳ Aranıyor...';
+            btn.textContent = '⏳ Sorgulanıyor...';
             btn.disabled = true;
 
             try {
@@ -886,20 +886,52 @@
                 const data = await res.json();
 
                 if (data.success && data.latitude && data.longitude) {
+                    // 1. Koordinatları doldur
                     document.getElementById(`${tur}-latitude`).value = data.latitude.toFixed(6);
                     document.getElementById(`${tur}-longitude`).value = data.longitude.toFixed(6);
                     haritayiBaslat(tur, data.latitude, data.longitude);
 
-                    if (data.is_fallback) {
-                        alert(`ℹ️ BİLGİLENDİRME:\n${data.message}\n\nKonum: ${data.display_name}`);
-                    } else {
-                        alert(`✅ Konum başarıyla tespit edildi:\n${data.display_name}`);
+                    // 2. Açık adres bulunduysa ve form boşsa doldur
+                    if (data.address) {
+                        const addrEl = document.getElementById(`${tur}-address`);
+                        if (addrEl && (!addrEl.value || addrEl.value.trim() === '')) {
+                            addrEl.value = data.address;
+                        }
                     }
+
+                    // 3. Telefon bulunduysa ve form boşsa doldur
+                    if (data.phone) {
+                        const phoneEl = document.getElementById(`${tur}-phone`);
+                        if (phoneEl && (!phoneEl.value || phoneEl.value.trim() === '')) {
+                            phoneEl.value = data.phone;
+                        }
+                    }
+
+                    // 4. Oda sicil numarası bulunduysa ve form boşsa doldur
+                    if (data.chamber_registration_no) {
+                        const sicilEl = document.getElementById(`${tur}-chamber_registration_no`);
+                        if (sicilEl && (!sicilEl.value || sicilEl.value.trim() === '')) {
+                            sicilEl.value = data.chamber_registration_no;
+                        }
+                    }
+
+                    // 5. Bilgilendirme mesajı oluştur
+                    let bildirim = '';
+                    if (data.is_fallback) {
+                        bildirim = `ℹ️ BİLGİLENDİRME:\n${data.message}\n\nKonum: ${data.display_name}`;
+                    } else {
+                        bildirim = `✅ Eczane Bilgileri Başarıyla Getirildi!\n` +
+                                   `Kaynak: ${data.source || 'Eczacı Odası / Bilgi Portalı'}\n` +
+                                   (data.address ? `Adres: ${data.address}\n` : '') +
+                                   (data.phone ? `Telefon: ${data.phone}\n` : '') +
+                                   `Konum: ${data.display_name || 'Koordinatlar haritaya işlendi'}`;
+                    }
+                    alert(bildirim);
                 } else {
-                    alert(data.message || 'Konum tespit edilemedi.');
+                    alert(data.message || 'Eczane bilgileri veya konum tespit edilemedi.');
                 }
             } catch (err) {
-                alert('Koordinat arama servisine erişilemedi.');
+                alert('Eczane bilgi ve konum servisine erişilemedi.');
             } finally {
                 btn.textContent = eskiYazi;
                 btn.disabled = false;

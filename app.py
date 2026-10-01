@@ -24,7 +24,8 @@ from services.pharmacy_service import (
     turkce_karakter_temizle,
     haversine_mesafe,
     rota_linki_olustur,
-    qr_kod_url_olustur
+    qr_kod_url_olustur,
+    eczane_detay_bilgisi_ara
 )
 
 # Flask uygulamasının başlatılması
@@ -220,14 +221,37 @@ def admin_dashboard():
 @login_required
 def admin_api_geocode():
     """
-    OpenStreetMap Nominatim üzerinden eczane adı, açık adres ve il/ilçe için akıllı koordinat arar.
-    Admin formundan 'Konumu Otomatik Bul' butonuna basıldığında çağrılır.
+    Eczacı Odası ve açık dizinler üzerinden eczane adı, açık adres, telefon ve koordinatları arar.
+    Admin formundan 'Bilgileri & Konumu Getir' butonuna basıldığında çağrılır.
     Kesinlikle başka ilçelerin koordinatlarını kabul etmez (ilçe sınır kontrolü).
     """
     q = request.args.get("q", "").strip()
     il = request.args.get("il", "İstanbul").strip()
     ilce = request.args.get("ilce", "").strip()
     address = request.args.get("address", "").strip()
+
+    # 1. Aşama: Eczacı Odası (İEO) ve Akıllı Bilgi Ağından Adres ve Telefon Sorgulama
+    detay = {}
+    if q and ilce:
+        detay = eczane_detay_bilgisi_ara(eczane_adi=q, ilce=ilce, il=il, mevcut_adres=address)
+        if not address and detay.get("adres"):
+            address = detay.get("adres")
+
+    # Eğer resmi Eczacı Odası'ndan doğrudan koordinat geldiyse doğrudan döndür
+    if detay.get("enlem") and detay.get("boylam"):
+        return jsonify({
+            "success": True,
+            "name": q,
+            "address": detay.get("adres") or address,
+            "phone": detay.get("telefon", ""),
+            "chamber_registration_no": detay.get("sicil", ""),
+            "latitude": float(detay["enlem"]),
+            "longitude": float(detay["boylam"]),
+            "display_name": f"{detay.get('adres', '')} ({ilce}, {il})",
+            "source": detay.get("kaynak", "İstanbul Eczacı Odası (İEO Resmi)"),
+            "is_fallback": False,
+            "message": f"Eczane bilgileri ve konumu {detay.get('kaynak')} üzerinden başarıyla alındı."
+        })
 
     tarayici_basligi = {
         "User-Agent": "EczaneKioskSystem/2.0 (destek@cakirlar.net)"
@@ -273,7 +297,7 @@ def admin_api_geocode():
     # Arama terimlerini öncelik sırasına göre hazırla
     arama_terimleri = []
     
-    # 1. Öncelik: Açık adres verildiyse adres odaklı arama
+    # 1. Öncelik: Açık adres verildiyse (veya Eczacı Odasından/Ağdan çekildiyse) adres odaklı arama
     if address:
         arama_terimleri.append((f"{address}, {ilce}, {il}, Türkiye", False))
         
@@ -317,15 +341,23 @@ def admin_api_geocode():
                         continue
 
                     display_name = sonuc.get("display_name", "")
-                    mesaj = "Konum başarıyla tespit edildi."
+                    kaynak_bilgisi = detay.get("kaynak", "Açık Harita Servisi")
+                    
                     if is_fallback:
                         mesaj = f"Eczane için nokta atışı adres bulunamadı, {ilce} ilçe merkezine odaklanıldı. Lütfen harita üzerinden pini tam eczane konumunuza taşıyınız."
+                    else:
+                        mesaj = f"Eczane bilgileri ve konumu ({kaynak_bilgisi}) başarıyla tespit edildi."
 
                     return jsonify({
                         "success": True,
+                        "name": q,
+                        "address": detay.get("adres") or address,
+                        "phone": detay.get("telefon", ""),
+                        "chamber_registration_no": detay.get("sicil", ""),
                         "latitude": float(sonuc["lat"]),
                         "longitude": float(sonuc["lon"]),
                         "display_name": display_name,
+                        "source": kaynak_bilgisi,
                         "is_fallback": is_fallback,
                         "message": mesaj
                     })
