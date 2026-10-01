@@ -80,9 +80,29 @@ def login_required(f):
 def init_db():
     """
     Uygulama açılışında veritabanı tablolarını ve varsayılan yöneticiyi oluşturur.
+    Kalıcı veritabanında yeni eklenen kolonları (ALTER TABLE) otomatik uygular.
     """
     with app.app_context():
         db.create_all()
+
+        # Otomatik SQLite migration: Eksik kolonları ekle
+        try:
+            from sqlalchemy import text, inspect
+            inspector = inspect(db.engine)
+            tablolar = inspector.get_table_names()
+            if "pharmacies" in tablolar:
+                mevcut_kolonlar = [c["name"] for c in inspector.get_columns("pharmacies")]
+                with db.engine.connect() as conn:
+                    if "registered_device_token" not in mevcut_kolonlar:
+                        conn.execute(text("ALTER TABLE pharmacies ADD COLUMN registered_device_token VARCHAR(128)"))
+                    if "last_ip" not in mevcut_kolonlar:
+                        conn.execute(text("ALTER TABLE pharmacies ADD COLUMN last_ip VARCHAR(64)"))
+                    if "device_lock_enabled" not in mevcut_kolonlar:
+                        conn.execute(text("ALTER TABLE pharmacies ADD COLUMN device_lock_enabled BOOLEAN DEFAULT 1"))
+                    conn.commit()
+        except Exception as hata:
+            print(f"[UYARI] Veritabanı kolon denetim hatası: {hata}")
+
         # Varsayılan yönetici hesabı kontrolü
         admin = AdminUser.query.filter_by(username=ADMIN_USER).first()
         if not admin:
