@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lisans Bildirimi | Nöbetçi Eczane Kiosk</title>
+    <!-- 60 saniyede bir otomatik yenileme (Lisans uzatılınca TV kendiliğinden açılsın) -->
+    <meta http-equiv="refresh" content="60">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        body {
+            background: #080a10;
+            color: #f8fafc;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            text-align: center;
+        }
+        .error-card {
+            background: rgba(18, 24, 38, 0.95);
+            border: 2px solid rgba(239, 68, 68, 0.4);
+            border-radius: 24px;
+            padding: 3.5rem 3rem;
+            max-width: 720px;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(239, 68, 68, 0.15);
+        }
+        .warning-icon {
+            font-size: 4rem;
+            margin-bottom: 1.2rem;
+            animation: pulseWarning 2s infinite;
+        }
+        @keyframes pulseWarning {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.08); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
+        h1 {
+            font-size: 2.3rem;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 1rem;
+        }
+        p {
+            font-size: 1.3rem;
+            color: #cbd5e1;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+        }
+        .license-box {
+            background: rgba(0, 0, 0, 0.45);
+            border: 1px dashed rgba(255, 255, 255, 0.2);
+            padding: 1.2rem 2rem;
+            border-radius: 12px;
+            display: inline-block;
+            margin-bottom: 2rem;
+        }
+        .license-label {
+            font-size: 0.9rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.3rem;
+        }
+        .license-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #fbbf24;
+            letter-spacing: 0.05em;
+        }
+        .footer-note {
+            font-size: 1rem;
+            color: #64748b;
+        }
+    </style>
+</head>
+<body>
+    <div class="error-card">
+        <div class="warning-icon">⚠️</div>
+        <h1>{{ hata_baslik }}</h1>
+        <p>{{ hata_mesaj }}</p>
+
+        <div class="license-box">
+            <div class="license-label">Cihaz Lisans Kodu</div>
+            <div class="license-value">{{ lisans_kodu }}</div>
+        </div>
+
+        <div class="footer-note">
+            Lisansınız aktif edildiğinde bu ekran otomatik olarak yayına başlayacaktır. (Her 60 saniyede bir kontrol edilir)
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ eczane.name }} | Nöbetçi Eczane TV Ekranı</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        /* Bu Gece Nöbetçiyiz Özel Bannerı */
+        .on-duty-banner {
+            display: none;
+            background: linear-gradient(90deg, #b91c1c, #ef4444, #b91c1c);
+            background-size: 200% 200%;
+            animation: gradientShift 4s ease infinite;
+            color: #ffffff;
+            font-size: 1.4rem;
+            font-weight: 900;
+            text-align: center;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--radius-md);
+            letter-spacing: 0.05em;
+            box-shadow: 0 0 25px rgba(239, 68, 68, 0.6);
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            margin-bottom: 0.2rem;
+            flex-shrink: 0;
+        }
+        .on-duty-banner.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+        }
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+    </style>
+</head>
+<body class="kiosk-mode">
+
+    <div class="dashboard-wrapper">
+
+        <!-- Bu Gece Nöbetçi İsek Görünen Özel Vurgu Bandı -->
+        <div id="on-duty-banner" class="on-duty-banner">
+            <span>⭐</span>
+            <span>BU GECE NÖBETÇİYİZ! ECZANEMİZ SABAHA KADAR KESİNTİSİZ HİZMETİNİZDEDİR</span>
+            <span>⭐</span>
+        </div>
+
+        <!-- Üst Başlık & Canlı Durum Çubuğu -->
+        <header class="top-header">
+            <div class="brand-area">
+                <div class="brand-icon">
+                    <span class="icon-e">E</span>
+                </div>
+                <div class="brand-titles">
+                    <h1 class="main-title">
+                        <span id="pharmacy-brand-name">{{ eczane.name }}</span>
+                    </h1>
+                    <p class="subtitle">
+                        <span class="pulse-indicator"></span>
+                        <span id="header-district">{{ eczane.district }}</span> / <span id="header-city">{{ eczane.city }}</span> Nöbetçi Eczane Sistemi
+                    </p>
+                </div>
+            </div>
+
+            <div class="header-badges">
+                <div class="info-pill duty-period">
+                    <svg class="pill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    <span>Nöbet Saati: <strong>19:00 — 09:00</strong></span>
+                </div>
+
+                <div class="info-pill pharmacy-counter">
+                    <svg class="pill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                    </svg>
+                    <span>Bölge Nöbetçi: <strong id="pharmacy-count">0</strong></span>
+                </div>
+            </div>
+
+            <!-- Dijital Saat & Canlı Tarih Bölümü -->
+            <div class="clock-card">
+                <div class="clock-time" id="digital-clock">00:00:00</div>
+                <div class="clock-date" id="calendar-date">Yükleniyor...</div>
+            </div>
+        </header>
+
+        <!-- Sistem / Bağlantı Durum Bildirim Alanı -->
+        <div id="system-alert" class="system-alert hidden" role="alert">
+            <div class="alert-icon">⚠️</div>
+            <div class="alert-content">
+                <strong id="alert-title">Bağlantı Kesintisi</strong>
+                <span id="alert-message">Güncel verilere ulaşılamıyor, önbellekteki son kayıtlar listeleniyor.</span>
+            </div>
+            <div class="alert-badge">ÖNBELLEK MODU</div>
+        </div>
+
+        <!-- Eczane Kartları Alanı (TV Optimize Edilmiş CSS Grid) -->
+        <main class="pharmacy-grid-container" id="pharmacy-grid">
+            <div class="loading-state">
+                <div class="spinner"></div>
+                <h2>Bölge nöbetçi eczaneleri yükleniyor...</h2>
+                <p>Veriler taranıyor, lütfen bekleyiniz.</p>
+            </div>
+        </main>
+
+        <!-- Alt Bilgi & Kayan Bilgilendirme Bandı (Özelleştirilebilir Ticker) -->
+        <footer class="bottom-ticker-bar">
+            <div class="ticker-label">
+                <span class="pulse-dot"></span> DUYURU
+            </div>
+            <div class="ticker-content-wrapper">
+                <div class="ticker-content" id="ticker-text">
+                    {{ eczane.ticker_text }}
+                </div>
+            </div>
+            <div class="last-sync-badge">
+                <span>Son Güncelleme:</span>
+                <strong id="last-sync-time">--:--:--</strong>
+            </div>
+        </footer>
+
+    </div>
+
+    <!-- Kiosk Lisanslı İstemci Motoru -->
+    <script>
+        const LISANS_KEY = "{{ lisans_anahtari }}";
+    </script>
+    <script src="/static/kiosk_app.js"></script>
+</body>
+</html>

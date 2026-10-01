@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eczane & Lisans Yönetim Paneli</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-body: #080c15;
+            --bg-card: rgba(17, 24, 39, 0.95);
+            --bg-hover: rgba(31, 41, 55, 0.8);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --color-primary: #ef4444;
+            --color-success: #10b981;
+            --color-warning: #f59e0b;
+            --color-accent: #38bdf8;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        body { background: var(--bg-body); color: var(--text-main); min-height: 100vh; padding: 1.5rem 2rem; }
+
+        /* Üst Başlık */
+        .top-navbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            padding: 1rem 1.8rem;
+            border-radius: 14px;
+            margin-bottom: 1.8rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .brand-logo {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, #ef4444, #b91c1c);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+            font-weight: 900;
+            color: #fff;
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
+        }
+        .brand-text h1 { font-size: 1.35rem; font-weight: 800; color: #fff; }
+        .brand-text p { font-size: 0.82rem; color: var(--text-muted); }
+
+        .nav-actions { display: flex; align-items: center; gap: 1rem; }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6rem 1.1rem;
+            border-radius: 8px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            text-decoration: none;
+            color: #fff;
+        }
+        .btn-primary { background: var(--color-primary); }
+        .btn-primary:hover { background: #dc2626; }
+        .btn-secondary { background: rgba(255, 255, 255, 0.08); border: 1px solid var(--border-color); color: var(--text-main); }
+        .btn-secondary:hover { background: rgba(255, 255, 255, 0.14); }
+        .btn-sm { padding: 0.35rem 0.65rem; font-size: 0.78rem; border-radius: 6px; }
+        .btn-success { background: #059669; }
+        .btn-success:hover { background: #047857; }
+        .btn-warning { background: #d97706; }
+        .btn-warning:hover { background: #b45309; }
+        .btn-danger { background: #b91c1c; }
+        .btn-danger:hover { background: #991b1b; }
+
+        /* İstatistik Kartları */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.2rem;
+            margin-bottom: 1.8rem;
+        }
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.2rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .stat-info h3 { font-size: 0.85rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+        .stat-info .stat-number { font-size: 2rem; font-weight: 800; color: #fff; margin-top: 0.2rem; }
+        .stat-badge {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+        }
+        .stat-badge.blue { background: rgba(56, 189, 248, 0.15); color: var(--color-accent); }
+        .stat-badge.green { background: rgba(16, 185, 129, 0.15); color: var(--color-success); }
+        .stat-badge.orange { background: rgba(245, 158, 11, 0.15); color: var(--color-warning); }
+
+        /* Tablo Konteyneri */
+        .table-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+        }
+        .table-header-title {
+            padding: 1.2rem 1.6rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .table-header-title h2 { font-size: 1.15rem; font-weight: 700; color: #fff; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+        th {
+            background: rgba(0, 0, 0, 0.25);
+            padding: 0.9rem 1.2rem;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border-color);
+        }
+        td {
+            padding: 1rem 1.2rem;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.9rem;
+            vertical-align: middle;
+        }
+        tr:hover { background: var(--bg-hover); }
+
+        /* Rozetler ve Göstergeler */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.25rem 0.65rem;
+            border-radius: 9999px;
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+        .badge-active { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .badge-expired { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+        .badge-district { background: rgba(56, 189, 248, 0.12); color: #7dd3fc; border: 1px solid rgba(56, 189, 248, 0.25); }
+
+        .heartbeat-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .dot-online { background: var(--color-success); box-shadow: 0 0 8px var(--color-success); }
+        .dot-offline { background: #64748b; }
+
+        .license-code {
+            font-family: 'JetBrains Mono', monospace;
+            background: rgba(0, 0, 0, 0.35);
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            font-size: 0.82rem;
+            color: #fbbf24;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .actions-cell {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+        }
+
+        /* Bildirim Mesajları */
+        .alert {
+            padding: 0.85rem 1.2rem;
+            border-radius: 10px;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+        }
+        .alert-success { background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #86efac; }
+        .alert-warning { background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); color: #fde68a; }
+        .alert-danger { background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #fca5a5; }
+        .alert-info { background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); color: #bae6fd; }
+
+        /* Modal Stilleri */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(5px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 1.5rem;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-box {
+            background: #111827;
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 540px;
+            padding: 2rem;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.6);
+        }
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+        }
+        .modal-header h3 { font-size: 1.25rem; font-weight: 700; color: #fff; }
+        .modal-close {
+            background: none; border: none; font-size: 1.4rem; color: var(--text-muted); cursor: pointer;
+        }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        .form-group { margin-bottom: 1.2rem; }
+        .form-group label {
+            display: block; font-size: 0.85rem; font-weight: 600; color: #cbd5e1; margin-bottom: 0.35rem;
+        }
+        .form-control {
+            width: 100%;
+            padding: 0.65rem 0.9rem;
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 0.9rem;
+        }
+        .form-control:focus {
+            outline: none; border-color: var(--color-primary);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Üst Gezinme Çubuğu -->
+    <header class="top-navbar">
+        <div class="brand">
+            <div class="brand-logo">E</div>
+            <div class="brand-text">
+                <h1>Nöbetçi Eczane Kiosk Yönetim Paneli</h1>
+                <p>Multi-Tenant SaaS Lisanslama & Ekran Canlılık Takibi</p>
+            </div>
+        </div>
+        <div class="nav-actions">
+            <button class="btn btn-primary" onclick="modalAc('modal-add')">
+                ➕ Yeni Eczane Ekle
+            </button>
+            <a href="/admin/logout" class="btn btn-secondary">
+                Çıkış Yap ({{ session.get('admin_username') }})
+            </a>
+        </div>
+    </header>
+
+    <!-- Bildirimler -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- İstatistik Kartları -->
+    <section class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-info">
+                <h3>Kayıtlı Eczane</h3>
+                <div class="stat-number">{{ toplam_sayi }}</div>
+            </div>
+            <div class="stat-badge blue">🏥</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-info">
+                <h3>Aktif Lisans</h3>
+                <div class="stat-number">{{ aktif_sayi }}</div>
+            </div>
+            <div class="stat-badge green">🔑</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-info">
+                <h3>Çevrimiçi TV Ekranı</h3>
+                <div class="stat-number">{{ cevrimici_sayi }}</div>
+            </div>
+            <div class="stat-badge orange">📺</div>
+        </div>
+    </section>
+
+    <!-- Eczane & Lisans Tablosu -->
+    <section class="table-card">
+        <div class="table-header-title">
+            <h2>Eczaneler & Kiosk Cihaz Durumları</h2>
+            <span style="font-size: 0.85rem; color: var(--text-muted);">
+                Canlılık kontrol toleransı: Son 5 dakika
+            </span>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Canlılık</th>
+                    <th>Eczane Adı</th>
+                    <th>Konum</th>
+                    <th>Lisans Kodu</th>
+                    <th>Kiosk URL</th>
+                    <th>Kalan Süre</th>
+                    <th>Durum</th>
+                    <th>İşlemler</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for e in eczaneler %}
+                <tr>
+                    <!-- Canlılık Heartbeat -->
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            {% if e.ekran_cevrimici_mi() %}
+                                <span class="heartbeat-dot dot-online" title="Ekran Açık (Son ping: {{ e.last_ping.strftime('%H:%M:%S') }})"></span>
+                                <span style="font-size: 0.8rem; color: #34d399;">Açık</span>
+                            {% else %}
+                                <span class="heartbeat-dot dot-offline" title="Ekran Kapalı / Sinyal Yok"></span>
+                                <span style="font-size: 0.8rem; color: #94a3b8;">Kapalı</span>
+                            {% endif %}
+                        </div>
+                    </td>
+
+                    <!-- Eczane Adı -->
+                    <td>
+                        <strong style="color: #fff; font-size: 0.95rem;">{{ e.name }}</strong>
+                    </td>
+
+                    <!-- Konum -->
+                    <td>
+                        <span class="badge badge-district">{{ e.district }} / {{ e.city }}</span>
+                    </td>
+
+                    <!-- Lisans Kodu -->
+                    <td>
+                        <span class="license-code">{{ e.license_key }}</span>
+                    </td>
+
+                    <!-- Kiosk URL Kopyala -->
+                    <td>
+                        <button class="btn btn-secondary btn-sm" onclick="kioskLinkKopyala('{{ base_url }}/kiosk?key={{ e.license_key }}')">
+                            📋 URL Kopyala
+                        </button>
+                    </td>
+
+                    <!-- Kalan Süre -->
+                    <td>
+                        {% if e.lisans_gecerli_mi() %}
+                            <strong style="color: #38bdf8;">{{ e.kalan_gun_sayisi() }} Gün</strong>
+                            <div style="font-size: 0.75rem; color: var(--text-muted);">
+                                {{ e.expires_at.strftime('%d.%m.%Y') }}
+                            </div>
+                        {% else %}
+                            <strong style="color: #f87171;">Süresi Doldu</strong>
+                        {% endif %}
+                    </td>
+
+                    <!-- Durum Rozeti -->
+                    <td>
+                        {% if e.lisans_gecerli_mi() %}
+                            <span class="badge badge-active">Aktif</span>
+                        {% else %}
+                            <span class="badge badge-expired">Pasif</span>
+                        {% endif %}
+                    </td>
+
+                    <!-- İşlemler -->
+                    <td>
+                        <div class="actions-cell">
+                            <!-- Lisans Aç/Kapat -->
+                            <form method="POST" action="/admin/pharmacy/{{ e.id }}/toggle" style="display:inline;">
+                                <button type="submit" class="btn btn-sm {% if e.is_active %}btn-warning{% else %}btn-success{% endif %}" title="Lisansı Aç/Kapat">
+                                    {% if e.is_active %}Duraklat{% else %}Aktif Et{% endif %}
+                                </button>
+                            </form>
+
+                            <!-- +30 Gün -->
+                            <form method="POST" action="/admin/pharmacy/{{ e.id }}/extend" style="display:inline;">
+                                <input type="hidden" name="days" value="30">
+                                <button type="submit" class="btn btn-sm btn-secondary" title="30 Gün Uzat">+30G</button>
+                            </form>
+
+                            <!-- +365 Gün -->
+                            <form method="POST" action="/admin/pharmacy/{{ e.id }}/extend" style="display:inline;">
+                                <input type="hidden" name="days" value="365">
+                                <button type="submit" class="btn btn-sm btn-secondary" title="1 Yıl Uzat">+1Yıl</button>
+                            </form>
+
+                            <!-- Düzenle Modalı Aç -->
+                            <button class="btn btn-sm btn-secondary" onclick="duzenleModalAc({{ e.id }}, '{{ e.name }}', '{{ e.city }}', '{{ e.district }}', '{{ e.latitude or '' }}', '{{ e.longitude or '' }}', '{{ e.expires_at.strftime('%Y-%m-%d') }}', '{{ e.ticker_text | replace("'", "\\'") }}')">
+                                ✏️
+                            </button>
+
+                            <!-- Sil -->
+                            <form method="POST" action="/admin/pharmacy/{{ e.id }}/delete" style="display:inline;" onsubmit="return confirm('{{ e.name }} eczanesini ve lisansını silmek istediğinize emin misiniz?');">
+                                <button type="submit" class="btn btn-sm btn-danger" title="Sil">🗑️</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8" style="text-align: center; padding: 3rem; color: var(--text-muted);">
+                        Henüz kayıtlı bir eczane bulunmamaktadır. Sağ üstteki "Yeni Eczane Ekle" butonuna tıklayarak başlayabilirsiniz.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+
+    <!-- 1. MODAL: YENİ ECZANE EKLE -->
+    <div id="modal-add" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>Yeni Eczane & Kiosk Lisansı Ekle</h3>
+                <button class="modal-close" onclick="modalKapat('modal-add')">&times;</button>
+            </div>
+            <form method="POST" action="/admin/pharmacy/add">
+                <div class="form-group">
+                    <label>Eczane Adı *</label>
+                    <input type="text" name="name" class="form-control" required placeholder="Örn: Çakırlar Eczanesi">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>İl</label>
+                        <input type="text" name="city" class="form-control" value="İstanbul" required>
+                    </div>
+                    <div class="form-group">
+                        <label>İlçe *</label>
+                        <input type="text" name="district" class="form-control" value="Bahçelievler" required placeholder="Örn: Bahçelievler, Kadıköy">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Enlem (Latitude)</label>
+                        <input type="number" step="any" name="latitude" class="form-control" placeholder="Örn: 40.9985">
+                    </div>
+                    <div class="form-group">
+                        <label>Boylam (Longitude)</label>
+                        <input type="number" step="any" name="longitude" class="form-control" placeholder="Örn: 28.8650">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Lisans Süresi</label>
+                    <select name="license_days" class="form-control">
+                        <option value="30">1 Ay (30 Gün)</option>
+                        <option value="90">3 Ay (90 Gün)</option>
+                        <option value="180">6 Ay (180 Gün)</option>
+                        <option value="365" selected>1 Yıl (365 Gün)</option>
+                        <option value="730">2 Yıl (730 Gün)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Kiosk Kayan Yazı Duyurusu</label>
+                    <textarea name="ticker_text" class="form-control" rows="2" placeholder="Eczanemiz halk sağlığı için hizmetinizdedir..."></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 0.8rem;">
+                    Kaydet ve Lisans Üret
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 2. MODAL: ECZANE DÜZENLE -->
+    <div id="modal-edit" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>Eczane Bilgilerini Düzenle</h3>
+                <button class="modal-close" onclick="modalKapat('modal-edit')">&times;</button>
+            </div>
+            <form id="form-edit" method="POST" action="">
+                <div class="form-group">
+                    <label>Eczane Adı *</label>
+                    <input type="text" id="edit-name" name="name" class="form-control" required>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>İl</label>
+                        <input type="text" id="edit-city" name="city" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>İlçe *</label>
+                        <input type="text" id="edit-district" name="district" class="form-control" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Enlem</label>
+                        <input type="number" step="any" id="edit-lat" name="latitude" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Boylam</label>
+                        <input type="number" step="any" id="edit-lng" name="longitude" class="form-control">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Lisans Bitiş Tarihi</label>
+                    <input type="date" id="edit-expires" name="expires_at" class="form-control">
+                </div>
+
+                <div class="form-group">
+                    <label>Kiosk Kayan Yazı Duyurusu</label>
+                    <textarea id="edit-ticker" name="ticker_text" class="form-control" rows="2"></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 0.8rem;">
+                    Güncelle
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function modalAc(id) {
+            document.getElementById(id).classList.add('active');
+        }
+        function modalKapat(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        function kioskLinkKopyala(url) {
+            navigator.clipboard.writeText(url).then(() => {
+                alert("Kiosk TV Bağlantı Linki Kopyalandı:\n" + url);
+            }).catch(() => {
+                prompt("Kiosk TV Bağlantı Linki:", url);
+            });
+        }
+
+        function duzenleModalAc(id, name, city, district, lat, lng, expires, ticker) {
+            document.getElementById('form-edit').action = '/admin/pharmacy/' + id + '/edit';
+            document.getElementById('edit-name').value = name;
+            document.getElementById('edit-city').value = city;
+            document.getElementById('edit-district').value = district;
+            document.getElementById('edit-lat').value = lat;
+            document.getElementById('edit-lng').value = lng;
+            document.getElementById('edit-expires').value = expires;
+            document.getElementById('edit-ticker').value = ticker;
+            modalAc('modal-edit');
+        }
+    </script>
+</body>
+</html>

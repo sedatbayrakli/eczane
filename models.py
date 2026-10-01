@@ -1,0 +1,121 @@
+"""
+Nöbetçi Eczane Kiosk Sistemi - Veritabanı Modelleri
+SQLite & Flask-SQLAlchemy
+"""
+
+import uuid
+from datetime import datetime, timedelta
+from flask_sqlalchemy import SQLAlchemy
+from werkzeug.security import generate_password_hash, check_password_hash
+
+# SQLAlchemy veritabanı örneği
+db = SQLAlchemy()
+
+
+def lisans_anahtari_uret() -> str:
+    """
+    Eczaneler için benzersiz ve okunabilir lisans anahtarı üretir.
+    Örnek: ECZ-8F2A-4B9C
+    """
+    rastgele_kod = uuid.uuid4().hex[:8].upper()
+    return f"ECZ-{rastgele_kod[:4]}-{rastgele_kod[4:]}"
+
+
+class AdminUser(db.Model):
+    """
+    Yönetim Paneli Yönetici Kullanıcı Modeli
+    """
+    __tablename__ = "admin_users"
+
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def sifre_belirle(self, sifre: str):
+        """Kullanıcı şifresini güvenli bir şekilde hashler."""
+        self.password_hash = generate_password_hash(sifre)
+
+    def sifre_kontrol(self, sifre: str) -> bool:
+        """Girilen şifrenin doğruluğunu kontrol eder."""
+        return check_password_hash(self.password_hash, sifre)
+
+    def __repr__(self):
+        return f"<AdminUser {self.username}>"
+
+
+class Pharmacy(db.Model):
+    """
+    Eczane ve Kiosk Lisanslama Modeli (Multi-Tenant)
+    """
+    __tablename__ = "pharmacies"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(150), nullable=False)                # Eczane Adı (Örn: Çakırlar Eczanesi)
+    city = db.Column(db.String(100), default="İstanbul")            # İl
+    district = db.Column(db.String(100), default="Bahçelievler")    # İlçe
+    latitude = db.Column(db.Float, nullable=True)                  # Enlem (Koordinat)
+    longitude = db.Column(db.Float, nullable=True)                 # Boylam (Koordinat)
+    
+    # Lisans Bilgileri
+    license_key = db.Column(db.String(64), unique=True, nullable=False, default=lisans_anahtari_uret)
+    expires_at = db.Column(db.DateTime, nullable=False)            # Lisans Bitiş Tarihi
+    is_active = db.Column(db.Boolean, default=True)                # Lisans Aktif/Pasif Durumu
+    
+    # Kiosk Özelleştirmeleri
+    ticker_text = db.Column(
+        db.String(500), 
+        default="Eczanemiz halk sağlığı için hizmetinizdedir. Reçeteli ve reçetesiz ilaçlarınız için danışabilirsiniz."
+    )
+    
+    # TV Ekranı Canlılık Takibi (Heartbeat)
+    last_ping = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def lisans_gecerli_mi(self) -> bool:
+        """
+        Lisansın anlık olarak aktif ve geçerlilik süresi içinde olup olmadığını doğrular.
+        """
+        if not self.is_active:
+            return False
+        if not self.expires_at:
+            return False
+        return self.expires_at >= datetime.now()
+
+    def kalan_gun_sayisi(self) -> int:
+        """Lisansın bitmesine kalan gün sayısını hesaplar."""
+        if not self.expires_at:
+            return 0
+        fark = self.expires_at - datetime.now()
+        return max(0, fark.days)
+
+    def ekran_cevrimici_mi(self, tolerans_dakika: int = 5) -> bool:
+        """
+        TV ekranının son 'tolerans_dakika' içinde ping atıp atmadığını kontrol eder (Heartbeat).
+        """
+        if not self.last_ping:
+            return False
+        gecen_sure = datetime.now() - self.last_ping
+        return gecen_sure <= timedelta(minutes=tolerans_dakika)
+
+    def to_dict(self) -> dict:
+        """Model verilerini JSON sözlüğüne dönüştürür."""
+        return {
+            "id": self.id,
+            "name": self.name,
+            "city": self.city,
+            "district": self.district,
+            "latitude": self.latitude,
+            "longitude": self.longitude,
+            "license_key": self.license_key,
+            "expires_at": self.expires_at.strftime("%Y-%m-%d %H:%M") if self.expires_at else None,
+            "is_active": self.is_active,
+            "is_valid": self.lisans_gecerli_mi(),
+            "kalan_gun": self.kalan_gun_sayisi(),
+            "is_online": self.ekran_cevrimici_mi(),
+            "last_ping": self.last_ping.strftime("%Y-%m-%d %H:%M:%S") if self.last_ping else None,
+            "ticker_text": self.ticker_text
+        }
+
+    def __repr__(self):
+        return f"<Pharmacy {self.name} - {self.license_key}>"
