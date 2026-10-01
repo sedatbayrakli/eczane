@@ -218,7 +218,7 @@ def eczane_detay_bilgisi_ara(eczane_adi: str, ilce: str, il: str = "İstanbul", 
     Eczane kayıt formunda otomatik adres, telefon, sicil ve koordinat bulucu.
     Kullanım Sırası:
     1. Öncelikli Kaynak: İstanbul Eczacı Odası (İEO)
-    2. İkincil Kaynak: Açık Ağ Eczane Dizinleri ve Arama Motoru
+    2. İkincil Kaynak: Açık Ağ Eczane Dizinleri ve Arama Motoru (Lite & HTML)
     """
     from bs4 import BeautifulSoup
 
@@ -247,43 +247,65 @@ def eczane_detay_bilgisi_ara(eczane_adi: str, ilce: str, il: str = "İstanbul", 
                         bulunan_lat = e.get("enlem")
                         bulunan_lon = e.get("boylam")
                         break
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[İEO Arama Hatası] {e}", flush=True)
 
     # ----------------------------------------------------
-    # 2. İKİNCİL KAYNAK: AKILLI DİZİN VE AĞ TARAMASI
+    # 2. İKİNCİL KAYNAK: AKILLI DİZİN VE AĞ TARAMASI (Lite & HTML)
     # ----------------------------------------------------
     if not bulunan_adres or not bulunan_tel:
-        try:
-            q = f"{eczane_adi} {ilce} adres telefon eczanesi"
-            url = f"https://html.duckduckgo.com/html/?q={urllib.parse.quote(q)}"
-            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-            r_ddg = requests.post(url, data={"q": q}, headers=headers, timeout=7)
-            if r_ddg.status_code == 200:
-                soup = BeautifulSoup(r_ddg.text, "html.parser")
-                snippets = [s.get_text() for s in soup.find_all("a", class_="result__snippet")]
-                tam_metin = " ".join(snippets)
+        arama_servisleri = [
+            ("https://lite.duckduckgo.com/lite/", "td", "result-snippet"),
+            ("https://html.duckduckgo.com/html/", "a", "result__snippet")
+        ]
 
-                # Telefon numarası ayıkla
-                if not bulunan_tel:
-                    tel_m = re.search(r'(?:0\s*\(?2[0-9]{2}\)?|\(?0?2[0-9]{2}\)?)[ \-]?[0-9]{3}[ \-]?[0-9]{2}[ \-]?[0-9]{2}', tam_metin)
-                    if tel_m:
-                        bulunan_tel = telefon_formatla(tel_m.group(0).strip())
+        q = f"{eczane_adi} {ilce} adres telefon eczanesi"
+        headers = {
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/124.0.0.0 Safari/537.36"
+            ),
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Content-Type": "application/x-www-form-urlencoded"
+        }
 
-                # Açık adres ayıkla
-                if not bulunan_adres:
-                    adr_m = re.search(r'(?:Eczanenin Adresi|Adres|Adresi)\s*:\s*([^.]+?)(?:Telefon|Tel|şeklindedir|\.|$)', tam_metin, re.IGNORECASE)
-                    if adr_m:
-                        bulunan_adres = adr_m.group(1).strip()
-                    else:
-                        mah_sok = re.search(r'([A-Za-zÇŞĞÜÖİçşğüöı0-9\s]+Mahallesi[^\.\,\;]+(?:Sokak|Sk\.|Cad\.|Caddesi)[^\.\,\;]*(?:No\s*:\s*[0-9\/A-Za-z]+)?)', tam_metin, re.IGNORECASE)
-                        if mah_sok:
-                            bulunan_adres = mah_sok.group(1).strip()
+        for endpoint_url, tag_name, class_name in arama_servisleri:
+            try:
+                r_ara = requests.post(endpoint_url, data={"q": q}, headers=headers, timeout=8)
+                if r_ara.status_code == 200:
+                    soup = BeautifulSoup(r_ara.text, "html.parser")
+                    elements = soup.find_all(tag_name, class_=class_name)
+                    snippets = [el.get_text().strip() for el in elements]
+                    tam_metin = " ".join(snippets)
 
-                if not kaynak_adi and (bulunan_adres or bulunan_tel):
-                    kaynak_adi = "Eczane Bilgi Portalı (Açık Ağ)"
-        except Exception:
-            pass
+                    if not tam_metin:
+                        # Fallback: Tüm sayfa metninden ara
+                        tam_metin = soup.get_text()
+
+                    # Telefon numarası ayıkla (0212... veya (0212)...)
+                    if not bulunan_tel:
+                        tel_m = re.search(r'(?:0\s*\(?2[0-9]{2}\)?|\(?0?2[0-9]{2}\)?)[ \-]?[0-9]{3}[ \-]?[0-9]{2}[ \-]?[0-9]{2}', tam_metin)
+                        if tel_m:
+                            bulunan_tel = telefon_formatla(tel_m.group(0).strip())
+
+                    # Açık adres ayıkla
+                    if not bulunan_adres:
+                        adr_m = re.search(r'(?:Eczanenin Adresi|Adres|Adresi)\s*:\s*([^.]+?)(?:Telefon|Tel|şeklindedir|\.|$|\n)', tam_metin, re.IGNORECASE)
+                        if adr_m:
+                            bulunan_adres = adr_m.group(1).strip()
+                        else:
+                            mah_sok = re.search(r'([A-Za-zÇŞĞÜÖİçşğüöı0-9\s]+Mahallesi[^\.\,\;]+(?:Sokak|Sk\.|Cad\.|Caddesi)[^\.\,\;]*(?:No\s*:\s*[0-9\/A-Za-z]+)?)', tam_metin, re.IGNORECASE)
+                            if mah_sok:
+                                bulunan_adres = mah_sok.group(1).strip()
+
+                    if bulunan_adres or bulunan_tel:
+                        if not kaynak_adi:
+                            kaynak_adi = "Eczane Bilgi Portalı (Açık Ağ)"
+                        break
+            except Exception as e:
+                print(f"[Ağ Arama Hatası - {endpoint_url}] {e}", flush=True)
+                continue
 
     return {
         "eczane_adi": eczane_adi,

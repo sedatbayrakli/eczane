@@ -230,21 +230,37 @@ def admin_api_geocode():
     ilce = request.args.get("ilce", "").strip()
     address = request.args.get("address", "").strip()
 
+    # 0. Aşama: Veritabanında kayıtlı eczane varsa tamamlayıcı bilgi olarak al
+    mevcut_eczane = Pharmacy.query.filter(
+        Pharmacy.name.ilike(f"%{q}%"),
+        Pharmacy.district.ilike(f"%{ilce}%")
+    ).first() if (q and ilce) else None
+
+    db_adres = mevcut_eczane.address if (mevcut_eczane and mevcut_eczane.address) else ""
+    db_tel = mevcut_eczane.phone if (mevcut_eczane and mevcut_eczane.phone) else ""
+    db_sicil = mevcut_eczane.chamber_registration_no if (mevcut_eczane and mevcut_eczane.chamber_registration_no) else ""
+
     # 1. Aşama: Eczacı Odası (İEO) ve Akıllı Bilgi Ağından Adres ve Telefon Sorgulama
     detay = {}
     if q and ilce:
-        detay = eczane_detay_bilgisi_ara(eczane_adi=q, ilce=ilce, il=il, mevcut_adres=address)
+        detay = eczane_detay_bilgisi_ara(eczane_adi=q, ilce=ilce, il=il, mevcut_adres=address or db_adres)
         if not address and detay.get("adres"):
             address = detay.get("adres")
+        elif not address and db_adres:
+            address = db_adres
 
-    # Eğer resmi Eczacı Odası'ndan doğrudan koordinat geldiyse doğrudan döndür
+    nihai_tel = detay.get("telefon") or db_tel
+    nihai_sicil = detay.get("sicil") or db_sicil
+    nihai_kaynak = detay.get("kaynak") or ("Veritabanı Kaydı" if db_adres else "Açık Harita Servisi")
+
+    # Eğer resmi Eczacı Odası'ndan veya veritabanından doğrudan koordinat geldiyse doğrudan döndür
     if detay.get("enlem") and detay.get("boylam"):
         return jsonify({
             "success": True,
             "name": q,
             "address": detay.get("adres") or address,
-            "phone": detay.get("telefon", ""),
-            "chamber_registration_no": detay.get("sicil", ""),
+            "phone": nihai_tel,
+            "chamber_registration_no": nihai_sicil,
             "latitude": float(detay["enlem"]),
             "longitude": float(detay["boylam"]),
             "display_name": f"{detay.get('adres', '')} ({ilce}, {il})",
@@ -352,12 +368,12 @@ def admin_api_geocode():
                         "success": True,
                         "name": q,
                         "address": detay.get("adres") or address,
-                        "phone": detay.get("telefon", ""),
-                        "chamber_registration_no": detay.get("sicil", ""),
+                        "phone": nihai_tel,
+                        "chamber_registration_no": nihai_sicil,
                         "latitude": float(sonuc["lat"]),
                         "longitude": float(sonuc["lon"]),
                         "display_name": display_name,
-                        "source": kaynak_bilgisi,
+                        "source": nihai_kaynak,
                         "is_fallback": is_fallback,
                         "message": mesaj
                     })
