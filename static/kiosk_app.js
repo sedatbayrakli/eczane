@@ -220,9 +220,11 @@ function haritaPinleriniCiz(kendiEczane, nobetciler, seciliIndex = null) {
 }
 
 /**
- * Tema 2 (Navigasyon Rota): Harita Üzerinde Canlı Rota Akışı ve Kamera Odaklanması
+ * Tema 2 (Navigasyon Rota): OSRM API ile Gerçek Yürüyüş Rotası Çizme
+ * Kuş uçuşu düz çizgi DEĞİL, gerçek sokak/cadde üzerinden yol tarifi gösterir.
+ * OSRM (Open Source Routing Machine) ücretsizdir, API key gerektirmez.
  */
-function haritadaRotaGoster(kendiEczane, hedefEczane) {
+async function haritadaRotaGoster(kendiEczane, hedefEczane) {
     if (!kioskMap || !routeLineGroup) return;
 
     routeLineGroup.clearLayers();
@@ -232,37 +234,87 @@ function haritadaRotaGoster(kendiEczane, hedefEczane) {
         return;
     }
 
-    const start = [kendiEczane.latitude, kendiEczane.longitude];
-    const end = [hedefEczane.enlem, hedefEczane.boylam];
+    // OSRM formatı: longitude,latitude (dikkat: önce boylam sonra enlem!)
+    const startLng = kendiEczane.longitude;
+    const startLat = kendiEczane.latitude;
+    const endLng = hedefEczane.boylam;
+    const endLat = hedefEczane.enlem;
 
-    // 1. Zemin Gölge Çizgisi (Geniş Koyu Çizgi)
+    const osrmUrl = `https://router.project-osrm.org/route/v1/foot/${startLng},${startLat};${endLng},${endLat}?overview=full&geometries=geojson`;
+
+    try {
+        const yanit = await fetch(osrmUrl);
+        const data = await yanit.json();
+
+        if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+            const rotaKoordinatlari = data.routes[0].geometry.coordinates;
+
+            // GeoJSON [lng, lat] → Leaflet [lat, lng] formatına çevir
+            const leafletNoktalar = rotaKoordinatlari.map(k => [k[1], k[0]]);
+
+            // 1. Zemin Gölge Çizgisi (Geniş Koyu Alt Katman)
+            const baseRota = L.polyline(leafletNoktalar, {
+                color: '#0369a1',
+                weight: 7,
+                opacity: 0.5,
+                lineCap: 'round',
+                lineJoin: 'round'
+            });
+            routeLineGroup.addLayer(baseRota);
+
+            // 2. Animasyonlu Neon Akış Rotası (Parlak Yürüyüş Yolu)
+            const pulseRota = L.polyline(leafletNoktalar, {
+                color: '#38bdf8',
+                weight: 4,
+                dashArray: '12, 16',
+                className: 'animated-nav-polyline',
+                opacity: 0.95,
+                lineCap: 'round',
+                lineJoin: 'round'
+            });
+            routeLineGroup.addLayer(pulseRota);
+
+            // Haritayı rota sınırlarına yumuşakça odakla
+            try {
+                kioskMap.flyToBounds(baseRota.getBounds(), {
+                    padding: [40, 40],
+                    maxZoom: 16,
+                    duration: 1.2
+                });
+            } catch (e) {
+                kioskMap.fitBounds(baseRota.getBounds(), { padding: [40, 40] });
+            }
+
+            console.log('[Kiosk] OSRM gerçek yürüyüş rotası başarıyla çizildi.');
+        } else {
+            // OSRM rota bulamazsa kuş uçuşu yedek çizgi çiz
+            console.warn('[Kiosk] OSRM rota bulunamadı, yedek düz çizgi çiziliyor.');
+            yedekDuzCizgiCiz(startLat, startLng, endLat, endLng);
+        }
+    } catch (hata) {
+        console.error('[Kiosk] OSRM servisi erişilemedi:', hata);
+        // Ağ hatası durumunda yedek düz çizgi
+        yedekDuzCizgiCiz(startLat, startLng, endLat, endLng);
+    }
+}
+
+/**
+ * OSRM çalışmazsa yedek kuş uçuşu düz çizgi (fallback)
+ */
+function yedekDuzCizgiCiz(startLat, startLng, endLat, endLng) {
+    const start = [startLat, startLng];
+    const end = [endLat, endLng];
+
     const baseLine = L.polyline([start, end], {
-        color: '#0369a1',
-        weight: 6,
-        opacity: 0.5,
-        lineCap: 'round'
+        color: '#0369a1', weight: 5, opacity: 0.4,
+        lineCap: 'round', dashArray: '8, 12'
     });
     routeLineGroup.addLayer(baseLine);
 
-    // 2. Animasyonlu Neon Akış Çizgisi (Kesikli & Parlak)
-    const pulseLine = L.polyline([start, end], {
-        color: '#38bdf8',
-        weight: 4,
-        dashArray: '10, 14',
-        className: 'animated-nav-polyline',
-        opacity: 0.95
-    });
-    routeLineGroup.addLayer(pulseLine);
-
-    // Haritayı bu iki nokta arasına yumuşakça odakla
     try {
-        kioskMap.flyToBounds([start, end], {
-            padding: [45, 45],
-            maxZoom: 16,
-            duration: 1.2
-        });
+        kioskMap.flyToBounds([start, end], { padding: [40, 40], maxZoom: 16, duration: 1.2 });
     } catch (e) {
-        kioskMap.fitBounds([start, end], { padding: [45, 45] });
+        kioskMap.fitBounds([start, end], { padding: [40, 40] });
     }
 }
 
