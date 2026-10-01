@@ -111,6 +111,8 @@ def init_db():
                         conn.execute(text("ALTER TABLE pharmacies ADD COLUMN is_on_duty_today BOOLEAN DEFAULT 0"))
                     if "manual_duty_override_until" not in mevcut_kolonlar:
                         conn.execute(text("ALTER TABLE pharmacies ADD COLUMN manual_duty_override_until DATETIME"))
+                    if "theme" not in mevcut_kolonlar:
+                        conn.execute(text("ALTER TABLE pharmacies ADD COLUMN theme VARCHAR(50) DEFAULT 'classic_grid'"))
                     conn.commit()
         except Exception as hata:
             print(f"[UYARI] Veritabanı kolon denetim hatası: {hata}")
@@ -405,6 +407,7 @@ def admin_add_pharmacy():
     acik_adres = request.form.get("address", "").strip()
     kayan_yazi = request.form.get("ticker_text", "").strip()
     lisans_gun = request.form.get("license_days", 365, type=int)
+    tema = request.form.get("theme", "classic_grid").strip()
 
     if not isim:
         flash("Eczane adı zorunludur!", "danger")
@@ -421,6 +424,7 @@ def admin_add_pharmacy():
         phone=telefon,
         mobile_phone=cep_telefonu,
         address=acik_adres,
+        theme=tema,
         license_key=lisans_anahtari_uret(),
         expires_at=datetime.now() + timedelta(days=lisans_gun),
         is_active=True,
@@ -451,6 +455,7 @@ def admin_edit_pharmacy(eczane_id):
     eczane.mobile_phone = request.form.get("mobile_phone", eczane.mobile_phone).strip()
     eczane.address = request.form.get("address", eczane.address).strip()
     eczane.ticker_text = request.form.get("ticker_text", eczane.ticker_text).strip()
+    eczane.theme = request.form.get("theme", eczane.theme or "classic_grid").strip()
 
     bitis_str = request.form.get("expires_at", "")
     if bitis_str:
@@ -684,7 +689,8 @@ def api_kiosk_data():
             "phone": eczane.phone or "",
             "mobile_phone": eczane.mobile_phone or "",
             "address": eczane.address or "",
-            "ticker_text": eczane.ticker_text
+            "ticker_text": eczane.ticker_text,
+            "theme": eczane.theme or "classic_grid"
         },
         "is_on_duty_today": nihai_nobet_durumu,
         "duty_test_active": eczane.duty_test_aktif_mi(),

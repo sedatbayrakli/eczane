@@ -45,7 +45,7 @@
         }
     </style>
 </head>
-<body class="kiosk-mode">
+<body class="kiosk-mode" data-theme="{{ eczane.theme or 'classic_grid' }}">
 
     <div class="dashboard-wrapper">
 
@@ -115,8 +115,8 @@
         </div>
 
         <!-- Bölünmüş İçerik Düzeni: Sol Kartlar, Sağ Canlı Harita -->
-        <div class="kiosk-content-layout" id="kiosk-layout">
-            <!-- Sol: Eczane Kartları Alanı (TV Optimize Edilmiş CSS Grid) -->
+        <div class="kiosk-content-layout layout-{{ eczane.theme or 'classic_grid' }}" id="kiosk-layout">
+            <!-- Sol / Ana: Eczane Kartları veya Odak Alanı -->
             <main class="pharmacy-grid-container" id="pharmacy-grid">
                 <div class="loading-state">
                     <div class="spinner"></div>
@@ -125,13 +125,17 @@
                 </div>
             </main>
 
-            <!-- Sağ: Canlı Nöbetçi Haritası & Rota Paneli -->
+            <!-- Sağ / Yan: Canlı Nöbetçi Haritası & Rota Paneli -->
             <aside class="kiosk-map-panel" id="kiosk-map-panel">
                 <div class="map-panel-header">
                     <span class="pulse-indicator"></span>
-                    <span>CANLI HARİTA & YOL TARİFİ</span>
+                    <span id="map-panel-title">CANLI HARİTA & YOL TARİFİ</span>
                 </div>
                 <div id="kiosk-leaflet-map" class="kiosk-leaflet-map"></div>
+                <!-- Animasyonlu Rota ve Carousel İlerleme Çubuğu -->
+                <div id="route-progress-bar-container" class="route-progress-container" style="display: none;">
+                    <div id="route-progress-bar" class="route-progress-bar"></div>
+                </div>
             </aside>
         </div>
 
@@ -156,7 +160,8 @@
     <!-- Kiosk Lisanslı İstemci Motoru Parametreleri -->
     <script>
         const LISANS_KEY = "{{ lisans_anahtari }}";
+        const BASLANGIC_TEMASI = "{{ eczane.theme or 'classic_grid' }}";
     </script>
-    <script src="/static/kiosk_app.js?v=2.3"></script>
+    <script src="/static/kiosk_app.js?v=3.0"></script>
 </body>
 </html>

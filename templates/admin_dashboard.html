@@ -382,6 +382,7 @@
                     <th>Canlılık & IP</th>
                     <th>Eczane Bilgisi</th>
                     <th>Konum</th>
+                    <th>Ekran Teması</th>
                     <th>Nöbet Durumu</th>
                     <th>Lisans Kodu</th>
                     <th>Cihaz Kilidi</th>
@@ -431,6 +432,23 @@
                             </div>
                         {% else %}
                             <div style="font-size: 0.72rem; color: #f59e0b; margin-top: 0.2rem;">⚠️ Konum Yok</div>
+                        {% endif %}
+                    </td>
+
+                    <!-- Ekran Teması -->
+                    <td>
+                        {% if e.theme == 'animated_route' %}
+                            <span class="badge" style="background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4);" title="Canlı Rota & Navigasyon Animasyonu">
+                                🧭 Navigasyon
+                            </span>
+                        {% elif e.theme == 'focus_carousel' %}
+                            <span class="badge" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4);" title="Vitrin Carousel & Dev Odak Kartı">
+                                🌟 Carousel
+                            </span>
+                        {% else %}
+                            <span class="badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);" title="Klasik 4'lü Izgara & Harita">
+                                🔲 Klasik Izgara
+                            </span>
                         {% endif %}
                     </td>
 
@@ -540,7 +558,7 @@
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="9" style="text-align: center; padding: 3rem; color: var(--text-muted);">
+                    <td colspan="10" style="text-align: center; padding: 3rem; color: var(--text-muted);">
                         Henüz kayıtlı bir eczane bulunmamaktadır. Sağ üstteki "Yeni Eczane Ekle" butonuna tıklayarak başlayabilirsiniz.
                     </td>
                 </tr>
@@ -635,9 +653,18 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Kayan Yazı Duyurusu</label>
-                        <input type="text" name="ticker_text" class="form-control" placeholder="Eczanemiz halk sağlığı için hizmetinizdedir.">
+                        <label>Kiosk Ekran Teması</label>
+                        <select name="theme" class="form-control">
+                            <option value="classic_grid" selected>1. Versiyon: Klasik 4'lü Izgara & Harita</option>
+                            <option value="animated_route">2. Versiyon: Canlı Yol & Navigasyon Animasyonu</option>
+                            <option value="focus_carousel">3. Versiyon: Vitrin Carousel & Dev Odak Kartı</option>
+                        </select>
                     </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Kayan Yazı Duyurusu</label>
+                    <input type="text" name="ticker_text" class="form-control" placeholder="Eczanemiz halk sağlığı için hizmetinizdedir.">
                 </div>
 
                 <div style="display: flex; justify-content: flex-end; gap: 0.8rem; margin-top: 1.2rem;">
@@ -725,9 +752,18 @@
                         <input type="date" id="edit-expires-at" name="expires_at" class="form-control">
                     </div>
                     <div class="form-group">
-                        <label>Kayan Yazı Duyurusu</label>
-                        <input type="text" id="edit-ticker" name="ticker_text" class="form-control">
+                        <label>Kiosk Ekran Teması</label>
+                        <select id="edit-theme" name="theme" class="form-control">
+                            <option value="classic_grid">1. Versiyon: Klasik 4'lü Izgara & Harita</option>
+                            <option value="animated_route">2. Versiyon: Canlı Yol & Navigasyon Animasyonu</option>
+                            <option value="focus_carousel">3. Versiyon: Vitrin Carousel & Dev Odak Kartı</option>
+                        </select>
                     </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Kayan Yazı Duyurusu</label>
+                    <input type="text" id="edit-ticker" name="ticker_text" class="form-control">
                 </div>
 
                 <div style="display: flex; justify-content: flex-end; gap: 0.8rem; margin-top: 1.2rem;">
@@ -858,6 +894,7 @@
             document.getElementById('edit-latitude').value = eczane.latitude || '';
             document.getElementById('edit-longitude').value = eczane.longitude || '';
             document.getElementById('edit-ticker').value = eczane.ticker_text || '';
+            document.getElementById('edit-theme').value = eczane.theme || 'classic_grid';
 
             if (eczane.expires_at) {
                 document.getElementById('edit-expires-at').value = eczane.expires_at.split(' ')[0];

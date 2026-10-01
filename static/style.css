@@ -780,3 +780,320 @@ body,
     0% { transform: scale(1); opacity: 0.9; }
     100% { transform: scale(2.2); opacity: 0; }
 }
+
+/* ===================================================================
+   8. ÇOKLU KIOSK TEMALARI (TEMA 2: ANIMATED ROUTE & TEMA 3: FOCUS CAROUSEL)
+   =================================================================== */
+
+/* Tema 2: Canlı Yol & Navigasyon Rota Layout */
+.kiosk-content-layout.layout-animated_route {
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+/* Tema 3: Vitrin Carousel Layout */
+.kiosk-content-layout.layout-focus_carousel {
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: 1.5rem;
+}
+
+/* Seçili Odak Pini Vurgusu */
+.pulse-ring-pin.active-focused-pin {
+    width: 36px;
+    height: 36px;
+    background: #dc2626;
+    border-color: #fef08a;
+    box-shadow: 0 0 25px rgba(239, 68, 68, 1), 0 0 10px #f59e0b;
+    z-index: 1000 !important;
+}
+
+.pin-selected-star {
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+}
+
+/* Canlı Rota Neon Polyline Akış Animasyonu */
+@keyframes dashFlow {
+    0% { stroke-dashoffset: 0; }
+    100% { stroke-dashoffset: -48; }
+}
+
+.animated-nav-polyline {
+    animation: dashFlow 1.1s linear infinite !important;
+    filter: drop-shadow(0 0 8px rgba(56, 189, 248, 1));
+}
+
+/* İlerleme Çubuğu (Slayt Zamanlayıcı) */
+.route-progress-container {
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    position: relative;
+    overflow: hidden;
+}
+
+.route-progress-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #38bdf8, #818cf8, #ef4444);
+    box-shadow: 0 0 12px rgba(56, 189, 248, 0.8);
+    transition: width 0.05s linear;
+}
+
+/* Dev Odak Kartı Kapsayıcısı (Focus Container Card) */
+.focus-container-card {
+    background: var(--bg-card);
+    border: 2px solid var(--bg-card-border);
+    border-radius: var(--radius-lg);
+    padding: clamp(1.2rem, 1.8vh, 1.8rem);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.45);
+    position: relative;
+    overflow: hidden;
+}
+
+.focus-container-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 6px;
+    background: linear-gradient(90deg, #38bdf8, #ef4444);
+}
+
+/* Geçiş Animasyonu */
+.animate-fade-in {
+    animation: fadeInFocus 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes fadeInFocus {
+    from { opacity: 0; transform: translateY(12px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Üst Bilgi Satırı */
+.focus-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.6rem;
+}
+
+.focus-duty-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(16, 185, 129, 0.16);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    padding: 0.35rem 0.85rem;
+    border-radius: var(--radius-full);
+    font-size: 0.88rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+}
+
+.focus-mode-badge {
+    background: rgba(56, 189, 248, 0.15);
+    color: #38bdf8;
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    padding: 0.35rem 0.8rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+}
+
+/* Dev Eczane Başlığı */
+.focus-title {
+    font-size: clamp(2rem, 3.2vw, 2.8rem);
+    font-weight: 900;
+    color: var(--text-pure);
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    margin-bottom: 0.4rem;
+}
+
+.focus-badges-row {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.8rem;
+}
+
+.focus-badge-distance {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: rgba(56, 189, 248, 0.2);
+    color: #38bdf8;
+    border: 1.5px solid rgba(56, 189, 248, 0.5);
+    padding: 0.4rem 1rem;
+    border-radius: var(--radius-full);
+    font-size: clamp(0.95rem, 1.3vw, 1.15rem);
+    font-weight: 700;
+}
+
+.focus-badge-distance strong {
+    color: #fff;
+    font-weight: 900;
+}
+
+/* Gövde Grid Düzeni */
+.focus-body-grid {
+    display: grid;
+    grid-template-columns: 1fr 220px;
+    gap: 1.4rem;
+    align-items: stretch;
+    flex: 1;
+    margin: 0.8rem 0;
+}
+
+.focus-details-col {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+    justify-content: center;
+}
+
+.focus-section-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: var(--text-muted);
+    letter-spacing: 0.06em;
+    margin-bottom: 0.3rem;
+    text-transform: uppercase;
+}
+
+.focus-address-card {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--bg-card-border);
+    border-radius: var(--radius-md);
+    padding: 1rem 1.2rem;
+}
+
+.focus-address-text {
+    font-size: clamp(1.05rem, 1.4vw, 1.25rem);
+    line-height: 1.4;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.focus-landmark-box {
+    margin-top: 0.6rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    padding: 0.35rem 0.75rem;
+    border-radius: var(--radius-sm);
+    color: #fde68a;
+    font-size: 0.92rem;
+    font-weight: 600;
+}
+
+.focus-landmark-icon {
+    font-weight: 700;
+}
+
+.focus-phone-card {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--bg-card-border);
+    border-radius: var(--radius-md);
+    padding: 0.8rem 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.focus-phone-number {
+    font-size: clamp(1.2rem, 1.6vw, 1.5rem);
+    font-weight: 800;
+    color: #38bdf8;
+    font-family: var(--font-mono);
+}
+
+/* Sağ QR Alanı */
+.focus-qr-col {
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid var(--bg-card-border);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 0.7rem;
+}
+
+.focus-qr-frame {
+    width: 170px;
+    height: 170px;
+    background: #ffffff;
+    padding: 8px;
+    border-radius: var(--radius-md);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.focus-qr-image {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    image-rendering: pixelated;
+}
+
+.focus-qr-text {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    line-height: 1.35;
+}
+
+.focus-qr-text strong {
+    color: var(--color-accent);
+}
+
+/* Alt Sayfalama / Sekmeler */
+.focus-pagination-bar {
+    display: flex;
+    gap: 0.6rem;
+    overflow-x: auto;
+    padding-top: 0.6rem;
+    border-top: 1px solid var(--bg-card-border);
+}
+
+.focus-page-btn {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--bg-card-border);
+    color: var(--text-secondary);
+    padding: 0.45rem 0.9rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.focus-page-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+}
+
+.focus-page-btn.active {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: #fff;
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.5);
+}
+

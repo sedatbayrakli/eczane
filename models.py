@@ -78,6 +78,8 @@ class Pharmacy(db.Model):
         db.String(500), 
         default="Eczanemiz halk sağlığı için hizmetinizdedir. Reçeteli ve reçetesiz ilaçlarınız için danışabilirsiniz."
     )
+    # Kiosk Ekran Teması ('classic_grid', 'animated_route', 'focus_carousel')
+    theme = db.Column(db.String(50), default="classic_grid", nullable=False)
     
     # TV Ekranı Cihaz Kilitleme & IP Takibi (Kaçak Kullanımı Engelleme)
     registered_device_token = db.Column(db.String(128), nullable=True) # İlk bağlanan TV'nin parmak izi
@@ -173,7 +175,8 @@ class Pharmacy(db.Model):
             "last_ping": self.last_ping.strftime("%Y-%m-%d %H:%M:%S") if self.last_ping else None,
             "last_ip": self.last_ip or "Bilinmiyor",
             "is_device_locked": bool(self.registered_device_token),
-            "ticker_text": self.ticker_text
+            "ticker_text": self.ticker_text,
+            "theme": self.theme or "classic_grid"
         }
 
     def __repr__(self):
