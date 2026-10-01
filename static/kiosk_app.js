@@ -335,8 +335,13 @@ function arayuzuGuncelle(veri, isOffline = false, savedTime = '') {
         elOfflineBadge.classList.add('hidden');
     }
 
-    // Eczaneler Listesi Render
+    // Eczaneler Listesi Render (Lisans sahibi eczaneye en yakın 1. sırada)
     if (Array.isArray(veri.eczaneler) && veri.eczaneler.length > 0) {
+        veri.eczaneler.sort((a, b) => {
+            const mA = (typeof a.mesafe_metre === 'number') ? a.mesafe_metre : 9999999;
+            const mB = (typeof b.mesafe_metre === 'number') ? b.mesafe_metre : 9999999;
+            return mA - mB;
+        });
         elPharmacyCount.textContent = veri.eczaneler.length;
 
         elPharmacyGrid.className = 'pharmacy-grid-container';

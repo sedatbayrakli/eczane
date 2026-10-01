@@ -706,4 +706,8 @@ def _mesafe_ve_rotalari_zenginlestir(eczaneler: List[Dict[str, Any]],
 
         zengin_liste.append(item)
 
+    # Lisans sahibi eczaneye en yakın nöbetçi eczaneyi 1. sıraya al (Küçükten büyüğe mesafe sıralaması)
+    if kendi_enlem and kendi_boylam:
+        zengin_liste.sort(key=lambda x: x["mesafe_metre"] if x.get("mesafe_metre") is not None else float("inf"))
+
     return zengin_liste

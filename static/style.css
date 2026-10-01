@@ -280,9 +280,9 @@ body,
     display: grid;
     /* TV Ekranı için 2x2 veya 3x2 Dengeli Dağılım */
     grid-template-columns: repeat(2, 1fr);
-    grid-gap: 1.2rem;
+    grid-gap: clamp(0.6rem, 1.2vh, 1rem);
     overflow-y: auto;
-    padding: 0.2rem 0.2rem 0.5rem 0.2rem;
+    padding: 0.2rem 0.2rem 0.4rem 0.2rem;
     align-content: stretch;
 }
 
@@ -308,7 +308,7 @@ body,
     background: var(--bg-card);
     border: 1.5px solid var(--bg-card-border);
     border-radius: var(--radius-lg);
-    padding: 1.3rem 1.5rem;
+    padding: clamp(0.7rem, 1.1vh, 0.95rem) 1.1rem;
     display: flex;
     justify-content: space-between;
     align-items: stretch;
@@ -325,7 +325,7 @@ body,
     left: 0;
     top: 0;
     bottom: 0;
-    width: 6px;
+    width: 5px;
     background: linear-gradient(to bottom, var(--color-primary), var(--color-primary-dark));
 }
 
@@ -340,52 +340,57 @@ body,
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    padding-right: 1.2rem;
-    gap: 0.8rem;
+    padding-right: 0.9rem;
+    gap: clamp(0.25rem, 0.5vh, 0.45rem);
+    min-width: 0;
 }
 
 .card-top-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 0.8rem;
+    gap: 0.5rem;
     flex-wrap: wrap;
 }
 
 .pharmacy-name-title {
-    font-size: 1.75rem;
+    font-size: clamp(1.2rem, 1.45vw, 1.45rem);
     font-weight: 800;
     color: var(--text-pure);
     letter-spacing: -0.01em;
-    line-height: 1.2;
+    line-height: 1.15;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
 }
 
 .card-badges {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.4rem;
 }
 
 .badge-duty {
     background: rgba(16, 185, 129, 0.16);
     color: #34d399;
     border: 1px solid rgba(16, 185, 129, 0.35);
-    padding: 0.3rem 0.75rem;
+    padding: 0.2rem 0.6rem;
     border-radius: var(--radius-full);
-    font-size: 0.88rem;
+    font-size: 0.8rem;
     font-weight: 700;
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
+    gap: 0.35rem;
 }
 
 .badge-semt {
     background: rgba(56, 189, 248, 0.12);
     color: #7dd3fc;
     border: 1px solid rgba(56, 189, 248, 0.3);
-    padding: 0.3rem 0.75rem;
+    padding: 0.2rem 0.6rem;
     border-radius: var(--radius-full);
-    font-size: 0.88rem;
+    font-size: 0.8rem;
     font-weight: 600;
 }
 
@@ -393,45 +398,54 @@ body,
 .card-address-block {
     display: flex;
     flex-direction: column;
-    gap: 0.45rem;
+    gap: 0.25rem;
 }
 
 .card-address-text {
-    font-size: 1.18rem;
-    line-height: 1.45;
+    font-size: clamp(0.85rem, 0.98vw, 0.95rem);
+    line-height: 1.32;
     color: var(--text-primary);
     font-weight: 500;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
 .card-landmark-box {
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.4rem;
     background: rgba(245, 158, 11, 0.08);
     border: 1px solid rgba(245, 158, 11, 0.22);
-    padding: 0.35rem 0.75rem;
+    padding: 0.2rem 0.55rem;
     border-radius: var(--radius-sm);
     color: #fde68a;
-    font-size: 0.98rem;
+    font-size: 0.82rem;
     font-weight: 600;
     width: fit-content;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
 }
 
 .card-landmark-icon {
-    font-size: 1.1rem;
+    font-size: 0.95rem;
 }
 
 /* Telefon Numarası Alanı */
 .card-phone-row {
     display: flex;
     align-items: center;
-    gap: 0.7rem;
-    margin-top: 0.2rem;
+    gap: 0.6rem;
+    margin-top: 0.1rem;
 }
 
 .phone-icon-box {
-    width: 38px;
-    height: 38px;
+    width: 30px;
+    height: 30px;
+    min-width: 30px;
     background: rgba(239, 68, 68, 0.12);
     border: 1px solid rgba(239, 68, 68, 0.25);
     border-radius: 50%;
@@ -441,12 +455,17 @@ body,
     color: var(--color-primary);
 }
 
+.phone-icon-box svg {
+    width: 16px;
+    height: 16px;
+}
+
 .phone-number-display {
     font-family: var(--font-mono);
-    font-size: 1.45rem;
+    font-size: clamp(1.1rem, 1.3vw, 1.25rem);
     font-weight: 800;
     color: #ffffff;
-    letter-spacing: 0.03em;
+    letter-spacing: 0.02em;
 }
 
 /* Sağ Bölüm: Dinamik QR Kod Kartı */
@@ -458,18 +477,18 @@ body,
     background: rgba(0, 0, 0, 0.28);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: var(--radius-md);
-    padding: 0.75rem 0.9rem;
-    width: 145px;
-    min-width: 145px;
+    padding: 0.5rem 0.6rem;
+    width: 120px;
+    min-width: 120px;
     text-align: center;
     box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.3);
 }
 
 .qr-image-wrapper {
-    width: 110px;
-    height: 110px;
+    width: 85px;
+    height: 85px;
     background: #ffffff;
-    padding: 6px;
+    padding: 4px;
     border-radius: var(--radius-sm);
     display: flex;
     align-items: center;
@@ -485,7 +504,7 @@ body,
 }
 
 .qr-caption {
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     color: var(--text-secondary);
     font-weight: 700;
     margin-top: 0.55rem;
