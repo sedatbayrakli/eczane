@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.env
+
+# IDE / Editör
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# İşletim Sistemi
+.DS_Store
+Thumbs.db
