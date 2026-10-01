@@ -715,6 +715,10 @@ body,
     font-weight: 700;
 }
 
+.badge-offline-status.hidden {
+    display: none !important;
+}
+
 /* Harita Özel Marker Stilleri */
 .custom-leaflet-marker {
     background: transparent;
