@@ -596,7 +596,7 @@
 
                 <div class="form-group">
                     <label>Açık Adres</label>
-                    <input type="text" name="address" class="form-control" placeholder="Mahalle, cadde, sokak ve kapı no">
+                    <input type="text" id="add-address" name="address" class="form-control" placeholder="Mahalle, cadde, sokak ve kapı no">
                 </div>
 
                 <!-- Akıllı Konum & Harita Seçimi -->
@@ -862,14 +862,16 @@
             haritayiBaslat('edit', eczane.latitude, eczane.longitude);
         }
 
-        // Otomatik Koordinat Bulucu (Nominatim API)
+        // Otomatik Koordinat Bulucu (Nominatim API - İlçe Doğrulamalı ve Açık Adres Öncelikli)
         async function konumOtomatikBul(tur) {
-            const name = document.getElementById(`${tur}-name`).value.trim();
-            const city = document.getElementById(`${tur}-city`).value.trim();
-            const district = document.getElementById(`${tur}-district`).value.trim();
+            const name = document.getElementById(`${tur}-name`) ? document.getElementById(`${tur}-name`).value.trim() : '';
+            const city = document.getElementById(`${tur}-city`) ? document.getElementById(`${tur}-city`).value.trim() : '';
+            const district = document.getElementById(`${tur}-district`) ? document.getElementById(`${tur}-district`).value.trim() : '';
+            const addressInput = document.getElementById(`${tur}-address`);
+            const address = addressInput ? addressInput.value.trim() : '';
 
-            if (!name && !district) {
-                alert('Lütfen en azından eczane adı veya ilçe giriniz.');
+            if (!name && !district && !address) {
+                alert('Lütfen en azından eczane adı, ilçe veya açık adres giriniz.');
                 return;
             }
 
@@ -879,7 +881,7 @@
             btn.disabled = true;
 
             try {
-                const url = `/admin/api/geocode?q=${encodeURIComponent(name)}&il=${encodeURIComponent(city)}&ilce=${encodeURIComponent(district)}`;
+                const url = `/admin/api/geocode?q=${encodeURIComponent(name)}&il=${encodeURIComponent(city)}&ilce=${encodeURIComponent(district)}&address=${encodeURIComponent(address)}`;
                 const res = await fetch(url);
                 const data = await res.json();
 
@@ -887,7 +889,12 @@
                     document.getElementById(`${tur}-latitude`).value = data.latitude.toFixed(6);
                     document.getElementById(`${tur}-longitude`).value = data.longitude.toFixed(6);
                     haritayiBaslat(tur, data.latitude, data.longitude);
-                    alert(`Konum başarıyla tespit edildi:\n${data.display_name}`);
+
+                    if (data.is_fallback) {
+                        alert(`ℹ️ BİLGİLENDİRME:\n${data.message}\n\nKonum: ${data.display_name}`);
+                    } else {
+                        alert(`✅ Konum başarıyla tespit edildi:\n${data.display_name}`);
+                    }
                 } else {
                     alert(data.message || 'Konum tespit edilemedi.');
                 }

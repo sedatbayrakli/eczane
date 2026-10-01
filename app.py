@@ -220,43 +220,121 @@ def admin_dashboard():
 @login_required
 def admin_api_geocode():
     """
-    OpenStreetMap Nominatim üzerinden eczane adı ve il/ilçe için koordinat arar.
+    OpenStreetMap Nominatim üzerinden eczane adı, açık adres ve il/ilçe için akıllı koordinat arar.
     Admin formundan 'Konumu Otomatik Bul' butonuna basıldığında çağrılır.
+    Kesinlikle başka ilçelerin koordinatlarını kabul etmez (ilçe sınır kontrolü).
     """
     q = request.args.get("q", "").strip()
     il = request.args.get("il", "İstanbul").strip()
     ilce = request.args.get("ilce", "").strip()
-
-    arama_terimleri = [
-        f"{q}, {ilce}, {il}, Türkiye",
-        f"{q} eczanesi, {ilce}, {il}",
-        f"{q}, {il}, Türkiye",
-        f"{ilce}, {il}, Türkiye"
-    ]
+    address = request.args.get("address", "").strip()
 
     tarayici_basligi = {
         "User-Agent": "EczaneKioskSystem/2.0 (destek@cakirlar.net)"
     }
 
-    for sorgu in arama_terimleri:
+    def metin_norm(s: str) -> str:
+        """Karşılaştırma için Türkçe karakterleri normalize eder."""
+        if not s:
+            return ""
+        tr_map = str.maketrans("İIĞÜŞÖÇığıüşöç", "iiguusociguuso")
+        return s.translate(tr_map).lower().strip()
+
+    def ilce_dogrula(sonuc_item: dict, hedef_ilce: str) -> bool:
+        """Gelen koordinat sonucunun gerçekten hedef ilçede olup olmadığını denetler."""
+        if not hedef_ilce:
+            return True
+        hedef_norm = metin_norm(hedef_ilce)
+        if not hedef_norm:
+            return True
+        
+        addr_dict = sonuc_item.get("address", {})
+        display_name = metin_norm(sonuc_item.get("display_name", ""))
+        
+        # İlçe ve mahalle alanlarını kontrol et
+        kontrol_alanlari = [
+            metin_norm(addr_dict.get("county", "")),
+            metin_norm(addr_dict.get("district", "")),
+            metin_norm(addr_dict.get("city_district", "")),
+            metin_norm(addr_dict.get("suburb", "")),
+            metin_norm(addr_dict.get("town", "")),
+            metin_norm(addr_dict.get("municipality", "")),
+        ]
+        
+        # Hedef ilçe bu alanlardan birinde veya display_name içinde geçiyor mu?
+        for alan in kontrol_alanlari:
+            if alan and (hedef_norm in alan or alan in hedef_norm):
+                return True
+        if hedef_norm in display_name:
+            return True
+            
+        return False
+
+    # Arama terimlerini öncelik sırasına göre hazırla
+    arama_terimleri = []
+    
+    # 1. Öncelik: Açık adres verildiyse adres odaklı arama
+    if address:
+        arama_terimleri.append((f"{address}, {ilce}, {il}, Türkiye", False))
+        
+        # Adresten Mahalle ve Sokak ayıklama (Örn: Zafer Mah., Gümüş Sok.)
+        m_mah = re.search(r'([A-Za-zÇŞĞÜÖİçşğüöı0-9]+)\s*(?:Mah\.|Mahallesi|Mah)', address, re.IGNORECASE)
+        m_sok = re.search(r'([A-Za-zÇŞĞÜÖİçşğüöı0-9\s]+?)\s*(?:Sok\.|Sokak|Sokağı|Cad\.|Caddesi)', address, re.IGNORECASE)
+        
+        if m_mah and m_sok:
+            sok_adi = m_sok.group(1).split()[-1]
+            arama_terimleri.append((f"{m_mah.group(1)} Mahallesi, {sok_adi} Sokak, {ilce}, {il}", False))
+        if m_mah:
+            arama_terimleri.append((f"{m_mah.group(1)} Mahallesi, {ilce}, {il}", False))
+        if m_sok:
+            sok_adi = m_sok.group(1).split()[-1]
+            arama_terimleri.append((f"{sok_adi} Sokak, {ilce}, {il}", False))
+
+    # 2. Öncelik: Eczane adı + ilçe
+    if q:
+        q_temiz = re.sub(r'(?i)\beczane(si)?\b', '', q).strip()
+        arama_terimleri.append((f"{q}, {ilce}, {il}, Türkiye", False))
+        if q_temiz != q:
+            arama_terimleri.append((f"{q_temiz} Eczanesi, {ilce}, {il}", False))
+            arama_terimleri.append((f"{q_temiz} Eczanesi, {ilce}", False))
+        arama_terimleri.append((f"{q}, {ilce}", False))
+
+    # 3. Öncelik (Güvenli Fallback): Yalnızca hedef ilçenin kendi merkezi (Asla başka ilçeye atlamaz!)
+    if ilce:
+        arama_terimleri.append((f"{ilce}, {il}, Türkiye", True))
+    elif il:
+        arama_terimleri.append((f"{il}, Türkiye", True))
+
+    for sorgu, is_fallback in arama_terimleri:
         try:
-            url = f"https://nominatim.openstreetmap.org/search?q={urllib.parse.quote(sorgu)}&format=json&limit=1&countrycodes=tr"
+            url = f"https://nominatim.openstreetmap.org/search?q={urllib.parse.quote(sorgu)}&format=json&limit=5&addressdetails=1&countrycodes=tr"
             r = requests.get(url, headers=tarayici_basligi, timeout=6)
             if r.status_code == 200:
                 sonuclar = r.json()
-                if sonuclar and len(sonuclar) > 0:
+                for sonuc in sonuclar:
+                    # İlçe uyumu kontrolü - Farklı ilçeler kesinlikle elenir!
+                    if ilce and not ilce_dogrula(sonuc, ilce):
+                        continue
+
+                    display_name = sonuc.get("display_name", "")
+                    mesaj = "Konum başarıyla tespit edildi."
+                    if is_fallback:
+                        mesaj = f"Eczane için nokta atışı adres bulunamadı, {ilce} ilçe merkezine odaklanıldı. Lütfen harita üzerinden pini tam eczane konumunuza taşıyınız."
+
                     return jsonify({
                         "success": True,
-                        "latitude": float(sonuclar[0]["lat"]),
-                        "longitude": float(sonuclar[0]["lon"]),
-                        "display_name": sonuclar[0].get("display_name", "")
+                        "latitude": float(sonuc["lat"]),
+                        "longitude": float(sonuc["lon"]),
+                        "display_name": display_name,
+                        "is_fallback": is_fallback,
+                        "message": mesaj
                     })
         except Exception:
             continue
 
     return jsonify({
         "success": False,
-        "message": "Koordinat tespit edilemedi. Lütfen harita üzerinden pini sürükleyerek konumu belirleyiniz."
+        "message": f"{ilce} ilçesinde koordinat tespit edilemedi. Lütfen harita üzerinden pini sürükleyerek konumu belirleyiniz."
     }), 404
 
 
