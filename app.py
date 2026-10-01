@@ -235,7 +235,8 @@ def nobetci_eczaneleri_cek(il: str = "istanbul", ilce: str = "bahcelievler") -> 
     """Hedef kaynaktan güncel nöbetçi eczaneleri web kazıma yöntemiyle çeker."""
     il_slug = turkce_karakter_temizle(il)
     ilce_slug = turkce_karakter_temizle(ilce)
-    hedef_url = f"https://www.nobetcieczaneler.org/{il_slug}/{ilce_slug}"
+    # nobetcieczaneler.org yeni URL şeması: /nobetci-eczane/{il}/{ilce}
+    hedef_url = f"https://www.nobetcieczaneler.org/nobetci-eczane/{il_slug}/{ilce_slug}"
 
     tarayici_basliklari = {
         "User-Agent": (
@@ -248,9 +249,13 @@ def nobetci_eczaneleri_cek(il: str = "istanbul", ilce: str = "bahcelievler") -> 
     }
 
     try:
-        yanit = requests.get(hedef_url, headers=tarayici_basliklari, timeout=12)
+        yanit = requests.get(hedef_url, headers=tarayici_basliklari, timeout=12, allow_redirects=True)
         if yanit.status_code != 200:
-            return [], f"Kaynak site HTTP {yanit.status_code} döndü"
+            # Alternatif eski URL şemasını dene
+            eski_url = f"https://www.nobetcieczaneler.org/{il_slug}/{ilce_slug}"
+            yanit = requests.get(eski_url, headers=tarayici_basliklari, timeout=12, allow_redirects=True)
+            if yanit.status_code != 200:
+                return [], f"Kaynak site HTTP {yanit.status_code} döndü"
 
         icerik = yanit.text
 
