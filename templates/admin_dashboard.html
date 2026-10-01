@@ -784,10 +784,15 @@
         }
 
         function tvOnizlemeAc(url, eczaneAdi) {
+            // HTTPS sayfada HTTP iframe mixed content hatası verir, protokolü eşitle
+            let targetUrl = url;
+            if (targetUrl.startsWith('http://') && window.location.protocol === 'https:') {
+                targetUrl = targetUrl.replace('http://', 'https://');
+            }
             document.getElementById('preview-title').textContent = `📺 TV Kiosk Önizleme - ${eczaneAdi}`;
-            document.getElementById('preview-url-text').textContent = url;
-            document.getElementById('preview-fullscreen-link').href = url;
-            document.getElementById('preview-iframe').src = url;
+            document.getElementById('preview-url-text').textContent = targetUrl;
+            document.getElementById('preview-fullscreen-link').href = targetUrl;
+            document.getElementById('preview-iframe').src = targetUrl;
             modalAc('modal-preview');
         }
 

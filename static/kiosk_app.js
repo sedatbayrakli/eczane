@@ -133,10 +133,10 @@ function haritayiGuncelle(kendiEczane, nobetciler) {
             attributionControl: false
         });
 
-        // Koyu Tema Harita Katmanı (CartoDB DarkMatter)
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        // Koyu Tema Harita Katmanı (OpenStreetMap + CSS Koyu Gece Filtresi - Sıfır API Key, Sıfır Filigran)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
-            subdomains: 'abcd'
+            attribution: '© OpenStreetMap'
         }).addTo(kioskMap);
 
         mapMarkersGroup = L.featureGroup().addTo(kioskMap);

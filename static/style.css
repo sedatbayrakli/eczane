@@ -236,8 +236,10 @@ body,
     animation: slideDown 0.4s ease-out;
 }
 
+.hidden,
+.badge-offline-status.hidden,
 .system-alert.hidden {
-    display: none;
+    display: none !important;
 }
 
 .system-alert .alert-icon {
@@ -673,6 +675,11 @@ body,
     width: 100%;
     min-height: 200px;
     background: #0d1117;
+}
+
+/* OpenStreetMap Koyu Gece Modu Filtresi (API Key gerektirmez, Carto filigranını yok eder) */
+.kiosk-leaflet-map .leaflet-tile-pane {
+    filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3);
 }
 
 /* Mesafe ve Yürüme Süresi Rozeti */

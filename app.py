@@ -204,8 +204,10 @@ def admin_dashboard():
     aktif_sayi = sum(1 for e in eczaneler if e.lisans_gecerli_mi())
     cevrimici_sayi = sum(1 for e in eczaneler if e.ekran_cevrimici_mi())
 
-    # Host ve protokol bilgisi (kiosk URL kopyalama için)
-    base_url = request.host_url.rstrip("/")
+    # Host ve protokol bilgisi (kiosk URL kopyalama ve önizleme için HTTPS duyarlı)
+    proto = request.headers.get("X-Forwarded-Proto", request.scheme)
+    host = request.headers.get("X-Forwarded-Host", request.host)
+    base_url = f"{proto}://{host}"
 
     return render_template(
         "admin_dashboard.html",
@@ -727,6 +729,13 @@ def api_health():
         "timestamp": datetime.now().isoformat(),
         "database": "connected"
     }), 200
+
+
+@app.after_request
+def ekle_guvenlik_basliklari(response):
+    """TV Kiosk önizleme penceresinin iframe içinde açılabilmesini sağlar."""
+    response.headers["X-Frame-Options"] = "SAMEORIGIN"
+    return response
 
 
 # Uygulama ayağa kalktığında veritabanını başlat
