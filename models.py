@@ -68,9 +68,35 @@ class Pharmacy(db.Model):
         default="Eczanemiz halk sağlığı için hizmetinizdedir. Reçeteli ve reçetesiz ilaçlarınız için danışabilirsiniz."
     )
     
+    # TV Ekranı Cihaz Kilitleme & IP Takibi (Kaçak Kullanımı Engelleme)
+    registered_device_token = db.Column(db.String(128), nullable=True) # İlk bağlanan TV'nin parmak izi
+    last_ip = db.Column(db.String(64), nullable=True)                  # TV ekranının son IP adresi
+    device_lock_enabled = db.Column(db.Boolean, default=True)          # Tek cihaz kilidi aktif mi
+
     # TV Ekranı Canlılık Takibi (Heartbeat)
     last_ping = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def cihaz_uyumlu_mu(self, gelen_token: str) -> bool:
+        """
+        Gelen TV cihaz token'ının bu lisansa kayıtlı cihazla eşleşip eşleşmediğini kontrol eder.
+        İlk çalıştırmada cihaz yoksa gelen cihazı bu lisansa kilitler.
+        """
+        if not self.device_lock_enabled:
+            return True
+        if not self.registered_device_token:
+            # İlk bağlanan TV cihazını kaydet
+            self.registered_device_token = gelen_token
+            return True
+        return self.registered_device_token == gelen_token
+
+    def cihaz_kilidi_sifirla(self):
+        """
+        Kayıtlı TV cihaz kilidini sıfırlar.
+        Böylece eczane yeni bir TV aldığında sisteme bağlanabilir.
+        """
+        self.registered_device_token = None
+        self.last_ip = None
 
     def lisans_gecerli_mi(self) -> bool:
         """
@@ -114,6 +140,8 @@ class Pharmacy(db.Model):
             "kalan_gun": self.kalan_gun_sayisi(),
             "is_online": self.ekran_cevrimici_mi(),
             "last_ping": self.last_ping.strftime("%Y-%m-%d %H:%M:%S") if self.last_ping else None,
+            "last_ip": self.last_ip or "Bilinmiyor",
+            "is_device_locked": bool(self.registered_device_token),
             "ticker_text": self.ticker_text
         }
 

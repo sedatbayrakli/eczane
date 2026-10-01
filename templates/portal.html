@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Giriş & Kurulum | Nöbetçi Eczane Kiosk TV</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        body {
+            background: #080a10;
+            color: #f8fafc;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+        }
+        .portal-card {
+            background: rgba(18, 24, 38, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 20px;
+            padding: 3rem 2.5rem;
+            max-width: 520px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
+        }
+        .portal-icon {
+            width: 72px;
+            height: 72px;
+            background: linear-gradient(135deg, #ef4444, #b91c1c);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.2rem;
+            font-weight: 900;
+            color: #fff;
+            margin: 0 auto 1.5rem;
+            box-shadow: 0 10px 25px rgba(239, 68, 68, 0.4);
+        }
+        .portal-title {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #fff;
+            margin-bottom: 0.5rem;
+        }
+        .portal-desc {
+            font-size: 0.95rem;
+            color: #94a3b8;
+            line-height: 1.5;
+            margin-bottom: 2rem;
+        }
+        .portal-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+        }
+        .input-group {
+            text-align: left;
+        }
+        .input-label {
+            display: block;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #cbd5e1;
+            margin-bottom: 0.4rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .input-key {
+            width: 100%;
+            padding: 0.85rem 1.1rem;
+            background: rgba(0, 0, 0, 0.4);
+            border: 2px solid rgba(255, 255, 255, 0.12);
+            border-radius: 12px;
+            color: #fbbf24;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.15rem;
+            font-weight: 700;
+            text-align: center;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+        .input-key:focus {
+            border-color: #ef4444;
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.25);
+        }
+        .btn-start {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: #fff;
+            border: none;
+            padding: 0.95rem 1.5rem;
+            border-radius: 12px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 10px 20px rgba(239, 68, 68, 0.3);
+        }
+        .btn-start:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 25px rgba(239, 68, 68, 0.45);
+        }
+        .portal-footer {
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            font-size: 0.85rem;
+            color: #64748b;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .portal-footer a {
+            color: #38bdf8;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .portal-footer a:hover {
+            text-decoration: underline;
+        }
+        .security-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.78rem;
+            color: #10b981;
+            background: rgba(16, 185, 129, 0.1);
+            padding: 0.3rem 0.7rem;
+            border-radius: 9999px;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(16, 185, 129, 0.25);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="portal-card">
+        <div class="portal-icon">E</div>
+        <h1 class="portal-title">Nöbetçi Eczane TV</h1>
+        <p class="portal-desc">
+            Bu ekran ticari bir SaaS Kiosk ürünüdür. TV ekranını yayına almak için lütfen eczanenize tanımlanan lisans anahtarını giriniz.
+        </p>
+
+        <div class="security-badge">
+            <span>🔒</span> Donanım & Cihaz Kilidi Korumalı
+        </div>
+
+        <form class="portal-form" action="/kiosk" method="GET">
+            <div class="input-group">
+                <label class="input-label" for="key">Kiosk Lisans Anahtarı</label>
+                <input 
+                    type="text" 
+                    id="key" 
+                    name="key" 
+                    class="input-key" 
+                    placeholder="ECZ-XXXX-XXXX" 
+                    required 
+                    autocomplete="off" 
+                    autofocus
+                >
+            </div>
+            <button type="submit" class="btn-start">
+                📺 TV Ekranını Başlat
+            </button>
+        </form>
+
+        <div class="portal-footer">
+            <span>Sistem Yöneticisi misiniz?</span>
+            <a href="/admin">Yönetim Paneli Girişi &rarr;</a>
+        </div>
+    </div>
+
+</body>
+</html>

@@ -121,16 +121,55 @@ function uyariDurumunuAyarla(gosterilsinMi, baslik = '', mesaj = '') {
 }
 
 /**
+ * Bu TV ekranı için benzersiz cihaz kimliği (Device Token) oluşturur veya var olanı getirir.
+ * Tarayıcı kapatılsa veya TV yeniden başlatılsa dahi aynı cihaz olarak tanınır.
+ */
+function getOrCreateDeviceToken() {
+    let token = localStorage.getItem('kiosk_device_token');
+    if (!token) {
+        if (window.crypto && crypto.randomUUID) {
+            token = 'tv-' + crypto.randomUUID();
+        } else {
+            token = 'tv-' + Math.random().toString(36).substring(2, 15) + '-' + Date.now();
+        }
+        localStorage.setItem('kiosk_device_token', token);
+    }
+    return token;
+}
+
+/**
  * Lisanslı Kiosk Verilerini ve Heartbeat Sinyalini Gönderir
  */
 async function kioskVerileriniGetir() {
-    const apiAdresi = `/api/kiosk-data?key=${encodeURIComponent(LISANS_KEY)}&_t=${Date.now()}`;
+    const deviceToken = getOrCreateDeviceToken();
+    const apiAdresi = `/api/kiosk-data?key=${encodeURIComponent(LISANS_KEY)}&device_token=${encodeURIComponent(deviceToken)}&_t=${Date.now()}`;
 
     try {
         const yanit = await fetch(apiAdresi);
 
-        // Lisans süresi dolduysa veya yetkisizse sayfayı yenileyerek hata ekranına geçir
+        // Lisans geçersiz, süresi dolmuş veya başka cihaza kilitli
         if (yanit.status === 403 || yanit.status === 401) {
+            const errData = await yanit.json().catch(() => ({}));
+            if (errData.reason === 'device_mismatch') {
+                document.body.innerHTML = `
+                    <div style="background:#080a10;color:#fff;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem;text-align:center;font-family:Inter,sans-serif;">
+                        <div style="background:rgba(18,24,38,0.95);border:2px solid #ef4444;border-radius:24px;padding:3.5rem 3rem;max-width:700px;box-shadow:0 0 40px rgba(239,68,68,0.2);">
+                            <div style="font-size:4rem;margin-bottom:1rem;">🔒</div>
+                            <h1 style="font-size:2.2rem;margin-bottom:1rem;color:#f87171;">Cihaz Kilidi Engeli</h1>
+                            <p style="font-size:1.25rem;color:#cbd5e1;line-height:1.6;margin-bottom:2rem;">
+                                Bu lisans anahtarı başka bir TV ekranına kilitlenmiştir. Sistem güvenliği gereği aynı lisans birden fazla cihazda açılamaz.
+                            </p>
+                            <div style="background:rgba(0,0,0,0.5);border:1px dashed rgba(255,255,255,0.2);padding:1rem 1.8rem;border-radius:12px;display:inline-block;font-family:'JetBrains Mono',monospace;color:#fbbf24;font-size:1.4rem;font-weight:700;margin-bottom:1.5rem;">
+                                Lisans: ${escapeHtml(LISANS_KEY)}
+                            </div>
+                            <p style="font-size:0.95rem;color:#64748b;">
+                                TV cihazınızı değiştirdiyseniz, Yönetim Panelinden "Cihaz Kilidini Sıfırla" butonuna tıklayıp sayfayı yenileyiniz.
+                            </p>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
             window.location.reload();
             return;
         }

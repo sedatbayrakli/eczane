@@ -326,10 +326,11 @@
         <table>
             <thead>
                 <tr>
-                    <th>Canlılık</th>
+                    <th>Canlılık & IP</th>
                     <th>Eczane Adı</th>
                     <th>Konum</th>
                     <th>Lisans Kodu</th>
+                    <th>Cihaz Kilidi</th>
                     <th>Kiosk URL</th>
                     <th>Kalan Süre</th>
                     <th>Durum</th>
@@ -339,16 +340,21 @@
             <tbody>
                 {% for e in eczaneler %}
                 <tr>
-                    <!-- Canlılık Heartbeat -->
+                    <!-- Canlılık Heartbeat & IP -->
                     <td>
-                        <div style="display: flex; align-items: center; gap: 0.5rem;">
-                            {% if e.ekran_cevrimici_mi() %}
-                                <span class="heartbeat-dot dot-online" title="Ekran Açık (Son ping: {{ e.last_ping.strftime('%H:%M:%S') }})"></span>
-                                <span style="font-size: 0.8rem; color: #34d399;">Açık</span>
-                            {% else %}
-                                <span class="heartbeat-dot dot-offline" title="Ekran Kapalı / Sinyal Yok"></span>
-                                <span style="font-size: 0.8rem; color: #94a3b8;">Kapalı</span>
-                            {% endif %}
+                        <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                {% if e.ekran_cevrimici_mi() %}
+                                    <span class="heartbeat-dot dot-online" title="Ekran Açık (Son ping: {{ e.last_ping.strftime('%H:%M:%S') }})"></span>
+                                    <span style="font-size: 0.8rem; color: #34d399; font-weight: 600;">Açık</span>
+                                {% else %}
+                                    <span class="heartbeat-dot dot-offline" title="Ekran Kapalı / Sinyal Yok"></span>
+                                    <span style="font-size: 0.8rem; color: #94a3b8;">Kapalı</span>
+                                {% endif %}
+                            </div>
+                            <div style="font-size: 0.72rem; color: #64748b; font-family: monospace;">
+                                IP: {{ e.last_ip or 'Yok' }}
+                            </div>
                         </div>
                     </td>
 
@@ -365,6 +371,26 @@
                     <!-- Lisans Kodu -->
                     <td>
                         <span class="license-code">{{ e.license_key }}</span>
+                    </td>
+
+                    <!-- Cihaz Kilidi & Eşleşme -->
+                    <td>
+                        {% if e.registered_device_token %}
+                            <div style="display: flex; align-items: center; gap: 0.35rem;">
+                                <span class="badge" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); font-size: 0.75rem;">
+                                    🔒 Kilitli
+                                </span>
+                                <form method="POST" action="/admin/pharmacy/{{ e.id }}/reset-device" style="display:inline;" onsubmit="return confirm('{{ e.name }} TV cihaz kilidini sıfırlamak istiyor musunuz?');">
+                                    <button type="submit" class="btn btn-sm btn-secondary" style="padding: 0.15rem 0.4rem; font-size: 0.7rem;" title="Yeni TV için kilidi sıfırla">
+                                        Sıfırla
+                                    </button>
+                                </form>
+                            </div>
+                        {% else %}
+                            <span class="badge" style="background: rgba(16, 185, 129, 0.12); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.25); font-size: 0.75rem;">
+                                🔓 Beklemede
+                            </span>
+                        {% endif %}
                     </td>
 
                     <!-- Kiosk URL Kopyala -->
@@ -431,7 +457,7 @@
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="8" style="text-align: center; padding: 3rem; color: var(--text-muted);">
+                    <td colspan="9" style="text-align: center; padding: 3rem; color: var(--text-muted);">
                         Henüz kayıtlı bir eczane bulunmamaktadır. Sağ üstteki "Yeni Eczane Ekle" butonuna tıklayarak başlayabilirsiniz.
                     </td>
                 </tr>

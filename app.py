@@ -114,16 +114,23 @@ def init_db():
 # Yardımcı Fonksiyonlar & Scraper
 # ==========================================
 def turkce_karakter_temizle(metin: str) -> str:
-    """Türkçe karakterleri URL ve slug uyumlu standart ASCII karakterlerine dönüştürür."""
+    """
+    Türkçe karakterleri URL ve slug uyumlu standart ASCII karakterlerine dönüştürür.
+    Büyük 'İ' ve 'I' harflerinin Unicode combining dot hatasını önler.
+    """
     if not metin:
         return ""
-    metin = metin.strip().lower()
-    donusumler = {
-        'ı': 'i', 'ğ': 'g', 'ü': 'u', 'ş': 's', 'ö': 'o', 'ç': 'c',
-        'İ': 'i', 'Ğ': 'g', 'Ü': 'u', 'Ş': 's', 'Ö': 'o', 'Ç': 'c'
+    harf_haritasi = {
+        'İ': 'i', 'I': 'i', 'ı': 'i',
+        'Ğ': 'g', 'ğ': 'g',
+        'Ü': 'u', 'ü': 'u',
+        'Ş': 's', 'ş': 's',
+        'Ö': 'o', 'ö': 'o',
+        'Ç': 'c', 'ç': 'c'
     }
-    for kaynak, hedef in donusumler.items():
+    for kaynak, hedef in harf_haritasi.items():
         metin = metin.replace(kaynak, hedef)
+    metin = metin.lower()
     metin = re.sub(r'[^a-z0-9\-]+', '-', metin)
     return metin.strip('-')
 
@@ -152,6 +159,18 @@ def qr_kod_url_olustur(hedef_url: str) -> str:
     """Dinamik QR kod görsel URL'si üretir."""
     encoded_url = urllib.parse.quote(hedef_url)
     return f"https://api.qrserver.com/v1/create-qr-code/?size=180x180&data={encoded_url}&margin=6"
+
+
+def istemci_ip_al() -> str:
+    """
+    İstemcinin gerçek IP adresini tespit eder.
+    Reverse proxy (Coolify, Cloudflare, Nginx) arkasındayken X-Forwarded-For başlığını okur.
+    """
+    if request.headers.get("X-Forwarded-For"):
+        return request.headers.get("X-Forwarded-For").split(",")[0].strip()
+    if request.headers.get("CF-Connecting-IP"):
+        return request.headers.get("CF-Connecting-IP").strip()
+    return request.remote_addr or "Bilinmiyor"
 
 
 def yedek_veri_uret(il: str, ilce: str) -> list:
@@ -540,6 +559,21 @@ def admin_delete_pharmacy(eczane_id):
     return redirect(url_for("admin_dashboard"))
 
 
+@app.route("/admin/pharmacy/<int:eczane_id>/reset-device", methods=["POST"])
+@login_required
+def admin_reset_device(eczane_id):
+    """
+    Eczanenin TV ekranı cihaz kilidini sıfırlar.
+    Böylece yeni bir TV veya tarayıcı bağlandığında o cihaza kilitlenir.
+    """
+    eczane = Pharmacy.query.get_or_404(eczane_id)
+    eczane.cihaz_kilidi_sifirla()
+    db.session.commit()
+
+    flash(f"'{eczane.name}' TV cihaz kilidi sıfırlandı. Yeni bağlanacak ilk TV cihazına kilitlenecektir.", "info")
+    return redirect(url_for("admin_dashboard"))
+
+
 # ==========================================
 # KIOSK EKRANI VE LİSANS DOĞRULAMA ROTALARI
 # ==========================================
@@ -551,6 +585,8 @@ def kiosk():
     /kiosk?key=ECZ-XXXX-XXXX
     """
     key = request.args.get("key", "").strip()
+    device_token = request.args.get("device_token", "").strip()
+
     if not key:
         return render_template(
             "kiosk_error.html",
@@ -576,6 +612,15 @@ def kiosk():
             lisans_kodu=key
         )
 
+    # Eğer URL'den device_token gönderildiyse ve cihaz kilitliyse kontrol et
+    if device_token and not eczane.cihaz_uyumlu_mu(device_token):
+        return render_template(
+            "kiosk_error.html",
+            hata_baslik="Cihaz Kilidi Engeli",
+            hata_mesaj="Bu lisans anahtarı başka bir TV cihazına kilitlenmiştir. Sistem güvenliği gereği aynı lisans birden fazla cihazda açılamaz.",
+            lisans_kodu=key
+        )
+
     return render_template(
         "kiosk.html",
         eczane=eczane,
@@ -588,9 +633,11 @@ def kiosk():
 @app.route("/api/kiosk-data")
 def api_kiosk_data():
     """
-    Kiosk TV ekranının 15 dakikada bir veri çektiği ve heartbeat attığı API.
+    Kiosk TV ekranının 15 dakikada bir veri çektiği, heartbeat attığı ve cihaz kilidi denetlediği API.
     """
     key = request.args.get("key", "").strip()
+    device_token = request.args.get("device_token", "").strip()
+
     if not key:
         return jsonify({
             "success": False,
@@ -617,15 +664,25 @@ def api_kiosk_data():
             "license_key": eczane.license_key
         }), 403
 
-    # Canlılık zaman damgasını güncelle (Heartbeat)
+    # Cihaz Kilidi Kontrolü (Kaçak çoğaltmayı ve birden çok ekranda açmayı önleme)
+    if device_token:
+        if not eczane.cihaz_uyumlu_mu(device_token):
+            return jsonify({
+                "success": False,
+                "license_valid": False,
+                "reason": "device_mismatch",
+                "message": "Bu lisans anahtarı başka bir TV cihazına kilitlenmiştir. Lisansınızı tek ekranda kullanabilirsiniz."
+            }), 403
+
+    # Canlılık zaman damgasını ve TV ekranının IP adresini güncelle
     eczane.last_ping = datetime.now()
+    eczane.last_ip = istemci_ip_al()
     db.session.commit()
 
     # İlgili ilçenin nöbetçi eczanelerini çek
     veri = veri_getir_onbellekli(eczane.city, eczane.district)
 
     # Bu gece nöbetçi miyiz kontrolü
-    # Eczane adı nöbetçiler arasında geçiyor mu?
     bu_gece_nobetci = False
     eczane_adi_norm = turkce_karakter_temizle(eczane.name)
     for e in veri.get("eczaneler", []):
@@ -660,29 +717,36 @@ def api_kiosk_data():
 
 
 # ==========================================
-# GERİYE DÖNÜK UYUMLULUK ROTALARI
+# GÜVENLİ KÖK ROTA VE LİSANS PORTALI
 # ==========================================
 
 @app.route("/")
 def index():
-    """Genel TV Kiosk arayüzü (Varsayılan ilçe)."""
-    ilce = request.args.get("ilce", VARSAYILAN_ILCE)
-    il = request.args.get("il", VARSAYILAN_IL)
-    return render_template(
-        "index.html",
-        secili_il=il.capitalize(),
-        secili_ilce=ilce.capitalize(),
-        varsayilan_ilce=ilce
-    )
+    """
+    Kök dizin rotası.
+    Eğer URL'de lisans anahtarı varsa doğrudan Kiosk ekranına yönlendirir,
+    lisanssız girişlerde lisans sorgulama ve kurulum portalını açar.
+    """
+    key = request.args.get("key", "").strip()
+    if key:
+        return redirect(url_for("kiosk", key=key))
+    return render_template("portal.html")
 
 
 @app.route("/api/nobetci-eczaneler")
 def api_nobetci_eczaneler():
-    """Genel API uç noktası."""
-    il = request.args.get("il", VARSAYILAN_IL)
-    ilce = request.args.get("ilce", VARSAYILAN_ILCE)
-    veri = veri_getir_onbellekli(il, ilce)
-    return jsonify(veri)
+    """
+    Genel API uç noktası koruması.
+    Yetkisiz veri çekimini engeller, lisans anahtarı zorunludur.
+    """
+    key = request.args.get("key", "").strip()
+    if not key:
+        return jsonify({
+            "success": False,
+            "error": "Bu API ticari Kiosk sistemine aittir. Erişim için geçerli bir lisans anahtarı (key) zorunludur.",
+            "usage": "/api/kiosk-data?key=ECZ-XXXX-XXXX"
+        }), 403
+    return api_kiosk_data()
 
 
 @app.route("/api/health")
