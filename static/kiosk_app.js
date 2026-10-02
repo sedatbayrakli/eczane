@@ -210,6 +210,11 @@ function nobetGeriSayiminiGuncelle() {
     });
 }
 
+function formatMesafeMetin(metin) {
+    if (!metin) return '';
+    return String(metin).replace(/(\d+)\s*m$/i, '$1 mt');
+}
+
 function nobetBilgisiHtmlUret(stil = 'focus') {
     const zaman = nobetZamaniniHesapla();
 
@@ -217,11 +222,8 @@ function nobetBilgisiHtmlUret(stil = 'focus') {
         return `
         <div class="focus-duty-time-card">
             <div class="duty-time-badge">
-                <span class="duty-time-icon">⏰</span>
-                <div>
-                    <span class="focus-section-label">NÖBET SAATLERİ</span>
-                    <div class="duty-time-hours">19:00 — 09:00</div>
-                </div>
+                <span class="duty-time-label">NÖBET SAATLERİ:</span>
+                <span class="duty-time-hours">19:00 — 09:00</span>
             </div>
             <div class="duty-live-countdown">
                 <div class="countdown-tag-row" style="justify-content: center; width: 100%;">
@@ -239,8 +241,7 @@ function nobetBilgisiHtmlUret(stil = 'focus') {
         return `
         <div class="compact-duty-time-card">
             <div class="compact-duty-left">
-                <span class="compact-duty-icon">⏰</span>
-                <span class="compact-duty-title">Nöbet:</span>
+                <span class="compact-duty-title">Nöbet Saatleri:</span>
                 <strong class="compact-duty-hours">19:00 — 09:00</strong>
             </div>
             <div class="duty-live-countdown compact-countdown">
@@ -444,7 +445,7 @@ function haritaPinleriniCiz(kendiEczane, nobetciler, seciliIndex = null) {
                     <div style="font-family:Inter,sans-serif; color:#0f172a; font-size:12px;">
                         <strong style="color:#b91c1c; font-size:13px;">${escapeHtml(e.isim)}</strong><br>
                         <span>${escapeHtml(e.adres || '')}</span><br>
-                        <b style="color:#0284c7;">${escapeHtml(e.mesafe_metin || '')}</b>
+                        <b style="color:#0284c7;">${escapeHtml(formatMesafeMetin(e.mesafe_metin || ''))}</b>
                     </div>
                 `;
 
@@ -563,7 +564,7 @@ function eczaneKartiHtmlUret(eczane, index) {
     const yurumeMetin = eczane.yurume_metin || (eczane.mesafe_metre ? `~${Math.max(1, Math.round(eczane.mesafe_metre / 75))} dk` : '');
 
     const mesafeHtml = eczane.mesafe_metin 
-        ? `<span class="badge-distance">${arabaMetin ? `🚗 <strong>${escapeHtml(arabaMetin)}</strong> • ` : ''}🚶 <strong>${escapeHtml(eczane.mesafe_metin)}</strong> (${escapeHtml(yurumeMetin)})</span>` 
+        ? `<span class="badge-distance">${arabaMetin ? `🚗 <strong>${escapeHtml(arabaMetin)}</strong> • ` : ''}🚶 <strong>${escapeHtml(formatMesafeMetin(eczane.mesafe_metin))}</strong> (${escapeHtml(yurumeMetin)})</span>` 
         : '';
 
     const yolTarifiHtml = eczane.yol_tarifi 
@@ -660,7 +661,7 @@ function devOdakKartiHtmlUret(eczane, siraNo, toplamAdet, modAdi = 'NAVİGASYON'
                     <div class="focus-qr-distance-badge-stacked">
                         <div class="dist-row-meter">
                             <span class="dist-pin-symbol">📍</span>
-                            <strong class="dist-meter-text">${escapeHtml(eczane.mesafe_metin)}</strong>
+                            <strong class="dist-meter-text">${escapeHtml(formatMesafeMetin(eczane.mesafe_metin))}</strong>
                         </div>
                         <div class="dist-row-car">
                             <span class="dist-mode-icon">🚗</span>
@@ -682,29 +683,25 @@ function devOdakKartiHtmlUret(eczane, siraNo, toplamAdet, modAdi = 'NAVİGASYON'
                 </div>
             </div>
 
-            <!-- Sağ Sütun: Eczane İsmi & Açık Adres Tek Kutuda + Sabit Telefon -->
+            <!-- Sağ Sütun: Eczane İsmi & Adres Tek Kutuda + Telefon -->
             <div class="focus-details-col">
                 <div class="focus-address-card">
-                    <div class="focus-pharmacy-name-row" style="display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 0.45rem; margin-bottom: 0.5rem; flex-wrap: wrap;">
+                    <div class="focus-pharmacy-name-row" style="display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 0.45rem; margin-bottom: 0.45rem; flex-wrap: wrap;">
                         <h2 class="focus-title" style="margin: 0; font-size: 1.55rem; color: #fff; font-weight: 800;">${escapeHtml(eczane.isim)}</h2>
                         ${eczane.semt ? `<span class="badge-semt" style="font-size: 0.88rem;">${escapeHtml(eczane.semt)}</span>` : ''}
                     </div>
-                    <span class="focus-section-label">AÇIK ADRES</span>
                     <p class="focus-address-text">${escapeHtml(eczane.adres)}</p>
                 </div>
 
                 ${nobetBilgisiHtmlUret('focus')}
 
                 <div class="focus-phone-card">
-                    <div class="phone-icon-box" style="width: 32px; height: 32px; min-width: 32px;">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <div class="phone-icon-box" style="width: 30px; height: 30px; min-width: 30px;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
                             <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
                         </svg>
                     </div>
-                    <div>
-                        <span class="focus-section-label" style="margin-bottom: 0.1rem;">SABİT TELEFON</span>
-                        <div class="focus-phone-number">${escapeHtml(eczane.telefon || 'Belirtilmedi')}</div>
-                    </div>
+                    <div class="focus-phone-number">${escapeHtml(eczane.telefon || 'Belirtilmedi')}</div>
                 </div>
             </div>
         </div>
@@ -745,7 +742,7 @@ function ikiliEczaneKartiHtmlUret(eczane, siraNo) {
                     </span>
                     ${eczane.mesafe_metin ? `
                         <span class="badge-distance">
-                            ${arabaMetin ? `🚗 <strong>${escapeHtml(arabaMetin)}</strong> • ` : ''}🚶 <strong>${escapeHtml(eczane.mesafe_metin)}</strong> (${escapeHtml(yurumeMetin)})
+                            ${arabaMetin ? `🚗 <strong>${escapeHtml(arabaMetin)}</strong> • ` : ''}🚶 <strong>${escapeHtml(formatMesafeMetin(eczane.mesafe_metin))}</strong> (${escapeHtml(yurumeMetin)})
                         </span>` : ''}
                 </div>
             </div>

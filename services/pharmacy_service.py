@@ -86,7 +86,7 @@ def mesafe_ve_yurume_hesapla(mesafe_metre: float) -> Tuple[str, str, str]:
     ve şehir içi araç sürüş süresini (30 km/saat -> dakikada ~500 metre) döndürür.
     """
     if mesafe_metre < 1000:
-        mesafe_metin = f"{int(round(mesafe_metre))} m"
+        mesafe_metin = f"{int(round(mesafe_metre))} mt"
     else:
         mesafe_metin = f"{mesafe_metre / 1000.0:.1f} km"
 
