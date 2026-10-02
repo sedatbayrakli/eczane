@@ -1,5 +1,7 @@
+from __future__ import annotations
 import uuid
 from datetime import datetime, timedelta
+from typing import Tuple, Dict, Any, List, Optional
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 

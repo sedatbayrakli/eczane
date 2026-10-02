@@ -237,12 +237,13 @@
         .alert-warning { background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); color: #fbbf24; }
 
         /* Modal Pencereleri */
+        /* Modallar & Form Konteynerleri */
         .modal-overlay {
             display: none;
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(6px);
+            background: rgba(0, 0, 0, 0.82);
+            backdrop-filter: blur(8px);
             z-index: 1000;
             align-items: center;
             justify-content: center;
@@ -253,50 +254,186 @@
             background: #111827;
             border: 1px solid rgba(255, 255, 255, 0.15);
             border-radius: 16px;
-            padding: 1.8rem 2rem;
             width: 100%;
-            max-width: 760px;
+            max-width: 780px;
             max-height: 90vh;
-            overflow-y: auto;
-            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.75);
+            overflow: hidden;
         }
         .modal-box-large {
             max-width: 1100px;
-            height: 85vh;
-            display: flex;
-            flex-direction: column;
+            height: 88vh;
         }
         .modal-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 1.2rem;
-            padding-bottom: 0.8rem;
+            padding: 1.25rem 1.8rem;
             border-bottom: 1px solid var(--border-color);
+            background: #111827;
+            flex-shrink: 0;
+            z-index: 10;
         }
-        .modal-header h3 { font-size: 1.2rem; font-weight: 700; color: #fff; }
+        .modal-header h3 { font-size: 1.2rem; font-weight: 800; color: #fff; margin: 0; }
         .modal-close {
-            background: none; border: none; font-size: 1.4rem; color: var(--text-muted); cursor: pointer;
+            background: none; border: none; font-size: 1.5rem; color: var(--text-muted); cursor: pointer;
+            padding: 0.2rem 0.5rem; border-radius: 6px; line-height: 1;
+            transition: all 0.15s ease;
         }
-        .modal-close:hover { color: #fff; }
+        .modal-close:hover { color: #fff; background: rgba(255, 255, 255, 0.1); }
 
-        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-        .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
-        .form-group { margin-bottom: 1rem; }
-        .form-group label {
-            display: block; font-size: 0.82rem; font-weight: 600; color: #cbd5e1; margin-bottom: 0.3rem;
+        .modal-form-flex {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
         }
+
+        .modal-body {
+            padding: 1.5rem 1.8rem;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .modal-footer {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 0.8rem;
+            padding: 1rem 1.8rem;
+            border-top: 1px solid var(--border-color);
+            background: #111827;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        /* Form Bölüm Kartları (Modern & Dengeli Hiyerarşi) */
+        .form-section-card {
+            background: rgba(255, 255, 255, 0.025);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 12px;
+            padding: 1.1rem 1.2rem;
+            margin-bottom: 1.1rem;
+        }
+        .form-section-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.84rem;
+            font-weight: 800;
+            color: #38bdf8;
+            margin-bottom: 0.9rem;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+        }
+
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: start; }
+        .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; align-items: start; }
+        .form-group { margin-bottom: 1rem; display: flex; flex-direction: column; }
+        .form-group label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: #cbd5e1;
+            margin-bottom: 0.45rem;
+        }
+        .form-group small {
+            display: block;
+            font-size: 0.74rem;
+            color: #64748b;
+            margin-top: 0.35rem;
+            line-height: 1.35;
+        }
+
+        /* Tüm form elemanları için standartlaştırılmış 44px yükseklik ve kutu modeli */
         .form-control {
             width: 100%;
-            padding: 0.6rem 0.85rem;
-            background: rgba(0, 0, 0, 0.35);
-            border: 1px solid rgba(255, 255, 255, 0.12);
+            height: 44px;
+            min-height: 44px;
+            box-sizing: border-box;
+            padding: 0 0.85rem;
+            background: rgba(15, 23, 42, 0.65);
+            border: 1px solid rgba(255, 255, 255, 0.14);
             border-radius: 8px;
             color: #fff;
-            font-size: 0.88rem;
+            font-size: 0.90rem;
+            font-family: inherit;
+            display: block;
+            line-height: 42px;
+            transition: all 0.2s ease;
         }
         .form-control:focus {
-            outline: none; border-color: var(--color-primary);
+            outline: none;
+            border-color: #38bdf8;
+            background: rgba(15, 23, 42, 0.9);
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+        }
+        .form-control::placeholder {
+            color: #64748b;
+            font-size: 0.88rem;
+        }
+
+        select.form-control {
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.85rem center;
+            background-size: 16px;
+            padding-right: 2.5rem;
+            cursor: pointer;
+            line-height: 42px;
+        }
+        select.form-control option {
+            background-color: #0f172a;
+            color: #fff;
+            padding: 10px;
+        }
+
+        input[type="date"].form-control,
+        input[type="datetime-local"].form-control {
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            color-scheme: dark;
+            padding: 0 0.85rem;
+            line-height: 42px;
+        }
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(0.85);
+            cursor: pointer;
+            opacity: 0.85;
+            padding: 4px;
+            transition: opacity 0.2s;
+        }
+        input[type="date"]::-webkit-calendar-picker-indicator:hover {
+            opacity: 1;
+        }
+        input[type="date"]::-webkit-datetime-edit {
+            color: #fff;
+            line-height: 42px;
+        }
+        input[type="date"]::-webkit-date-and-time-value {
+            text-align: left;
+            margin: 0;
+            line-height: 42px;
+        }
+        input[type="number"].form-control {
+            color-scheme: dark;
+            line-height: 42px;
+        }
+        textarea.form-control {
+            height: auto;
+            min-height: 85px;
+            line-height: 1.5;
+            padding: 0.65rem 0.85rem;
+            resize: vertical;
         }
 
         /* Leaflet Harita Konteynırları */
@@ -600,126 +737,157 @@
     <div id="modal-add" class="modal-overlay">
         <div class="modal-box">
             <div class="modal-header">
-                <h3>Yeni Eczane & Kiosk Lisansı Ekle</h3>
+                <div>
+                    <h3>➕ Yeni Eczane & Kiosk Lisansı Ekle</h3>
+                    <span style="font-size: 0.78rem; color: #94a3b8;">Sisteme yeni bir eczane, vitrin TV ve lisans tanımlayın</span>
+                </div>
                 <button class="modal-close" onclick="modalKapat('modal-add')">&times;</button>
             </div>
-            <form method="POST" action="/admin/pharmacy/add">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Eczane Adı *</label>
-                        <input type="text" id="add-name" name="name" class="form-control" placeholder="Örn: Çakırlar Eczanesi" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Eczacı Ad Soyad</label>
-                        <input type="text" name="pharmacist_name" class="form-control" placeholder="Örn: Ecz. Ahmet Yılmaz">
-                    </div>
-                </div>
-
-                <div class="form-row-3">
-                    <div class="form-group">
-                        <label>İl</label>
-                        <input type="text" id="add-city" name="city" class="form-control" value="İstanbul" required>
-                    </div>
-                    <div class="form-group">
-                        <label>İlçe</label>
-                        <input type="text" id="add-district" name="district" class="form-control" value="Bahçelievler" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Oda Sicil / GLN No</label>
-                        <input type="text" id="add-chamber_registration_no" name="chamber_registration_no" class="form-control" placeholder="Örn: 34-12345">
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Sabit Telefon</label>
-                        <input type="text" id="add-phone" name="phone" class="form-control" placeholder="Örn: 0212 555 44 33">
-                    </div>
-                    <div class="form-group">
-                        <label>Eczacı Cep Telefonu</label>
-                        <input type="text" name="mobile_phone" class="form-control" placeholder="Örn: 0532 111 22 33">
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label>Açık Adres</label>
-                    <input type="text" id="add-address" name="address" class="form-control" placeholder="Mahalle, cadde, sokak ve kapı no">
-                </div>
-
-                <!-- Akıllı Konum & Harita Seçimi -->
-                <div class="form-group" style="background: rgba(0,0,0,0.25); padding: 1rem; border-radius: 10px; border: 1px solid var(--border-color);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                        <label style="margin: 0; font-weight: 700; color: #38bdf8;">📍 Konum & Koordinat (Mesafe ve Navigasyon İçin)</label>
-                        <button type="button" class="btn btn-sm btn-secondary" onclick="konumOtomatikBul('add')">
-                            🔍 Bilgileri & Konumu Getir
-                        </button>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group" style="margin-bottom: 0;">
-                            <label>Enlem (Latitude)</label>
-                            <input type="number" step="any" id="add-latitude" name="latitude" class="form-control" placeholder="41.0000">
+            <form method="POST" action="/admin/pharmacy/add" class="modal-form-flex">
+                <div class="modal-body">
+                    <!-- 1. Temel Eczane & İletişim Bilgileri -->
+                    <div class="form-section-card">
+                        <div class="form-section-title">
+                            <span>📋 Eczane & İletişim Bilgileri</span>
                         </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Eczane Adı *</label>
+                                <input type="text" id="add-name" name="name" class="form-control" placeholder="Örn: Çakırlar Eczanesi" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Eczacı Ad Soyad</label>
+                                <input type="text" name="pharmacist_name" class="form-control" placeholder="Örn: Ecz. Ahmet Yılmaz">
+                            </div>
+                        </div>
+
+                        <div class="form-row-3">
+                            <div class="form-group">
+                                <label>İl</label>
+                                <input type="text" id="add-city" name="city" class="form-control" value="İstanbul" required>
+                            </div>
+                            <div class="form-group">
+                                <label>İlçe</label>
+                                <input type="text" id="add-district" name="district" class="form-control" value="Bahçelievler" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Oda Sicil / GLN No</label>
+                                <input type="text" id="add-chamber_registration_no" name="chamber_registration_no" class="form-control" placeholder="Örn: 34-12345">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Sabit Telefon</label>
+                                <input type="text" id="add-phone" name="phone" class="form-control" placeholder="Örn: 0212 555 44 33">
+                            </div>
+                            <div class="form-group">
+                                <label>Eczacı Cep Telefonu</label>
+                                <input type="text" name="mobile_phone" class="form-control" placeholder="Örn: 0532 111 22 33">
+                            </div>
+                        </div>
+
                         <div class="form-group" style="margin-bottom: 0;">
-                            <label>Boylam (Longitude)</label>
-                            <input type="number" step="any" id="add-longitude" name="longitude" class="form-control" placeholder="28.8600">
+                            <label>Açık Adres</label>
+                            <input type="text" id="add-address" name="address" class="form-control" placeholder="Mahalle, cadde, sokak ve kapı no">
                         </div>
                     </div>
-                    <div id="add-map" class="map-picker-container"></div>
-                    <small style="color: var(--text-muted); display: block; margin-top: 0.4rem;">
-                        Haritaya tıklayarak veya pini sürükleyerek konumu hassas şekilde ayarlayabilirsiniz.
-                    </small>
+
+                    <!-- 2. Akıllı Konum & Harita Seçimi -->
+                    <div class="form-section-card">
+                        <div class="form-section-title">
+                            <span>📍 Konum & Koordinat (Mesafe ve Navigasyon İçin)</span>
+                            <button type="button" class="btn btn-sm btn-secondary" onclick="konumOtomatikBul('add')" style="font-size: 0.75rem; padding: 0.25rem 0.6rem;">
+                                🔍 Adresten Koordinat Bul
+                            </button>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label>Enlem (Latitude)</label>
+                                <input type="number" step="any" id="add-latitude" name="latitude" class="form-control" placeholder="41.0000">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label>Boylam (Longitude)</label>
+                                <input type="number" step="any" id="add-longitude" name="longitude" class="form-control" placeholder="28.8600">
+                            </div>
+                        </div>
+                        <div id="add-map" class="map-picker-container"></div>
+                        <small style="color: var(--text-muted); display: block; margin-top: 0.4rem;">
+                            Haritaya tıklayarak veya pini sürükleyerek konumu hassas şekilde ayarlayabilirsiniz.
+                        </small>
+                    </div>
+
+                    <!-- 3. Lisans Süresi & TV Cihaz Kapasitesi (Orantılı ve Eşit Yükseklik) -->
+                    <div class="form-section-card">
+                        <div class="form-section-title">
+                            <span>🔑 Lisans ve TV Cihaz Kapasitesi</span>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label>Lisans Süresi</label>
+                                <select name="license_days" class="form-control">
+                                    <option value="30">1 Ay (30 Gün)</option>
+                                    <option value="90">3 Ay (90 Gün)</option>
+                                    <option value="180">6 Ay (180 Gün)</option>
+                                    <option value="365" selected>1 Yıl (365 Gün)</option>
+                                    <option value="730">2 Yıl (730 Gün)</option>
+                                </select>
+                                <small>Yeni lisansın ilk geçerlilik süresi.</small>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label>Lisans Cihaz Limiti (TV Sayısı)</label>
+                                <input type="number" name="max_devices" value="1" min="1" max="20" class="form-control" required>
+                                <small>Aynı lisansla eşzamanlı çalışabilecek TV sayısı.</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 4. Kiosk Ekran Teması & TV Çözünürlük Ölçeği (Orantılı ve Eşit Yükseklik) -->
+                    <div class="form-section-card">
+                        <div class="form-section-title">
+                            <span>📺 Kiosk Ekran Teması & TV Ölçeği</span>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label>Kiosk Ekran Teması</label>
+                                <select name="theme" class="form-control">
+                                    <option value="classic_grid" selected>1. Klasik 4'lü Izgara & Harita</option>
+                                    <option value="animated_route">2. Canlı Yol & Navigasyon Animasyonu</option>
+                                    <option value="focus_carousel">3. Vitrin Carousel & Dev Odak Kartı</option>
+                                    <option value="dual_card">4. İkili Dev Kart & Harita (2 Eczane)</option>
+                                    <option value="auto_rotate">5. Karma Mod (Saatlik Otomatik Dönüşüm)</option>
+                                </select>
+                                <small>TV vitrininde görüntülenecek nöbetçi tasarım şablonu.</small>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label>Ekran Çözünürlüğü / TV Ölçeği</label>
+                                <select name="screen_scale" class="form-control">
+                                    <option value="auto" selected>🖥️ Otomatik TV Algılama (Önerilen)</option>
+                                    <option value="compact">📺 Mi Box / Android Box (Kompakt - %80)</option>
+                                    <option value="720p">📺 HD TV (720p - %85)</option>
+                                    <option value="1080p">📺 Full HD TV (1080p - %100)</option>
+                                    <option value="4k">🌟 4K Vitrin Ekranı (Dev - %130)</option>
+                                </select>
+                                <small>TV tarayıcısındaki taşmaları önlemek için font/padding ölçeği.</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 5. Kayan Yazı Duyurusu -->
+                    <div class="form-section-card" style="margin-bottom: 0;">
+                        <div class="form-section-title">
+                            <span>📢 Kayan Yazı Duyurusu</span>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <input type="text" name="ticker_text" class="form-control" placeholder="Eczanemiz halk sağlığı için hizmetinizdedir.">
+                            <small>Televizyonun en altındaki kayan bantta sürekli gösterilir.</small>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Lisans Süresi</label>
-                        <select name="license_days" class="form-control">
-                            <option value="30">1 Ay (30 Gün)</option>
-                            <option value="90">3 Ay (90 Gün)</option>
-                            <option value="180">6 Ay (180 Gün)</option>
-                            <option value="365" selected>1 Yıl (365 Gün)</option>
-                            <option value="730">2 Yıl (730 Gün)</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Kiosk Ekran Teması</label>
-                        <select name="theme" class="form-control">
-                            <option value="classic_grid" selected>1. Versiyon: Klasik 4'lü Izgara & Harita</option>
-                            <option value="animated_route">2. Versiyon: Canlı Yol & Navigasyon Animasyonu</option>
-                            <option value="focus_carousel">3. Versiyon: Vitrin Carousel & Dev Odak Kartı</option>
-                            <option value="dual_card">4. Versiyon: İkili Dev Kart & Harita (2 Eczane)</option>
-                            <option value="auto_rotate">5. Versiyon: Karma Mod (Saatlik Otomatik Dönüşüm)</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Lisans Cihaz Limiti (TV Sayısı)</label>
-                        <input type="number" name="max_devices" value="1" min="1" max="20" class="form-control" required>
-                        <small style="color: #64748b; font-size: 0.72rem;">Aynı lisansla kaç adet TV ekranı açılabileceğini belirler.</small>
-                    </div>
-                    <div class="form-group">
-                        <label>Ekran Çözünürlüğü / TV Ölçeği</label>
-                        <select name="screen_scale" class="form-control">
-                            <option value="auto" selected>🖥️ Otomatik TV Algılama (Önerilen)</option>
-                            <option value="compact">📺 Mi Box / Android Box (Kompakt - %80)</option>
-                            <option value="720p">📺 HD TV (720p - %85)</option>
-                            <option value="1080p">📺 Full HD TV (1080p - %100)</option>
-                            <option value="4k">🌟 4K Vitrin Ekranı (Dev - %130)</option>
-                        </select>
-                        <small style="color: #64748b; font-size: 0.72rem;">TV tarayıcısındaki taşmaları önlemek için font/padding ölçeği.</small>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label>Kayan Yazı Duyurusu</label>
-                    <input type="text" name="ticker_text" class="form-control" placeholder="Eczanemiz halk sağlığı için hizmetinizdedir.">
-                </div>
-
-                <div style="display: flex; justify-content: flex-end; gap: 0.8rem; margin-top: 1.2rem;">
+                <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="modalKapat('modal-add')">İptal</button>
-                    <button type="submit" class="btn btn-primary">Kaydet & Lisans Oluştur</button>
+                    <button type="submit" class="btn btn-primary">➕ Kaydet & Lisans Oluştur</button>
                 </div>
             </form>
         </div>
@@ -729,117 +897,151 @@
     <div id="modal-edit" class="modal-overlay">
         <div class="modal-box">
             <div class="modal-header">
-                <h3>Eczane & Lisans Bilgilerini Düzenle</h3>
+                <div>
+                    <h3>✏️ Eczane & Lisans Bilgilerini Düzenle</h3>
+                    <span style="font-size: 0.78rem; color: #94a3b8;">TV Kiosk, konum, lisans süresi ve ekran parametreleri</span>
+                </div>
                 <button class="modal-close" onclick="modalKapat('modal-edit')">&times;</button>
             </div>
-            <form id="edit-form" method="POST" action="">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Eczane Adı *</label>
-                        <input type="text" id="edit-name" name="name" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Eczacı Ad Soyad</label>
-                        <input type="text" id="edit-pharmacist_name" name="pharmacist_name" class="form-control">
-                    </div>
-                </div>
-
-                <div class="form-row-3">
-                    <div class="form-group">
-                        <label>İl</label>
-                        <input type="text" id="edit-city" name="city" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label>İlçe</label>
-                        <input type="text" id="edit-district" name="district" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Oda Sicil / GLN No</label>
-                        <input type="text" id="edit-chamber_registration_no" name="chamber_registration_no" class="form-control">
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Sabit Telefon</label>
-                        <input type="text" id="edit-phone" name="phone" class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label>Eczacı Cep Telefonu</label>
-                        <input type="text" id="edit-mobile_phone" name="mobile_phone" class="form-control">
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label>Açık Adres</label>
-                    <input type="text" id="edit-address" name="address" class="form-control">
-                </div>
-
-                <!-- Akıllı Konum & Harita Seçimi -->
-                <div class="form-group" style="background: rgba(0,0,0,0.25); padding: 1rem; border-radius: 10px; border: 1px solid var(--border-color);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                        <label style="margin: 0; font-weight: 700; color: #38bdf8;">📍 Konum & Koordinat (Mesafe ve Navigasyon İçin)</label>
-                        <button type="button" class="btn btn-sm btn-secondary" onclick="konumOtomatikBul('edit')">
-                            🔍 Bilgileri & Konumu Getir
-                        </button>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group" style="margin-bottom: 0;">
-                            <label>Enlem (Latitude)</label>
-                            <input type="number" step="any" id="edit-latitude" name="latitude" class="form-control">
+            <form id="edit-form" method="POST" action="" class="modal-form-flex">
+                <div class="modal-body">
+                    <!-- 1. Temel Eczane & İletişim Bilgileri -->
+                    <div class="form-section-card">
+                        <div class="form-section-title">
+                            <span>📋 Eczane & İletişim Bilgileri</span>
                         </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Eczane Adı *</label>
+                                <input type="text" id="edit-name" name="name" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Eczacı Ad Soyad</label>
+                                <input type="text" id="edit-pharmacist_name" name="pharmacist_name" class="form-control">
+                            </div>
+                        </div>
+
+                        <div class="form-row-3">
+                            <div class="form-group">
+                                <label>İl</label>
+                                <input type="text" id="edit-city" name="city" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label>İlçe</label>
+                                <input type="text" id="edit-district" name="district" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Oda Sicil / GLN No</label>
+                                <input type="text" id="edit-chamber_registration_no" name="chamber_registration_no" class="form-control">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Sabit Telefon</label>
+                                <input type="text" id="edit-phone" name="phone" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label>Eczacı Cep Telefonu</label>
+                                <input type="text" id="edit-mobile_phone" name="mobile_phone" class="form-control">
+                            </div>
+                        </div>
+
                         <div class="form-group" style="margin-bottom: 0;">
-                            <label>Boylam (Longitude)</label>
-                            <input type="number" step="any" id="edit-longitude" name="longitude" class="form-control">
+                            <label>Açık Adres</label>
+                            <input type="text" id="edit-address" name="address" class="form-control">
                         </div>
                     </div>
-                    <div id="edit-map" class="map-picker-container"></div>
+
+                    <!-- 2. Akıllı Konum & Harita Seçimi -->
+                    <div class="form-section-card">
+                        <div class="form-section-title">
+                            <span>📍 Konum & Koordinat (Mesafe ve Navigasyon İçin)</span>
+                            <button type="button" class="btn btn-sm btn-secondary" onclick="konumOtomatikBul('edit')" style="font-size: 0.75rem; padding: 0.25rem 0.6rem;">
+                                🔍 Adresten Koordinat Bul
+                            </button>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label>Enlem (Latitude)</label>
+                                <input type="number" step="any" id="edit-latitude" name="latitude" class="form-control">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label>Boylam (Longitude)</label>
+                                <input type="number" step="any" id="edit-longitude" name="longitude" class="form-control">
+                            </div>
+                        </div>
+                        <div id="edit-map" class="map-picker-container"></div>
+                        <small style="color: var(--text-muted); display: block; margin-top: 0.4rem;">
+                            Haritaya tıklayarak veya pini sürükleyerek konumu hassas şekilde ayarlayabilirsiniz.
+                        </small>
+                    </div>
+
+                    <!-- 3. Lisans Süresi & TV Cihaz Kapasitesi (Orantılı ve Eşit Yükseklik) -->
+                    <div class="form-section-card">
+                        <div class="form-section-title">
+                            <span>🔑 Lisans ve TV Cihaz Kapasitesi</span>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label>Lisans Bitiş Tarihi</label>
+                                <input type="date" id="edit-expires-at" name="expires_at" class="form-control" required>
+                                <small>Kiosk lisansının geçerlilik süresinin dolacağı tarih.</small>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label>Lisans Cihaz Limiti (TV Sayısı)</label>
+                                <input type="number" id="edit-max_devices" name="max_devices" min="1" max="20" class="form-control" required>
+                                <small>Aynı lisansla eşzamanlı çalışabilecek TV sayısı.</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 4. Kiosk Ekran Teması & TV Çözünürlük Ölçeği (Orantılı ve Eşit Yükseklik) -->
+                    <div class="form-section-card">
+                        <div class="form-section-title">
+                            <span>📺 Kiosk Ekran Teması & TV Ölçeği</span>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label>Kiosk Ekran Teması</label>
+                                <select id="edit-theme" name="theme" class="form-control">
+                                    <option value="classic_grid">1. Klasik 4'lü Izgara & Harita</option>
+                                    <option value="animated_route">2. Canlı Yol & Navigasyon Animasyonu</option>
+                                    <option value="focus_carousel">3. Vitrin Carousel & Dev Odak Kartı</option>
+                                    <option value="dual_card">4. İkili Dev Kart & Harita (2 Eczane)</option>
+                                    <option value="auto_rotate">5. Karma Mod (Saatlik Otomatik Dönüşüm)</option>
+                                </select>
+                                <small>TV vitrininde görüntülenecek nöbetçi tasarım şablonu.</small>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label>Ekran Çözünürlüğü / TV Ölçeği</label>
+                                <select id="edit-screen_scale" name="screen_scale" class="form-control">
+                                    <option value="auto">🖥️ Otomatik TV Algılama (Önerilen)</option>
+                                    <option value="compact">📺 Mi Box / Android Box (Kompakt - %80)</option>
+                                    <option value="720p">📺 HD TV (720p - %85)</option>
+                                    <option value="1080p">📺 Full HD TV (1080p - %100)</option>
+                                    <option value="4k">🌟 4K Vitrin Ekranı (Dev - %130)</option>
+                                </select>
+                                <small>TV tarayıcısındaki taşmaları önlemek için font/padding ölçeği.</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 5. Kayan Yazı Duyurusu -->
+                    <div class="form-section-card" style="margin-bottom: 0;">
+                        <div class="form-section-title">
+                            <span>📢 Kayan Yazı Duyurusu</span>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <input type="text" id="edit-ticker" name="ticker_text" class="form-control" placeholder="Eczanemiz halk sağlığı için hizmetinizdedir.">
+                            <small>Televizyonun en altındaki kayan bantta sürekli gösterilir.</small>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Lisans Bitiş Tarihi</label>
-                        <input type="date" id="edit-expires-at" name="expires_at" class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label>Kiosk Ekran Teması</label>
-                        <select id="edit-theme" name="theme" class="form-control">
-                            <option value="classic_grid">1. Versiyon: Klasik 4'lü Izgara & Harita</option>
-                            <option value="animated_route">2. Versiyon: Canlı Yol & Navigasyon Animasyonu</option>
-                            <option value="focus_carousel">3. Versiyon: Vitrin Carousel & Dev Odak Kartı</option>
-                            <option value="dual_card">4. Versiyon: İkili Dev Kart & Harita (2 Eczane)</option>
-                            <option value="auto_rotate">5. Versiyon: Karma Mod (Saatlik Otomatik Dönüşüm)</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Lisans Cihaz Limiti (TV Sayısı)</label>
-                        <input type="number" id="edit-max_devices" name="max_devices" min="1" max="20" class="form-control" required>
-                        <small style="color: #64748b; font-size: 0.72rem;">Aynı lisansla kaç adet TV ekranı açılabileceğini belirler.</small>
-                    </div>
-                    <div class="form-group">
-                        <label>Ekran Çözünürlüğü / TV Ölçeği</label>
-                        <select id="edit-screen_scale" name="screen_scale" class="form-control">
-                            <option value="auto">🖥️ Otomatik TV Algılama (Önerilen)</option>
-                            <option value="compact">📺 Mi Box / Android Box (Kompakt - %80)</option>
-                            <option value="720p">📺 HD TV (720p - %85)</option>
-                            <option value="1080p">📺 Full HD TV (1080p - %100)</option>
-                            <option value="4k">🌟 4K Vitrin Ekranı (Dev - %130)</option>
-                        </select>
-                        <small style="color: #64748b; font-size: 0.72rem;">TV tarayıcısındaki taşmaları önlemek için font/padding ölçeği.</small>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label>Kayan Yazı Duyurusu</label>
-                    <input type="text" id="edit-ticker" name="ticker_text" class="form-control">
-                </div>
-
-                <div style="display: flex; justify-content: flex-end; gap: 0.8rem; margin-top: 1.2rem;">
+                <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="modalKapat('modal-edit')">İptal</button>
-                    <button type="submit" class="btn btn-primary">Güncellemeleri Kaydet</button>
+                    <button type="submit" class="btn btn-primary">💾 Güncellemeleri Kaydet</button>
                 </div>
             </form>
         </div>
@@ -895,7 +1097,7 @@
 
     <!-- 5. MODAL: KAYAN YAZI / DUYURU DÜZENLEME (KURUM BAZINDA) -->
     <div id="modal-ticker" class="modal-overlay">
-        <div class="modal-box" style="max-width: 540px;">
+        <div class="modal-box" style="max-width: 580px;">
             <div class="modal-header">
                 <div>
                     <h3 id="ticker-modal-title">📢 Kayan Yazı & Duyuru Düzenle</h3>
@@ -903,64 +1105,66 @@
                 </div>
                 <button class="modal-close" onclick="modalKapat('modal-ticker')">&times;</button>
             </div>
-            <form id="form-ticker" onsubmit="duyuruKaydetAjax(event)" style="margin-top: 1rem;">
-                <input type="hidden" id="ticker-pharmacy-id" value="">
+            <form id="form-ticker" onsubmit="duyuruKaydetAjax(event)" class="modal-form-flex">
+                <div class="modal-body">
+                    <input type="hidden" id="ticker-pharmacy-id" value="">
 
-                <div class="form-group" style="margin-bottom: 0.8rem;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
-                        <label style="font-size: 0.82rem; font-weight: 700; color: #e2e8f0; margin: 0;">Duyuru Metni</label>
-                        <span id="ticker-char-count" style="font-size: 0.72rem; color: #94a3b8;">0 karakter</span>
-                    </div>
-                    <textarea id="ticker-text-input" class="form-control" rows="3" style="resize: vertical; font-size: 0.92rem; line-height: 1.45; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.15); color: #fff; padding: 0.6rem;" placeholder="Örn: Eczanemiz sağlıklı günler diler. Reçeteli ilaçlarınız ve medikal ihtiyaçlarınız için danışabilirsiniz." required oninput="duyuruKarakterSayisiGuncelle()"></textarea>
-                    <small style="color: #64748b; font-size: 0.75rem; display: block; margin-top: 0.35rem;">
-                        💡 Bu metin televizyonun en altındaki kayan bantta sürekli olarak gösterilir.
-                    </small>
-                </div>
-
-                <!-- Şablonlar & Yönetim -->
-                <div style="margin-bottom: 1.2rem; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 0.75rem 0.9rem; border-radius: 10px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                        <span style="font-size: 0.76rem; color: #94a3b8; font-weight: 700;">⚡ Hızlı Şablonlar (Uygulamak için tıkla):</span>
-                        <button type="button" class="btn btn-sm btn-secondary" onclick="sablonYonetiminiAcKapat()" style="font-size: 0.7rem; padding: 0.2rem 0.55rem;">
-                            ⚙️ Şablonları Yönet
-                        </button>
-                    </div>
-                    
-                    <div id="ticker-template-chips" style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
-                        <span style="font-size: 0.75rem; color: #64748b;">Şablonlar yükleniyor...</span>
+                    <div class="form-group">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                            <label style="font-size: 0.82rem; font-weight: 700; color: #e2e8f0; margin: 0;">Duyuru Metni</label>
+                            <span id="ticker-char-count" style="font-size: 0.72rem; color: #94a3b8;">0 karakter</span>
+                        </div>
+                        <textarea id="ticker-text-input" class="form-control" rows="3" style="resize: vertical; font-size: 0.92rem; line-height: 1.45;" placeholder="Örn: Eczanemiz sağlıklı günler diler. Reçeteli ilaçlarınız ve medikal ihtiyaçlarınız için danışabilirsiniz." required oninput="duyuruKarakterSayisiGuncelle()"></textarea>
+                        <small style="color: #64748b; font-size: 0.75rem; display: block; margin-top: 0.35rem;">
+                            💡 Bu metin televizyonun en altındaki kayan bantta sürekli olarak gösterilir.
+                        </small>
                     </div>
 
-                    <!-- Şablon Yönetim Bölümü (Açılır/Kapanır) -->
-                    <div id="ticker-template-manager" style="display: none; margin-top: 0.8rem; padding-top: 0.8rem; border-top: 1px dashed rgba(255,255,255,0.1);">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                            <strong style="font-size: 0.78rem; color: #38bdf8;">📋 Şablon Ekle / Düzenle / Sil</strong>
-                            <button type="button" class="btn btn-sm btn-success" onclick="yeniSablonFormuGoster()" style="font-size: 0.7rem; padding: 0.15rem 0.5rem;">
-                                ➕ Yeni Şablon
+                    <!-- Şablonlar & Yönetim -->
+                    <div class="form-section-card" style="margin-bottom: 0;">
+                        <div class="form-section-title">
+                            <span>⚡ Hızlı Şablonlar (Uygulamak için tıkla)</span>
+                            <button type="button" class="btn btn-sm btn-secondary" onclick="sablonYonetiminiAcKapat()" style="font-size: 0.7rem; padding: 0.2rem 0.55rem;">
+                                ⚙️ Şablonları Yönet
                             </button>
                         </div>
-
-                        <!-- Yeni / Düzenleme Formu -->
-                        <div id="template-editor-box" style="display: none; background: rgba(0,0,0,0.4); border: 1px solid rgba(56,189,248,0.3); border-radius: 8px; padding: 0.6rem; margin-bottom: 0.75rem;">
-                            <input type="hidden" id="edit-template-id" value="">
-                            <div style="margin-bottom: 0.4rem;">
-                                <input type="text" id="edit-template-title" class="form-control" style="font-size: 0.8rem; padding: 0.35rem 0.55rem;" placeholder="Şablon Başlığı (Örn: Özel Kampanya)">
-                            </div>
-                            <div style="margin-bottom: 0.4rem;">
-                                <textarea id="edit-template-text" class="form-control" rows="2" style="font-size: 0.8rem; padding: 0.35rem 0.55rem;" placeholder="Şablon Metni (İpucu: {eczane} yazarsanız otomatik eczane adıyla değişir)"></textarea>
-                            </div>
-                            <div style="display: flex; justify-content: flex-end; gap: 0.4rem;">
-                                <button type="button" class="btn btn-sm btn-secondary" onclick="sablonEditoruKapat()" style="font-size: 0.72rem; padding: 0.2rem 0.5rem;">İptal</button>
-                                <button type="button" class="btn btn-sm btn-primary" onclick="sablonKaydetAjax()" style="font-size: 0.72rem; padding: 0.2rem 0.6rem;">💾 Şablonu Kaydet</button>
-                            </div>
+                        
+                        <div id="ticker-template-chips" style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
+                            <span style="font-size: 0.75rem; color: #64748b;">Şablonlar yükleniyor...</span>
                         </div>
 
-                        <div id="ticker-template-list" style="max-height: 160px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.35rem;">
-                            <!-- JS ile render edilecek -->
+                        <!-- Şablon Yönetim Bölümü (Açılır/Kapanır) -->
+                        <div id="ticker-template-manager" style="display: none; margin-top: 0.8rem; padding-top: 0.8rem; border-top: 1px dashed rgba(255,255,255,0.1);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                <strong style="font-size: 0.78rem; color: #38bdf8;">📋 Şablon Ekle / Düzenle / Sil</strong>
+                                <button type="button" class="btn btn-sm btn-success" onclick="yeniSablonFormuGoster()" style="font-size: 0.7rem; padding: 0.15rem 0.5rem;">
+                                    ➕ Yeni Şablon
+                                </button>
+                            </div>
+
+                            <!-- Yeni / Düzenleme Formu -->
+                            <div id="template-editor-box" style="display: none; background: rgba(0,0,0,0.4); border: 1px solid rgba(56,189,248,0.3); border-radius: 8px; padding: 0.6rem; margin-bottom: 0.75rem;">
+                                <input type="hidden" id="edit-template-id" value="">
+                                <div style="margin-bottom: 0.4rem;">
+                                    <input type="text" id="edit-template-title" class="form-control" style="font-size: 0.8rem; padding: 0.35rem 0.55rem; height: 36px; min-height: 36px; line-height: 34px;" placeholder="Şablon Başlığı (Örn: Özel Kampanya)">
+                                </div>
+                                <div style="margin-bottom: 0.4rem;">
+                                    <textarea id="edit-template-text" class="form-control" rows="2" style="font-size: 0.8rem; padding: 0.35rem 0.55rem;" placeholder="Şablon Metni (İpucu: {eczane} yazarsanız otomatik eczane adıyla değişir)"></textarea>
+                                </div>
+                                <div style="display: flex; justify-content: flex-end; gap: 0.4rem;">
+                                    <button type="button" class="btn btn-sm btn-secondary" onclick="sablonEditoruKapat()" style="font-size: 0.72rem; padding: 0.2rem 0.5rem;">İptal</button>
+                                    <button type="button" class="btn btn-sm btn-primary" onclick="sablonKaydetAjax()" style="font-size: 0.72rem; padding: 0.2rem 0.6rem;">💾 Şablonu Kaydet</button>
+                                </div>
+                            </div>
+
+                            <div id="ticker-template-list" style="max-height: 160px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.35rem;">
+                                <!-- JS ile render edilecek -->
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div style="display: flex; justify-content: flex-end; gap: 0.8rem; padding-top: 0.8rem; border-top: 1px solid var(--border-color);">
+                <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="modalKapat('modal-ticker')">İptal</button>
                     <button type="submit" id="btn-save-ticker" class="btn btn-primary" style="display: flex; align-items: center; gap: 0.4rem;">
                         <span>💾 Duyuruyu Kaydet</span>
@@ -972,7 +1176,7 @@
 
     <!-- 6. MODAL: KİOSK EKRAN TEMASI PARAMETRİK AYARLARI -->
     <div id="modal-theme-settings" class="modal-overlay">
-        <div class="modal-box" style="max-width: 600px;">
+        <div class="modal-box" style="max-width: 640px;">
             <div class="modal-header">
                 <div>
                     <h3 id="theme-modal-title">🎨 Kiosk Ekran Teması & Parametreleri</h3>
@@ -980,100 +1184,104 @@
                 </div>
                 <button class="modal-close" onclick="modalKapat('modal-theme-settings')">&times;</button>
             </div>
-            <form id="form-theme-settings" onsubmit="temaAyarlariniKaydetAjax(event)" style="margin-top: 1rem;">
-                <input type="hidden" id="theme-pharmacy-id" value="">
+            <form id="form-theme-settings" onsubmit="temaAyarlariniKaydetAjax(event)" class="modal-form-flex">
+                <div class="modal-body">
+                    <input type="hidden" id="theme-pharmacy-id" value="">
 
-                <!-- 1. Temel Tema Seçimi -->
-                <div class="form-group" style="margin-bottom: 1.2rem;">
-                    <label style="font-size: 0.84rem; font-weight: 700; color: #e2e8f0; margin-bottom: 0.4rem; display: block;">
-                        📺 Aktif Ekran Teması
-                    </label>
-                    <select id="ts-theme-select" class="form-control" style="font-size: 0.88rem; font-weight: 600;">
-                        <option value="classic_grid">1. Versiyon: Klasik 4'lü Izgara & Harita</option>
-                        <option value="animated_route">2. Versiyon: Canlı Yol & Navigasyon Animasyonu</option>
-                        <option value="focus_carousel">3. Versiyon: Vitrin Carousel & Dev Odak Kartı</option>
-                        <option value="dual_card">4. Versiyon: İkili Dev Kart & Harita (2 Eczane)</option>
-                        <option value="auto_rotate">5. Versiyon: Karma Mod (Zaman Ayarlı Otomatik Dönüşüm)</option>
-                    </select>
-                </div>
-
-                <!-- 2. Geçiş & Zamanlama Parametreleri -->
-                <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 1rem; margin-bottom: 1.2rem;">
-                    <div style="font-size: 0.82rem; font-weight: 800; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.8rem;">
-                        ⏱️ Zamanlama ve Geçiş Süreleri
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group" style="margin-bottom: 0;">
-                            <label style="font-size: 0.8rem; color: #cbd5e1;">Slayt / Karusel Geçişi</label>
-                            <select id="ts-carousel-interval" class="form-control" style="font-size: 0.85rem;">
-                                <option value="5">5 Saniye (Çok Hızlı)</option>
-                                <option value="8">8 Saniye (Hızlı)</option>
-                                <option value="10" selected>10 Saniye (Standart Önerilen)</option>
-                                <option value="15">15 Saniye (Geniş Okuma)</option>
-                                <option value="20">20 Saniye (Yavaş)</option>
-                                <option value="30">30 Saniye (Sabit Odak)</option>
-                            </select>
-                            <small style="color: #64748b; font-size: 0.72rem; display: block; margin-top: 0.2rem;">Tema 2 ve Tema 3'te nöbetçi kartının ekranda kalma süresi.</small>
+                    <!-- 1. Temel Tema Seçimi -->
+                    <div class="form-section-card">
+                        <div class="form-section-title">
+                            <span>📺 Aktif Ekran Teması</span>
                         </div>
                         <div class="form-group" style="margin-bottom: 0;">
-                            <label style="font-size: 0.8rem; color: #cbd5e1;">Karma Mod Dönüşüm Sıklığı</label>
-                            <select id="ts-autorotate-interval" class="form-control" style="font-size: 0.85rem;">
-                                <option value="15">15 Dakikada Bir</option>
-                                <option value="30">30 Dakikada Bir</option>
-                                <option value="60" selected>Her 1 Saatte Bir (Önerilen)</option>
-                                <option value="120">Her 2 Saatte Bir</option>
+                            <select id="ts-theme-select" class="form-control" style="font-weight: 600;">
+                                <option value="classic_grid">1. Versiyon: Klasik 4'lü Izgara & Harita</option>
+                                <option value="animated_route">2. Versiyon: Canlı Yol & Navigasyon Animasyonu</option>
+                                <option value="focus_carousel">3. Versiyon: Vitrin Carousel & Dev Odak Kartı</option>
+                                <option value="dual_card">4. Versiyon: İkili Dev Kart & Harita (2 Eczane)</option>
+                                <option value="auto_rotate">5. Versiyon: Karma Mod (Zaman Ayarlı Otomatik Dönüşüm)</option>
                             </select>
-                            <small style="color: #64748b; font-size: 0.72rem; display: block; margin-top: 0.2rem;">Tema 5'te temaların otomatik yer değiştirme periyodu.</small>
+                        </div>
+                    </div>
+
+                    <!-- 2. Geçiş & Zamanlama Parametreleri -->
+                    <div class="form-section-card">
+                        <div class="form-section-title">
+                            <span>⏱️ Zamanlama ve Geçiş Süreleri</span>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label>Slayt / Karusel Geçişi</label>
+                                <select id="ts-carousel-interval" class="form-control">
+                                    <option value="5">5 Saniye (Çok Hızlı)</option>
+                                    <option value="8">8 Saniye (Hızlı)</option>
+                                    <option value="10" selected>10 Saniye (Standart Önerilen)</option>
+                                    <option value="15">15 Saniye (Geniş Okuma)</option>
+                                    <option value="20">20 Saniye (Yavaş)</option>
+                                    <option value="30">30 Saniye (Sabit Odak)</option>
+                                </select>
+                                <small>Nöbetçi kartının ekranda kalma süresi.</small>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label>Karma Mod Dönüşüm Sıklığı</label>
+                                <select id="ts-autorotate-interval" class="form-control">
+                                    <option value="15">15 Dakikada Bir</option>
+                                    <option value="30">30 Dakikada Bir</option>
+                                    <option value="60" selected>Her 1 Saatte Bir (Önerilen)</option>
+                                    <option value="120">Her 2 Saatte Bir</option>
+                                </select>
+                                <small>Temaların otomatik yer değiştirme periyodu.</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3. Harita & Görünüm Parametreleri -->
+                    <div class="form-section-card">
+                        <div class="form-section-title">
+                            <span>🗺️ Harita ve Ölçek Ayarları</span>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>Harita Başlangıç Yakınlaştırma (Zoom)</label>
+                            <select id="ts-map-zoom" class="form-control">
+                                <option value="13">13 - Geniş İlçe Çerçevesi</option>
+                                <option value="14" selected>14 - Standart İlçe Görünümü</option>
+                                <option value="15">15 - Yakın Mahalle Odaklı</option>
+                                <option value="16">16 - Detaylı Cadde / Sokak Odaklı</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 4. İçerik ve Bileşen Görünürlük Ayarları -->
+                    <div class="form-section-card" style="margin-bottom: 0;">
+                        <div class="form-section-title">
+                            <span>👁️ Ekran Bileşenleri ve İçerik Kontrolleri</span>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem;">
+                            <label style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.84rem; color: #e2e8f0; cursor: pointer;">
+                                <input type="checkbox" id="ts-show-countdown" checked style="width: 18px; height: 18px; accent-color: #38bdf8;">
+                                <span>Nöbet Bitimi Canlı Sayacı</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.84rem; color: #e2e8f0; cursor: pointer;">
+                                <input type="checkbox" id="ts-show-qr" checked style="width: 18px; height: 18px; accent-color: #38bdf8;">
+                                <span>Navigasyon QR Kodu</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.84rem; color: #e2e8f0; cursor: pointer;">
+                                <input type="checkbox" id="ts-show-travel-times" checked style="width: 18px; height: 18px; accent-color: #38bdf8;">
+                                <span>Araba & Yürüme Süreleri</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.84rem; color: #e2e8f0; cursor: pointer;">
+                                <input type="checkbox" id="ts-show-district-counter" checked style="width: 18px; height: 18px; accent-color: #38bdf8;">
+                                <span>İlçe Nöbetçi Sayacı</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.84rem; color: #e2e8f0; cursor: pointer;">
+                                <input type="checkbox" id="ts-show-landmark" checked style="width: 18px; height: 18px; accent-color: #38bdf8;">
+                                <span>Önemli Nokta / Muhtarlık Bandı</span>
+                            </label>
                         </div>
                     </div>
                 </div>
 
-                <!-- 3. Harita & Görünüm Parametreleri -->
-                <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 1rem; margin-bottom: 1.2rem;">
-                    <div style="font-size: 0.82rem; font-weight: 800; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.8rem;">
-                        🗺️ Harita ve Ölçek Ayarları
-                    </div>
-                    <div class="form-group" style="margin-bottom: 0;">
-                        <label style="font-size: 0.8rem; color: #cbd5e1;">Harita Başlangıç Yakınlaştırma (Zoom)</label>
-                        <select id="ts-map-zoom" class="form-control" style="font-size: 0.85rem;">
-                            <option value="13">13 - Geniş İlçe Çerçevesi</option>
-                            <option value="14" selected>14 - Standart İlçe Görünümü</option>
-                            <option value="15">15 - Yakın Mahalle Odaklı</option>
-                            <option value="16">16 - Detaylı Cadde / Sokak Odaklı</option>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- 4. İçerik ve Bileşen Görünürlük Ayarları -->
-                <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 1rem; margin-bottom: 1.2rem;">
-                    <div style="font-size: 0.82rem; font-weight: 800; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.8rem;">
-                        👁️ Ekran Bileşenleri ve İçerik Kontrolleri
-                    </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
-                        <label style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.84rem; color: #e2e8f0; cursor: pointer;">
-                            <input type="checkbox" id="ts-show-countdown" checked style="width: 16px; height: 16px; accent-color: #38bdf8;">
-                            <span>Nöbet Bitimi Canlı Sayacı</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.84rem; color: #e2e8f0; cursor: pointer;">
-                            <input type="checkbox" id="ts-show-qr" checked style="width: 16px; height: 16px; accent-color: #38bdf8;">
-                            <span>Navigasyon QR Kodu</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.84rem; color: #e2e8f0; cursor: pointer;">
-                            <input type="checkbox" id="ts-show-travel-times" checked style="width: 16px; height: 16px; accent-color: #38bdf8;">
-                            <span>Araba & Yürüme Süreleri</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.84rem; color: #e2e8f0; cursor: pointer;">
-                            <input type="checkbox" id="ts-show-district-counter" checked style="width: 16px; height: 16px; accent-color: #38bdf8;">
-                            <span>İlçe Nöbetçi Sayacı</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.84rem; color: #e2e8f0; cursor: pointer;">
-                            <input type="checkbox" id="ts-show-landmark" checked style="width: 16px; height: 16px; accent-color: #38bdf8;">
-                            <span>Önemli Nokta / Muhtarlık Bandı</span>
-                        </label>
-                    </div>
-                </div>
-
-                <div style="display: flex; justify-content: flex-end; gap: 0.8rem; padding-top: 0.8rem; border-top: 1px solid var(--border-color);">
+                <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="modalKapat('modal-theme-settings')">İptal</button>
                     <button type="submit" id="btn-save-theme-settings" class="btn btn-primary" style="display: flex; align-items: center; gap: 0.4rem;">
                         <span>💾 Tema Ayarlarını Kaydet</span>
