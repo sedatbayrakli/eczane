@@ -674,6 +674,9 @@ body,
     flex-direction: column;
     overflow: hidden;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    height: 100%;
+    max-height: 100%;
+    min-height: 0;
 }
 
 .map-panel-header {
@@ -687,13 +690,16 @@ body,
     font-weight: 800;
     letter-spacing: 0.06em;
     color: var(--color-accent);
+    flex-shrink: 0;
 }
 
 .kiosk-leaflet-map {
     flex: 1;
     width: 100%;
-    min-height: 200px;
+    height: 100%;
+    min-height: 0;
     background: #0d1117;
+    position: relative;
 }
 
 /* OpenStreetMap Koyu Gece Modu Filtresi (API Key gerektirmez, Carto filigranını yok eder) */
@@ -799,13 +805,144 @@ body,
     overflow: hidden;
 }
 
-/* Tema 2 ve 3'te kart alanı taşmasını engelle */
+/* Tema 4: İkili Dev Kart & Harita Layout (2 Eczane Odaklı) */
+.kiosk-content-layout.layout-dual_card {
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: 1.1rem;
+    overflow: hidden;
+}
+
+/* Tema 2, 3 ve 4'te kart alanı taşmasını engelle */
 .layout-animated_route .pharmacy-grid-container,
-.layout-focus_carousel .pharmacy-grid-container {
+.layout-focus_carousel .pharmacy-grid-container,
+.layout-dual_card .pharmacy-grid-container {
     display: flex;
     flex-direction: column;
     overflow: hidden;
     min-height: 0;
+    height: 100%;
+}
+
+/* İkili Eczane Kartı Stilleri (Taşmasız, Ferah, Dev Puntolu) */
+.dual-pharmacy-cards-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.dual-pharmacy-card {
+    background: var(--bg-card);
+    border: 2px solid var(--bg-card-border);
+    border-radius: var(--radius-lg);
+    padding: clamp(0.85rem, 1.4vh, 1.3rem) clamp(1.1rem, 1.6vw, 1.6rem);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex: 1;
+    min-height: 0;
+    max-height: 100%;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+    position: relative;
+    overflow: hidden;
+    gap: 1.2rem;
+}
+
+.dual-pharmacy-card::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 6px;
+    background: linear-gradient(to bottom, var(--color-primary), #38bdf8);
+}
+
+.dual-card-left {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+    min-width: 0;
+    gap: 0.35rem;
+}
+
+.dual-card-top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
+
+.dual-pharmacy-title {
+    font-size: clamp(1.35rem, 1.8vw, 1.75rem);
+    font-weight: 900;
+    color: var(--text-pure);
+    letter-spacing: -0.01em;
+    line-height: 1.15;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.dual-card-address-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.dual-card-address-text {
+    font-size: clamp(0.88rem, 1.05vw, 1.02rem);
+    line-height: 1.35;
+    color: var(--text-primary);
+    font-weight: 500;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.dual-card-phone-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.dual-phone-number {
+    font-size: clamp(1.05rem, 1.35vw, 1.35rem);
+    font-weight: 800;
+    color: #38bdf8;
+    font-family: var(--font-mono);
+}
+
+.dual-card-right-qr {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    flex-shrink: 0;
+}
+
+.dual-qr-wrapper {
+    width: clamp(105px, 11vh, 130px);
+    height: clamp(105px, 11vh, 130px);
+    background: #ffffff;
+    padding: 6px;
+    border-radius: var(--radius-md);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+}
+
+.dual-qr-image {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    image-rendering: pixelated;
 }
 
 /* Seçili Odak Pini Vurgusu */
