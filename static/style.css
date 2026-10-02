@@ -1410,3 +1410,166 @@ body.scale-4k {
     box-shadow: 0 0 12px rgba(239, 68, 68, 0.5);
 }
 
+/* ==========================================================================
+   YENİ: Eczane Kimlik Kartı (İsim + Telefon Tek Kutu, Taşmasız)
+   ========================================================================== */
+.focus-identity-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1.5px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--radius-md);
+    padding: clamp(0.45rem, 0.8vh, 0.7rem) clamp(0.75rem, 1.2vw, 1.1rem);
+    margin-bottom: 0.4rem;
+    flex-shrink: 0;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+}
+
+.focus-title-group {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.focus-phone-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.18), rgba(14, 165, 233, 0.25));
+    border: 1.5px solid rgba(56, 189, 248, 0.55);
+    padding: 0.35rem 0.85rem;
+    border-radius: var(--radius-full);
+    color: #f0f9ff;
+    font-size: clamp(0.95rem, 1.2vw, 1.18rem);
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    flex-shrink: 0;
+    box-shadow: 0 0 16px rgba(56, 189, 248, 0.25);
+}
+
+.focus-phone-badge .focus-phone-icon {
+    font-size: 1.1rem;
+    line-height: 1;
+}
+
+.focus-phone-badge .focus-phone-val {
+    font-family: var(--font-mono);
+    font-weight: 800;
+    color: #38bdf8;
+    letter-spacing: 0.03em;
+}
+
+/* ==========================================================================
+   YENİ: TV Cihaz Tanımlama (Identify) Sinyal Overlay'i
+   ========================================================================== */
+.device-identify-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(4, 7, 15, 0.88);
+    backdrop-filter: blur(12px);
+    z-index: 999999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    animation: fadeInFocus 0.3s ease-out;
+}
+
+.device-identify-box {
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.98));
+    border: 3px solid #38bdf8;
+    border-radius: 28px;
+    padding: 3rem 4rem;
+    text-align: center;
+    max-width: 650px;
+    width: 90%;
+    box-shadow: 0 0 60px rgba(56, 189, 248, 0.5), inset 0 0 30px rgba(56, 189, 248, 0.2);
+    position: relative;
+    overflow: hidden;
+}
+
+.animate-pulse-glow {
+    animation: pulseGlow 2s infinite alternate ease-in-out;
+}
+
+@keyframes pulseGlow {
+    from {
+        box-shadow: 0 0 30px rgba(56, 189, 248, 0.4), inset 0 0 15px rgba(56, 189, 248, 0.1);
+        border-color: #38bdf8;
+    }
+    to {
+        box-shadow: 0 0 80px rgba(56, 189, 248, 0.8), inset 0 0 40px rgba(56, 189, 248, 0.3);
+        border-color: #7dd3fc;
+    }
+}
+
+.identify-radar-icon {
+    font-size: 4.5rem;
+    margin-bottom: 0.8rem;
+    animation: bounceRadar 1.5s infinite ease-in-out;
+}
+
+@keyframes bounceRadar {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.12); }
+}
+
+.identify-header-tag {
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: #38bdf8;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+}
+
+.identify-device-title {
+    font-size: clamp(2.2rem, 4vw, 3.2rem);
+    font-weight: 900;
+    color: #ffffff;
+    margin: 0 0 1.2rem 0;
+    letter-spacing: -0.02em;
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+}
+
+.identify-details-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.2rem;
+}
+
+.identify-device-token {
+    font-size: 0.88rem;
+    color: #94a3b8;
+    margin-bottom: 1.5rem;
+}
+
+.identify-device-token code {
+    background: rgba(0, 0, 0, 0.5);
+    padding: 0.2rem 0.6rem;
+    border-radius: 6px;
+    color: #fca5a5;
+    font-family: var(--font-mono);
+}
+
+.identify-footer-note {
+    font-size: 0.85rem;
+    color: #cbd5e1;
+    font-weight: 600;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 1rem;
+}
+

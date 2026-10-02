@@ -118,6 +118,15 @@ def init_db():
                     if "screen_scale" not in mevcut_kolonlar:
                         conn.execute(text("ALTER TABLE pharmacies ADD COLUMN screen_scale VARCHAR(20) DEFAULT 'auto'"))
                     conn.commit()
+
+            if "kiosk_devices" in tablolar:
+                mevcut_dev_kolonlar = [c["name"] for c in inspector.get_columns("kiosk_devices")]
+                with db.engine.connect() as conn:
+                    if "screen_scale" not in mevcut_dev_kolonlar:
+                        conn.execute(text("ALTER TABLE kiosk_devices ADD COLUMN screen_scale VARCHAR(20) DEFAULT 'auto'"))
+                    if "identify_until" not in mevcut_dev_kolonlar:
+                        conn.execute(text("ALTER TABLE kiosk_devices ADD COLUMN identify_until DATETIME"))
+                    conn.commit()
         except Exception as hata:
             print(f"[UYARI] Veritabanı kolon denetim hatası: {hata}")
 
@@ -547,6 +556,40 @@ def admin_delete_single_device(eczane_id, device_id):
     return redirect(url_for("admin_dashboard"))
 
 
+@app.route("/admin/pharmacy/<int:eczane_id>/device/<int:device_id>/edit", methods=["POST"])
+@login_required
+def admin_edit_single_device(eczane_id, device_id):
+    """Tek bir TV/Kiosk cihazının adını ve ekran çözünürlük/ölçek ayarını günceller."""
+    eczane = Pharmacy.query.get_or_404(eczane_id)
+    cihaz = KioskDevice.query.filter_by(id=device_id, pharmacy_id=eczane.id).first_or_404()
+
+    yeni_ad = request.form.get("device_name", cihaz.device_name).strip()
+    yeni_olcek = request.form.get("screen_scale", cihaz.screen_scale or "auto").strip()
+
+    if yeni_ad:
+        cihaz.device_name = yeni_ad
+    if yeni_olcek:
+        cihaz.screen_scale = yeni_olcek
+
+    db.session.commit()
+    flash(f"'{cihaz.device_name}' cihaz ayarları (Ölçek: {cihaz.screen_scale}) güncellendi.", "success")
+    return redirect(url_for("admin_dashboard"))
+
+
+@app.route("/admin/pharmacy/<int:eczane_id>/device/<int:device_id>/identify", methods=["POST"])
+@login_required
+def admin_identify_single_device(eczane_id, device_id):
+    """Cihazı TV ekranında parlatarak/belirterek tanımlama sinyali gönderir."""
+    eczane = Pharmacy.query.get_or_404(eczane_id)
+    cihaz = KioskDevice.query.filter_by(id=device_id, pharmacy_id=eczane.id).first_or_404()
+
+    cihaz.cihazi_tanimla(25)
+    db.session.commit()
+
+    flash(f"'{cihaz.device_name}' cihazına ekranda göster sinyali gönderildi! TV ekranında 25 saniye boyunca parlayacak.", "info")
+    return redirect(url_for("admin_dashboard"))
+
+
 @app.route("/admin/pharmacy/<int:eczane_id>/toggle-duty-test", methods=["POST"])
 @login_required
 def admin_toggle_duty_test(eczane_id):
@@ -704,8 +747,25 @@ def api_kiosk_data():
                 bu_gece_nobetci = True
                 break
 
-    eczane.is_on_duty_today = bu_gece_nobetci
-    db.session.commit()
+    # Cihaza özel ekran ölçeği & Ekranda Tanımlama Sinyali Kontrolü
+    aktif_cihaz = None
+    if device_token:
+        aktif_cihaz = eczane.devices.filter_by(device_token=device_token).first()
+
+    cihaz_ekran_olcegi = eczane.screen_scale or "auto"
+    identify_bilgisi = None
+
+    if aktif_cihaz:
+        if aktif_cihaz.screen_scale and aktif_cihaz.screen_scale != "auto":
+            cihaz_ekran_olcegi = aktif_cihaz.screen_scale
+        if aktif_cihaz.is_identify_active():
+            identify_bilgisi = {
+                "active": True,
+                "device_id": aktif_cihaz.id,
+                "device_name": aktif_cihaz.device_name or f"TV Ekranı {aktif_cihaz.id}",
+                "screen_scale": cihaz_ekran_olcegi,
+                "code": f"CİHAZ #{aktif_cihaz.id}"
+            }
 
     # Manuel test veya otomatik tespit kontrolü
     nihai_nobet_durumu = eczane.nobetci_mi()
@@ -727,10 +787,11 @@ def api_kiosk_data():
             "address": eczane.address or "",
             "ticker_text": eczane.ticker_text,
             "theme": eczane.theme or "classic_grid",
-            "screen_scale": eczane.screen_scale or "auto",
+            "screen_scale": cihaz_ekran_olcegi,
             "max_devices": eczane.max_devices or 1,
             "device_count": eczane.devices.count()
         },
+        "identify": identify_bilgisi,
         "is_on_duty_today": nihai_nobet_durumu,
         "duty_test_active": eczane.duty_test_aktif_mi(),
         "eczaneler": veri.get("eczaneler", []),

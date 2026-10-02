@@ -48,6 +48,8 @@ class KioskDevice(db.Model):
     device_name = db.Column(db.String(100), default="TV Ekranı")
     ip_address = db.Column(db.String(64), nullable=True)
     screen_resolution = db.Column(db.String(50), nullable=True) # Örn: "1920x1080", "1280x720"
+    screen_scale = db.Column(db.String(20), default="auto", nullable=False) # 'auto', 'compact', '720p', '1080p', '4k'
+    identify_until = db.Column(db.DateTime, nullable=True) # Ekranda tanımlama / parlatma sinyali süresi
     user_agent = db.Column(db.String(256), nullable=True)
     last_ping = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -58,6 +60,14 @@ class KioskDevice(db.Model):
             return False
         return (datetime.now() - self.last_ping) <= timedelta(minutes=tolerans_dakika)
 
+    def cihazi_tanimla(self, saniye: int = 25):
+        """Bu cihaza ekranda tanımlama sinyali gönderir."""
+        self.identify_until = datetime.now() + timedelta(seconds=saniye)
+
+    def is_identify_active(self) -> bool:
+        """Tanımlama sinyalinin halen aktif olup olmadığını kontrol eder."""
+        return bool(self.identify_until and self.identify_until > datetime.now())
+
     def to_dict(self) -> dict:
         return {
             "id": self.id,
@@ -66,6 +76,8 @@ class KioskDevice(db.Model):
             "device_name": self.device_name,
             "ip_address": self.ip_address or "-",
             "screen_resolution": self.screen_resolution or "Bilinmiyor",
+            "screen_scale": self.screen_scale or "auto",
+            "identify_active": self.is_identify_active(),
             "is_online": self.is_online(),
             "last_ping": self.last_ping.strftime("%H:%M:%S") if self.last_ping else None,
             "created_at": self.created_at.strftime("%d.%m.%Y") if self.created_at else None
@@ -174,6 +186,7 @@ class Pharmacy(db.Model):
             device_name=yeni_ad,
             ip_address=ip,
             screen_resolution=resolution,
+            screen_scale=self.screen_scale or "auto",
             user_agent=user_agent[:250] if user_agent else None,
             last_ping=datetime.now()
         )

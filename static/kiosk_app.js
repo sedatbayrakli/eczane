@@ -421,10 +421,7 @@ function devOdakKartiHtmlUret(eczane, siraNo, toplamAdet, modAdi = 'NAVİGASYON'
     const yolTarifiHtml = eczane.yol_tarifi 
         ? `
         <div class="focus-landmark-card">
-            <div class="focus-landmark-header">
-                <span class="focus-landmark-icon">📍</span>
-                <span class="focus-section-label" style="color: #fde68a; margin-bottom: 0;">YOL TARİFİ / BİLİNEN YER</span>
-            </div>
+            <span class="focus-landmark-icon">📍</span>
             <p class="focus-landmark-text">${escapeHtml(eczane.yol_tarifi)}</p>
         </div>` 
         : '';
@@ -449,13 +446,17 @@ function devOdakKartiHtmlUret(eczane, siraNo, toplamAdet, modAdi = 'NAVİGASYON'
             <div class="focus-mode-badge">${modAdi} MODU</div>
         </div>
 
-        <div class="focus-main-info">
-            <div class="focus-name-block">
-                <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
-                    <h2 class="focus-title" style="margin-bottom: 0;">${escapeHtml(eczane.isim)}</h2>
-                    ${eczane.semt ? `<span class="badge-semt" style="font-size: 0.88rem;">${escapeHtml(eczane.semt)}</span>` : ''}
-                </div>
+        <!-- Eczane İsmi & Telefonu Tek Bir Üst Kutuda (Uzun İsimlere & Ekran Genişliğine Duyarlı) -->
+        <div class="focus-identity-card">
+            <div class="focus-title-group">
+                <h2 class="focus-title">${escapeHtml(eczane.isim)}</h2>
+                ${eczane.semt ? `<span class="badge-semt">${escapeHtml(eczane.semt)}</span>` : ''}
             </div>
+            ${eczane.telefon ? `
+            <div class="focus-phone-badge" title="Eczane Telefonu">
+                <span class="focus-phone-icon">📞</span>
+                <span class="focus-phone-val">${escapeHtml(eczane.telefon)}</span>
+            </div>` : ''}
         </div>
 
         <div class="focus-body-grid">
@@ -463,7 +464,7 @@ function devOdakKartiHtmlUret(eczane, siraNo, toplamAdet, modAdi = 'NAVİGASYON'
             <div class="focus-qr-col">
                 ${eczane.mesafe_metin ? `
                     <div class="focus-qr-distance-badge">
-                        <span class="qr-dist-label">🚶 Buradan</span>
+                        <span class="qr-dist-icon">🚶</span>
                         <div class="qr-dist-val"><strong>${escapeHtml(eczane.mesafe_metin)}</strong></div>
                         <div class="qr-walk-val">(${escapeHtml(eczane.yurume_metin)})</div>
                     </div>` : ''}
@@ -478,26 +479,13 @@ function devOdakKartiHtmlUret(eczane, siraNo, toplamAdet, modAdi = 'NAVİGASYON'
                 </div>
             </div>
 
-            <!-- Sağ Sütun: Açık Adres, Yol Tarifi ve Sabit Telefon (Geniş & Ferah Alan) -->
+            <!-- Sağ Sütun: Açık Adres ve Yol Tarifi (Açıklama Başlıkları Kaldırıldı, Alan Ferahlatıldı) -->
             <div class="focus-details-col">
                 <div class="focus-address-card">
-                    <span class="focus-section-label">AÇIK ADRES</span>
                     <p class="focus-address-text">${escapeHtml(eczane.adres)}</p>
                 </div>
 
                 ${yolTarifiHtml}
-
-                <div class="focus-phone-card">
-                    <div class="phone-icon-box" style="width: 30px; height: 30px; min-width: 30px;">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-                        </svg>
-                    </div>
-                    <div>
-                        <span class="focus-section-label" style="margin-bottom: 0.1rem;">SABİT TELEFON</span>
-                        <div class="focus-phone-number">${escapeHtml(eczane.telefon || 'Belirtilmedi')}</div>
-                    </div>
-                </div>
             </div>
         </div>
 
@@ -737,6 +725,13 @@ function arayuzuGuncelle(veri, isOffline = false, savedTime = '') {
 
         // TV / Mi Box Ekran Çözünürlüğü ve Ölçek Ayarını Uygula
         ekranOlceginiUygula(veri.pharmacy.screen_scale || 'auto');
+    }
+
+    // Cihaz Tanımlama (Identify / Ekranda Göster) Sinyali Kontrolü
+    if (veri.identify && veri.identify.active) {
+        cihazTanimlamaGoster(veri.identify);
+    } else {
+        cihazTanimlamaGizle();
     }
 
     // Aktif Görünümü Belirle (auto_rotate ise saat bazlı mod)
@@ -990,6 +985,58 @@ function ekranOlceginiUygula(scaleAyar = 'auto') {
         }
     } else {
         document.body.classList.add(`scale-${scaleAyar}`);
+    }
+}
+
+/**
+ * 12. Cihaz Tanımlama & Ekranda Göster Sinyali (Identify Overlay)
+ */
+function cihazTanimlamaGoster(identifyData) {
+    let overlay = document.getElementById('device-identify-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'device-identify-overlay';
+        overlay.className = 'device-identify-overlay';
+        document.body.appendChild(overlay);
+    }
+
+    const scaleLabels = {
+        'auto': 'Otomatik TV Algılama',
+        'compact': 'Mi Box / Kompakt (%80)',
+        '720p': 'HD TV 720p (%85)',
+        '1080p': 'Full HD 1080p (%100)',
+        '4k': '4K Vitrin Ekranı (%130)'
+    };
+    const scaleMetin = scaleLabels[identifyData.screen_scale] || identifyData.screen_scale || 'Otomatik';
+
+    overlay.innerHTML = `
+        <div class="device-identify-box animate-pulse-glow">
+            <div class="identify-radar-icon">📡</div>
+            <div class="identify-header-tag">CİHAZ TANIMLAMA SİNYALİ</div>
+            <h1 class="identify-device-title">${escapeHtml(identifyData.device_name || 'TV EKRANI')}</h1>
+            <div class="identify-details-row">
+                <span class="badge" style="background: rgba(56,189,248,0.25); color: #38bdf8; font-size: 1.1rem; padding: 0.5rem 1.1rem; border: 1px solid rgba(56,189,248,0.5);">
+                    📺 Ölçek: ${scaleMetin}
+                </span>
+                <span class="badge" style="background: rgba(255,255,255,0.12); color: #f1f5f9; font-size: 1rem; padding: 0.5rem 1.1rem; border: 1px solid rgba(255,255,255,0.2);">
+                    🔑 Cihaz No: #${identifyData.device_id || '1'}
+                </span>
+            </div>
+            <div class="identify-device-token">
+                Cihaz Kodu: <code>${escapeHtml(identifyData.code || '---')}</code>
+            </div>
+            <div class="identify-footer-note">
+                ✨ Bu ekran yönetim panelinden başarıyla tanımlandı (25 saniye sonra kapanacak).
+            </div>
+        </div>
+    `;
+    overlay.style.display = 'flex';
+}
+
+function cihazTanimlamaGizle() {
+    const overlay = document.getElementById('device-identify-overlay');
+    if (overlay) {
+        overlay.style.display = 'none';
     }
 }
 
