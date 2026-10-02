@@ -18,7 +18,7 @@ from flask import (
 )
 import requests
 
-from models import db, AdminUser, Pharmacy, lisans_anahtari_uret
+from models import db, AdminUser, Pharmacy, KioskDevice, lisans_anahtari_uret
 from services.pharmacy_service import (
     nobetci_eczaneleri_getir,
     turkce_karakter_temizle,

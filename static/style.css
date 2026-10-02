@@ -1109,11 +1109,11 @@ body,
     font-weight: 900;
 }
 
-/* Gövde Grid Düzeni */
+/* Gövde Grid Düzeni (Sol: Mesafe & QR, Sağ: Açık Adres & Yol Tarifi Geniş Alan) */
 .focus-body-grid {
     display: grid;
-    grid-template-columns: 1fr 180px;
-    gap: 0.85rem;
+    grid-template-columns: 175px 1fr;
+    gap: 0.9rem;
     align-items: stretch;
     flex: 1;
     margin: 0.35rem 0;
@@ -1184,8 +1184,8 @@ body.scale-compact .focus-address-text {
     font-size: 0.96rem !important;
 }
 body.scale-compact .focus-qr-frame {
-    width: 140px !important;
-    height: 140px !important;
+    width: 125px !important;
+    height: 125px !important;
 }
 body.scale-compact .dual-qr-wrapper {
     width: 120px !important;
@@ -1208,11 +1208,19 @@ body.scale-4k {
     font-size: 22px !important;
 }
 
-/* TV Tam Ekran Tetikleyici Butonu (Sağ Üst Köşe) */
-.tv-fullscreen-btn {
+/* TV Kontrolleri (Sağ Üst Köşe: Yenileme & Tam Ekran Solgun Kare Butonlar) */
+.tv-controls-group {
     position: fixed;
     top: 10px;
     right: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    z-index: 9999;
+}
+
+.tv-control-btn,
+.tv-fullscreen-btn {
     background: rgba(0, 0, 0, 0.4);
     border: 1px solid rgba(255, 255, 255, 0.15);
     color: #94a3b8;
@@ -1223,14 +1231,15 @@ body.scale-4k {
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    font-size: 14px;
-    z-index: 9999;
+    font-size: 15px;
     opacity: 0.35;
-    transition: opacity 0.2s ease;
+    transition: opacity 0.2s ease, background 0.2s ease, color 0.2s ease;
 }
+
+.tv-control-btn:hover,
 .tv-fullscreen-btn:hover {
     opacity: 1;
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.75);
     color: #fff;
 }
 
@@ -1283,27 +1292,67 @@ body.scale-4k {
     font-family: var(--font-mono);
 }
 
-/* Sağ QR Alanı */
+/* Sol QR ve Mesafe Alanı */
 .focus-qr-col {
     background: rgba(0, 0, 0, 0.35);
     border: 1px solid var(--bg-card-border);
     border-radius: var(--radius-md);
-    padding: 0.7rem;
+    padding: 0.6rem 0.5rem;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: space-evenly;
     text-align: center;
-    gap: 0.5rem;
+    gap: 0.45rem;
     min-height: 0;
     overflow: hidden;
 }
 
+.focus-qr-distance-badge {
+    background: rgba(56, 189, 248, 0.16);
+    border: 1.5px solid rgba(56, 189, 248, 0.4);
+    border-radius: var(--radius-md);
+    padding: 0.35rem 0.45rem;
+    text-align: center;
+    width: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.1rem;
+    flex-shrink: 0;
+}
+
+.qr-dist-label {
+    font-size: 0.66rem;
+    color: #94a3b8;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.qr-dist-val {
+    font-size: 1.05rem;
+    font-weight: 900;
+    color: #38bdf8;
+    line-height: 1.15;
+}
+
+.qr-dist-val strong {
+    color: #ffffff;
+}
+
+.qr-walk-val {
+    font-size: 0.74rem;
+    color: #cbd5e1;
+    font-weight: 600;
+}
+
 .focus-qr-frame {
-    width: 140px;
-    height: 140px;
+    width: 125px;
+    height: 125px;
     background: #ffffff;
-    padding: 6px;
+    padding: 5px;
     border-radius: var(--radius-md);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
     flex-shrink: 0;

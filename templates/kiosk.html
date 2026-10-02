@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-    <link rel="stylesheet" href="/static/style.css?v=3.5">
+    <link rel="stylesheet" href="/static/style.css?v=3.6">
     <style>
         /* Bu Gece Nöbetçiyiz Özel Bannerı */
         .on-duty-banner {
@@ -47,8 +47,11 @@
 </head>
 <body class="kiosk-mode scale-{{ eczane.screen_scale or 'auto' }}" data-theme="{{ eczane.theme or 'classic_grid' }}">
 
-    <!-- TV Tam Ekran Tetikleyici -->
-    <button class="tv-fullscreen-btn" onclick="document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen()" title="TV Tam Ekran Modu (Çift Tıklama)">⛶</button>
+    <!-- TV Kontrol Butonları (Sağ Üst Köşe: Yenileme & Tam Ekran) -->
+    <div class="tv-controls-group">
+        <button class="tv-control-btn" onclick="window.location.reload(true);" title="Sayfayı Yeniden Yükle">↻</button>
+        <button class="tv-control-btn" onclick="document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen()" title="TV Tam Ekran Modu (Çift Tıklama)">⛶</button>
+    </div>
 
     <div class="dashboard-wrapper">
 
@@ -156,6 +159,6 @@
         const LISANS_KEY = "{{ lisans_anahtari }}";
         const BASLANGIC_TEMASI = "{{ eczane.theme or 'classic_grid' }}";
     </script>
-    <script src="/static/kiosk_app.js?v=3.5"></script>
+    <script src="/static/kiosk_app.js?v=3.6"></script>
 </body>
 </html>
