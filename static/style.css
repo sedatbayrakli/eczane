@@ -1109,7 +1109,7 @@ body,
     font-weight: 900;
 }
 
-/* Gövde Grid Düzeni (Sol: Mesafe & QR, Sağ: Açık Adres & Yol Tarifi Geniş Alan) */
+/* Gövde Grid Düzeni (Sol: Mesafe & QR, Sağ: Açık Adres & Nöbet & Telefon) */
 .focus-body-grid {
     display: grid;
     grid-template-columns: 175px 1fr;
@@ -1124,10 +1124,11 @@ body,
 .focus-details-col {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-    justify-content: flex-start;
+    gap: clamp(0.4rem, 0.9vh, 0.7rem);
+    justify-content: space-between;
     min-height: 0;
-    overflow-y: auto;
+    flex: 1;
+    overflow: hidden;
 }
 
 .focus-section-label {
@@ -1144,16 +1145,17 @@ body,
     background: rgba(0, 0, 0, 0.45);
     border: 1.5px solid rgba(255, 255, 255, 0.15);
     border-radius: var(--radius-md);
-    padding: 0.65rem 0.95rem;
+    padding: clamp(0.5rem, 1vh, 0.85rem) clamp(0.7rem, 1.2vw, 1rem);
     display: flex;
     flex-direction: column;
-    justify-content: flex-start;
-    flex-shrink: 0;
+    justify-content: center;
+    flex: 1 1 auto;
+    min-height: 0;
 }
 
 .focus-address-text {
-    font-size: clamp(0.88rem, 1.05vw, 1.02rem);
-    line-height: 1.4;
+    font-size: clamp(0.88rem, 1.1vw, 1.05rem);
+    line-height: 1.45;
     color: #ffffff;
     font-weight: 700;
     display: block;
@@ -1163,42 +1165,97 @@ body,
 
 /* TV Ekran Ölçeği Sınıfları (Mi Box / Android TV / 1080p / 4K Tam Ekranı Doldurur) */
 body.scale-compact {
-    font-size: 15px !important;
+    font-size: 13px !important;
 }
 body.scale-compact .dashboard-wrapper {
-    padding: 0.5rem 0.75rem !important;
-    gap: 0.5rem !important;
+    padding: 0.3rem 0.5rem !important;
+    gap: 0.35rem !important;
 }
 body.scale-compact .top-header {
-    padding: 0.35rem 1rem !important;
+    padding: 0.25rem 0.75rem !important;
+    min-height: 44px !important;
+}
+body.scale-compact .brand-titles .main-title {
+    font-size: 1.15rem !important;
+}
+body.scale-compact .clock-time {
+    font-size: 1.35rem !important;
 }
 body.scale-compact .focus-container-card {
-    padding: 0.75rem 1.1rem !important;
+    padding: 0.4rem 0.75rem !important;
     flex: 1 1 100% !important;
     height: 100% !important;
 }
 body.scale-compact .focus-title {
-    font-size: clamp(1.5rem, 2.2vw, 2rem) !important;
+    font-size: 1.35rem !important;
+    line-height: 1.15 !important;
+    margin-bottom: 0 !important;
 }
-body.scale-compact .focus-address-text {
-    font-size: 0.96rem !important;
+body.scale-compact .focus-body-grid {
+    grid-template-columns: 130px 1fr !important;
+    gap: 0.5rem !important;
+    margin: 0.2rem 0 !important;
+}
+body.scale-compact .focus-qr-col {
+    padding: 0.3rem 0.25rem !important;
+    gap: 0.2rem !important;
+}
+body.scale-compact .focus-qr-distance-badge-compact {
+    padding: 0.15rem 0.45rem !important;
+    font-size: 0.76rem !important;
 }
 body.scale-compact .focus-qr-frame {
-    width: 125px !important;
-    height: 125px !important;
+    width: 95px !important;
+    height: 95px !important;
+}
+body.scale-compact .focus-qr-text {
+    font-size: 0.68rem !important;
+    margin-top: 0.1rem !important;
 }
 body.scale-compact .dual-qr-wrapper {
-    width: 120px !important;
-    height: 120px !important;
+    width: 95px !important;
+    height: 95px !important;
+}
+body.scale-compact .focus-details-col {
+    gap: 0.35rem !important;
+}
+body.scale-compact .focus-address-card {
+    padding: 0.3rem 0.6rem !important;
+}
+body.scale-compact .focus-address-text {
+    font-size: 0.85rem !important;
+    line-height: 1.25 !important;
 }
 body.scale-compact .focus-duty-time-card {
-    padding: 0.35rem 0.75rem !important;
+    padding: 0.25rem 0.55rem !important;
 }
 body.scale-compact .duty-time-hours {
-    font-size: 0.95rem !important;
+    font-size: 0.88rem !important;
 }
 body.scale-compact .countdown-num {
-    font-size: 0.98rem !important;
+    font-size: 0.92rem !important;
+}
+body.scale-compact .focus-phone-card {
+    padding: 0.25rem 0.55rem !important;
+}
+body.scale-compact .focus-phone-number {
+    font-size: 0.95rem !important;
+}
+body.scale-compact .focus-pagination-bar {
+    margin-top: 0.2rem !important;
+    gap: 0.3rem !important;
+}
+body.scale-compact .focus-page-btn {
+    padding: 0.2rem 0.6rem !important;
+    font-size: 0.72rem !important;
+}
+body.scale-compact .bottom-ticker-bar {
+    padding: 0.3rem 0.8rem !important;
+    min-height: 36px !important;
+}
+body.scale-compact .kiosk-landmark-banner {
+    padding: 0.25rem 0.6rem !important;
+    font-size: 0.82rem !important;
 }
 
 body.scale-720p {

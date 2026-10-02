@@ -1193,10 +1193,15 @@ function ekranOlceginiUygula(scaleAyar = 'auto') {
 
     if (scaleAyar === 'auto') {
         const vh = window.innerHeight;
-        // Mi Box veya TV tarayıcılarında navigasyon barı açıkken yükseklik < 780px kalır
-        if (vh < 780) {
+        const ua = (navigator.userAgent || '').toLowerCase();
+        const isTvDevice = /android|smart-tv|smarttv|googletv|appletv|tizen|webos|crkey|aft/i.test(ua);
+
+        // TV cihazlarında veya dikey alanı kısıtlı ekranlarda kompakt TV modu
+        if (isTvDevice && vh < 750) {
             document.body.classList.add('scale-compact');
-        } else if (vh < 920) {
+        } else if (vh < 620) {
+            document.body.classList.add('scale-compact');
+        } else if (vh < 850) {
             document.body.classList.add('scale-720p');
         } else if (vh < 1450) {
             document.body.classList.add('scale-1080p');
