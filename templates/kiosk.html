@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-    <link rel="stylesheet" href="/static/style.css?v=4.4">
+    <link rel="stylesheet" href="/static/style.css?v=4.5">
     <style>
         /* Bu Gece Nöbetçiyiz Özel Bannerı */
         .on-duty-banner {
@@ -90,7 +90,7 @@
                         <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
                         <polyline points="9 22 9 12 15 12 15 22"></polyline>
                     </svg>
-                    <span>Bölge Nöbetçi: <strong id="pharmacy-count">0</strong></span>
+                    <span><span id="header-district-name">{{ eczane.district or 'Bölge' }}</span> Nöbetçi: <strong id="pharmacy-count">0</strong></span>
                 </div>
             </div>
 
@@ -164,6 +164,6 @@
         const LISANS_KEY = "{{ lisans_anahtari }}";
         const BASLANGIC_TEMASI = "{{ eczane.theme or 'classic_grid' }}";
     </script>
-    <script src="/static/kiosk_app.js?v=4.4"></script>
+    <script src="/static/kiosk_app.js?v=4.5"></script>
 </body>
 </html>

@@ -949,6 +949,10 @@ function arayuzuGuncelle(veri, isOffline = false, savedTime = '') {
     // 1. Eczane Özel Bilgileri ve Tema Belirleme
     if (veri.pharmacy) {
         if (veri.pharmacy.name && elBrandName) elBrandName.textContent = veri.pharmacy.name;
+        const elDistrictName = document.getElementById('header-district-name');
+        if (elDistrictName && veri.pharmacy.district) {
+            elDistrictName.textContent = veri.pharmacy.district;
+        }
         
         // Kayan Yazı Duyurusu ve Sabit Nöbet Saati
         const duyuruMetni = veri.pharmacy.ticker_text || 'Eczanemiz halk sağlığı için hizmetinizdedir.';
