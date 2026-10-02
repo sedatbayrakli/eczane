@@ -714,7 +714,13 @@ function arayuzuGuncelle(veri, isOffline = false, savedTime = '') {
     // 1. Eczane Özel Bilgileri ve Tema Belirleme
     if (veri.pharmacy) {
         if (veri.pharmacy.name && elBrandName) elBrandName.textContent = veri.pharmacy.name;
-        if (veri.pharmacy.ticker_text && elTickerText) elTickerText.textContent = veri.pharmacy.ticker_text;
+        
+        // Kayan Yazı Duyurusu ve Sabit Nöbet Saati
+        const duyuruMetni = veri.pharmacy.ticker_text || 'Eczanemiz halk sağlığı için hizmetinizdedir.';
+        const sabitNobetDuyurusu = '⏰ Nöbet Saatleri: 19:00 — 09:00 (Sabaha kadar kesintisiz açıktır)';
+        if (elTickerText) {
+            elTickerText.textContent = `${duyuruMetni}   •   ${sabitNobetDuyurusu}`;
+        }
         
         if (veri.pharmacy.theme && veri.pharmacy.theme !== aktifTema) {
             aktifTema = veri.pharmacy.theme;

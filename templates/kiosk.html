@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-    <link rel="stylesheet" href="/static/style.css?v=3.3">
+    <link rel="stylesheet" href="/static/style.css?v=3.4">
     <style>
         /* Bu Gece Nöbetçiyiz Özel Bannerı */
         .on-duty-banner {
@@ -70,8 +70,7 @@
                         <span id="pharmacy-brand-name">{{ eczane.name }}</span>
                     </h1>
                     <p class="subtitle">
-                        <span class="pulse-indicator"></span>
-                        <span id="header-district">{{ eczane.district }}</span> / <span id="header-city">{{ eczane.city }}</span> Nöbetçi Eczane Sistemi
+                        <span class="pulse-indicator"></span> Nöbetçi Eczane Bilgi Sistemi
                     </p>
                 </div>
             </div>
@@ -81,14 +80,6 @@
                 <div id="offline-badge" class="badge-offline-status hidden">
                     <span>⚠️</span>
                     <span>Çevrimdışı Mod (<span id="offline-sync-time">--:--</span>)</span>
-                </div>
-
-                <div class="info-pill duty-period">
-                    <svg class="pill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <polyline points="12 6 12 12 16 14"></polyline>
-                    </svg>
-                    <span>Nöbet Saati: <strong>19:00 — 09:00</strong></span>
                 </div>
 
                 <div class="info-pill pharmacy-counter">
@@ -149,7 +140,7 @@
             </div>
             <div class="ticker-content-wrapper">
                 <div class="ticker-content" id="ticker-text">
-                    {{ eczane.ticker_text }}
+                    {{ eczane.ticker_text }} &nbsp;&nbsp;•&nbsp;&nbsp; ⏰ Nöbet Saatleri: 19:00 — 09:00 (Sabaha kadar kesintisiz açıktır)
                 </div>
             </div>
             <div class="last-sync-badge">
@@ -165,6 +156,6 @@
         const LISANS_KEY = "{{ lisans_anahtari }}";
         const BASLANGIC_TEMASI = "{{ eczane.theme or 'classic_grid' }}";
     </script>
-    <script src="/static/kiosk_app.js?v=3.3"></script>
+    <script src="/static/kiosk_app.js?v=3.4"></script>
 </body>
 </html>
