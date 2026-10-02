@@ -796,22 +796,22 @@ body,
 
 /* Tema 2: Canlı Yol & Navigasyon Rota Layout */
 .kiosk-content-layout.layout-animated_route {
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 0.8rem;
     overflow: hidden;
 }
 
 /* Tema 3: Vitrin Carousel Layout */
 .kiosk-content-layout.layout-focus_carousel {
-    grid-template-columns: 1.15fr 0.85fr;
-    gap: 1rem;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    gap: 0.8rem;
     overflow: hidden;
 }
 
 /* Tema 4: İkili Dev Kart & Harita Layout (2 Eczane Odaklı) */
 .kiosk-content-layout.layout-dual_card {
-    grid-template-columns: 1.15fr 0.85fr;
-    gap: 1.1rem;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    gap: 0.8rem;
     overflow: hidden;
 }
 
@@ -1210,11 +1210,13 @@ body.scale-compact .focus-title {
     margin-bottom: 0 !important;
 }
 body.scale-compact .focus-body-grid {
-    grid-template-columns: 148px 1fr !important;
+    grid-template-columns: 140px minmax(0, 1fr) !important;
     gap: 0.45rem !important;
     margin: 0.15rem 0 !important;
     flex: 1 !important;
     min-height: 0 !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
 }
 body.scale-compact .focus-qr-col {
     padding: 0.25rem 0.25rem !important;
@@ -1285,25 +1287,28 @@ body.scale-compact .focus-address-text {
     line-height: 1.3 !important;
 }
 body.scale-compact .focus-duty-time-card {
-    padding: 0.25rem 0.65rem !important;
-    min-height: 40px !important;
-    max-height: 48px !important;
-    gap: 0.4rem !important;
+    padding: 0.2rem 0.35rem !important;
+    gap: 0.3rem !important;
+    min-height: 50px !important;
+    max-height: 58px !important;
+    align-items: stretch !important;
 }
-body.scale-compact .duty-time-badge {
-    gap: 0.35rem !important;
+body.scale-compact .duty-framed-box {
+    padding: 0.2rem 0.4rem !important;
+    gap: 0.05rem !important;
+    border-radius: 6px !important;
+}
+body.scale-compact .duty-frame-label {
+    font-size: 0.6rem !important;
     white-space: nowrap !important;
+    letter-spacing: 0.03em !important;
 }
-body.scale-compact .duty-time-label {
-    font-size: 0.72rem !important;
-    white-space: nowrap !important;
-}
-body.scale-compact .duty-time-hours {
-    font-size: 0.92rem !important;
+body.scale-compact .duty-hours-val {
+    font-size: 0.9rem !important;
     white-space: nowrap !important;
 }
 body.scale-compact .countdown-num {
-    font-size: 0.92rem !important;
+    font-size: 0.88rem !important;
 }
 body.scale-compact .focus-phone-card {
     padding: 0.25rem 0.65rem !important;
@@ -1433,55 +1438,74 @@ body.scale-4k {
     font-family: var(--font-mono);
 }
 
-/* Nöbet Saatleri ve Canlı Geri Sayım Kartı (Açık Adres ile Sabit Telefon Arası) */
+/* Nöbet Saatleri ve Canlı Geri Sayım Kartı - İki Çerçeveli Kutu */
 .focus-duty-time-card {
     background: linear-gradient(135deg, rgba(15, 23, 42, 0.75), rgba(30, 41, 59, 0.65));
     border: 1.5px solid rgba(56, 189, 248, 0.3);
     border-radius: var(--radius-md);
-    padding: 0.55rem 0.95rem;
+    padding: 0.45rem 0.65rem;
     display: flex;
-    align-items: center;
+    align-items: stretch;
     justify-content: space-between;
-    gap: 0.75rem;
+    gap: 0.55rem;
     flex-shrink: 0;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 4px 15px rgba(0, 0, 0, 0.25);
 }
 
-.duty-time-badge {
+/* Çerçeveli Kutu - Hem Nöbet Saatleri hem Geri Sayım için ortak */
+.duty-framed-box {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 0.5rem;
-    white-space: nowrap;
+    justify-content: center;
+    gap: 0.1rem;
+    border-radius: 8px;
+    padding: 0.3rem 0.6rem;
+    min-width: 0;
+    flex: 1;
+    text-align: center;
 }
 
-.duty-time-label {
-    font-size: clamp(0.72rem, 0.95vw, 0.82rem);
+/* Nöbet Saatleri Kutusu Rengi */
+.duty-hours-frame {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* Nöbet Bitimine Geri Sayım Kutusu (duty-live-countdown ile birlikte) */
+.duty-countdown-frame {
+    background: rgba(8, 145, 178, 0.18);
+    border: 1px solid rgba(56, 189, 248, 0.4);
+    box-shadow: 0 0 12px rgba(56, 189, 248, 0.12);
+    text-align: center;
+    align-items: center;
+}
+
+/* Nöbet Saatleri Kutusu İçi */
+.duty-frame-label {
+    font-size: 0.66rem;
     font-weight: 800;
     color: #94a3b8;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.05em;
     white-space: nowrap;
+    line-height: 1.2;
 }
 
-.duty-time-hours {
-    font-size: clamp(0.95rem, 1.2vw, 1.15rem);
+.duty-hours-val {
+    font-size: 1.05rem;
     font-weight: 800;
     color: #ffffff;
     font-family: var(--font-mono);
     letter-spacing: 0.02em;
     white-space: nowrap;
+    line-height: 1.2;
 }
 
 .duty-live-countdown {
-    background: rgba(8, 145, 178, 0.18);
-    border: 1px solid rgba(56, 189, 248, 0.4);
-    border-radius: 10px;
-    padding: 0.35rem 0.75rem;
-    text-align: right;
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
-    box-shadow: 0 0 15px rgba(56, 189, 248, 0.15);
+    align-items: center;
 }
 
 .countdown-tag-row {
@@ -1535,13 +1559,26 @@ body.scale-4k {
     background: rgba(15, 23, 42, 0.6);
     border: 1px solid rgba(56, 189, 248, 0.25);
     border-radius: var(--radius-sm);
-    padding: 0.35rem 0.65rem;
+    padding: 0.3rem 0.5rem;
     display: flex;
-    align-items: center;
+    align-items: stretch;
     justify-content: space-between;
-    gap: 0.5rem;
+    gap: 0.4rem;
     margin: 0.3rem 0;
     flex-shrink: 0;
+}
+
+/* Kompakt kart icin framed-box uyumu */
+.compact-frame {
+    flex: 1;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.05rem;
+    text-align: center;
+    padding: 0.2rem 0.4rem;
 }
 
 .compact-duty-left {

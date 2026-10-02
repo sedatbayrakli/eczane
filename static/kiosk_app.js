@@ -221,11 +221,14 @@ function nobetBilgisiHtmlUret(stil = 'focus') {
     if (stil === 'focus') {
         return `
         <div class="focus-duty-time-card">
-            <div class="duty-time-badge">
-                <span class="duty-time-label">NÖBET SAATLERİ:</span>
-                <span class="duty-time-hours">19:00 — 09:00</span>
+            <!-- 1. Kutu: Nöbet Saatleri Çerçevesi (2 Satır) -->
+            <div class="duty-framed-box duty-hours-frame">
+                <span class="duty-frame-label">NÖBET SAATLERİ</span>
+                <span class="duty-hours-val">19:00 — 09:00</span>
             </div>
-            <div class="duty-live-countdown">
+
+            <!-- 2. Kutu: Nöbet Bitimine Geri Sayım Çerçevesi (2 Satır) -->
+            <div class="duty-framed-box duty-countdown-frame duty-live-countdown">
                 <div class="countdown-tag-row" style="justify-content: center; width: 100%;">
                     <span class="countdown-label" style="white-space: nowrap; font-size: 0.62rem; letter-spacing: 0.02em;">${zaman.etiket}</span>
                 </div>
@@ -240,12 +243,12 @@ function nobetBilgisiHtmlUret(stil = 'focus') {
     } else {
         return `
         <div class="compact-duty-time-card">
-            <div class="compact-duty-left">
-                <span class="compact-duty-title">Nöbet Saatleri:</span>
-                <strong class="compact-duty-hours">19:00 — 09:00</strong>
+            <div class="duty-framed-box compact-frame" style="padding: 0.2rem 0.5rem;">
+                <span class="compact-duty-title" style="font-size: 0.72rem; color: #94a3b8;">Nöbet Saatleri</span>
+                <strong class="compact-duty-hours" style="font-size: 0.88rem; color: #fff;">19:00 — 09:00</strong>
             </div>
-            <div class="duty-live-countdown compact-countdown">
-                <span class="countdown-label">${zaman.etiket}:</span>
+            <div class="duty-framed-box compact-frame duty-live-countdown compact-countdown" style="padding: 0.2rem 0.5rem;">
+                <span class="countdown-label" style="font-size: 0.62rem;">${zaman.etiket}</span>
                 <div class="countdown-clock">
                     <span class="countdown-num countdown-h">${zaman.saatStr}</span><span class="countdown-unit">sa</span>
                     <span class="countdown-sep">:</span>
