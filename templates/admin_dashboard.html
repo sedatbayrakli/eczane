@@ -868,6 +868,13 @@
         let addMap = null, addMarker = null;
         let editMap = null, editMarker = null;
 
+        function escapeHtml(metin) {
+            if (!metin) return '';
+            const div = document.createElement('div');
+            div.textContent = metin;
+            return div.innerHTML;
+        }
+
         function modalAc(id) {
             document.getElementById(id).classList.add('active');
         }

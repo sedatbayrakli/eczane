@@ -657,7 +657,7 @@ def kiosk():
     Lisans anahtarlı TV Kiosk ekranı.
     /kiosk?key=ECZ-XXXX-XXXX
     """
-    key = request.args.get("key", "").strip()
+    key = request.args.get("key", "").strip().upper()
     device_token = request.args.get("device_token", "").strip()
 
     if not key:
@@ -668,7 +668,8 @@ def kiosk():
             lisans_kodu="Belirtilmedi"
         )
 
-    eczane = Pharmacy.query.filter_by(license_key=key).first()
+    # Lisans anahtarını harf büyüklüğünden bağımsız (case-insensitive) ara
+    eczane = Pharmacy.query.filter(db.func.upper(Pharmacy.license_key) == key).first()
     if not eczane:
         return render_template(
             "kiosk_error.html",
@@ -708,7 +709,7 @@ def api_kiosk_data():
     Kiosk TV ekranının 15 dakikada bir veri çektiği, heartbeat attığı ve
     dinamik mesafe/rota hesaplamaları yaptığı ana API uç noktası.
     """
-    key = request.args.get("key", "").strip()
+    key = request.args.get("key", "").strip().upper()
     device_token = request.args.get("device_token", "").strip()
 
     if not key:
@@ -719,7 +720,7 @@ def api_kiosk_data():
             "message": "Lisans anahtarı eksik."
         }), 400
 
-    eczane = Pharmacy.query.filter_by(license_key=key).first()
+    eczane = Pharmacy.query.filter(db.func.upper(Pharmacy.license_key) == key).first()
     if not eczane:
         return jsonify({
             "success": False,
