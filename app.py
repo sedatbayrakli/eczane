@@ -503,6 +503,21 @@ def admin_edit_pharmacy(eczane_id):
     return redirect(url_for("admin_dashboard"))
 
 
+
+@app.route("/admin/pharmacy/<int:eczane_id>/ticker", methods=["POST"])
+@login_required
+def admin_update_ticker(eczane_id):
+    """Eczane kayan yazı duyurusunu hızlıca güncelleme (AJAX)."""
+    eczane = Pharmacy.query.get_or_404(eczane_id)
+    veri = request.get_json(silent=True) or {}
+    yeni_metin = veri.get("ticker_text", "").strip()
+    if not yeni_metin:
+        return jsonify({"success": False, "error": "Duyuru metni boş olamaz."}), 400
+    eczane.ticker_text = yeni_metin
+    db.session.commit()
+    return jsonify({"success": True, "ticker_text": eczane.ticker_text})
+
+
 @app.route("/admin/pharmacy/<int:eczane_id>/toggle", methods=["POST"])
 @login_required
 def admin_toggle_pharmacy(eczane_id):

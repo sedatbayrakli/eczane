@@ -441,6 +441,9 @@
                         {% if e.phone %}
                             <div style="font-size: 0.72rem; color: #38bdf8; font-family: monospace;">☎ {{ e.phone }}</div>
                         {% endif %}
+                        <div id="ticker-preview-{{ e.id }}" style="font-size: 0.73rem; color: #f59e0b; margin-top: 0.25rem; max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;" onclick="duyuruModalAc({{ e.id }}, {{ e.name | tojson }}, {{ (e.ticker_text or '') | tojson }})" title="Kayan Yazı: {{ e.ticker_text or 'Duyuru girilmemiş (Tıkla ve düzenle)' }}">
+                            📢 <span>{{ e.ticker_text or 'Duyuru ekle...' }}</span>
+                        </div>
                     </td>
 
                     <!-- Konum -->
@@ -554,6 +557,11 @@
                                 <input type="hidden" name="days" value="30">
                                 <button type="submit" class="btn btn-sm btn-secondary" title="Lisans Süresine +30 Gün Ekle">➕30G</button>
                             </form>
+
+                            <!-- Kayan Yazı Duyuru Düzenle -->
+                            <button class="btn btn-sm btn-secondary" onclick="duyuruModalAc({{ e.id }}, {{ e.name | tojson }}, {{ (e.ticker_text or '') | tojson }})" title="Kayan Yazı Duyurusunu Düzenle">
+                                📢
+                            </button>
 
                             <!-- Düzenle Modalı Aç -->
                             <button class="btn btn-sm btn-secondary" onclick='duzenleModalAc({{ e.to_dict() | tojson }})' title="Eczane Bilgilerini Düzenle">
@@ -872,6 +880,50 @@
                 </form>
                 <button type="button" class="btn btn-secondary" onclick="modalKapat('modal-devices')">Kapat</button>
             </div>
+        </div>
+    </div>
+
+    <!-- 5. MODAL: KAYAN YAZI / DUYURU DÜZENLEME (KURUM BAZINDA) -->
+    <div id="modal-ticker" class="modal-overlay">
+        <div class="modal-box" style="max-width: 540px;">
+            <div class="modal-header">
+                <div>
+                    <h3 id="ticker-modal-title">📢 Kayan Yazı & Duyuru Düzenle</h3>
+                    <span id="ticker-modal-subtitle" style="font-size: 0.82rem; color: #38bdf8; font-weight: 600;"></span>
+                </div>
+                <button class="modal-close" onclick="modalKapat('modal-ticker')">&times;</button>
+            </div>
+            <form id="form-ticker" onsubmit="duyuruKaydetAjax(event)" style="margin-top: 1rem;">
+                <input type="hidden" id="ticker-pharmacy-id" value="">
+
+                <div class="form-group" style="margin-bottom: 0.8rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                        <label style="font-size: 0.82rem; font-weight: 700; color: #e2e8f0; margin: 0;">Duyuru Metni</label>
+                        <span id="ticker-char-count" style="font-size: 0.72rem; color: #94a3b8;">0 karakter</span>
+                    </div>
+                    <textarea id="ticker-text-input" class="form-control" rows="3" style="resize: vertical; font-size: 0.92rem; line-height: 1.45; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.15); color: #fff; padding: 0.6rem;" placeholder="Örn: Eczanemiz sağlıklı günler diler. Reçeteli ilaçlarınız ve medikal ihtiyaçlarınız için danışabilirsiniz." required oninput="duyuruKarakterSayisiGuncelle()"></textarea>
+                    <small style="color: #64748b; font-size: 0.75rem; display: block; margin-top: 0.35rem;">
+                        💡 Bu metin televizyonun en altındaki kayan bantta sürekli olarak gösterilir.
+                    </small>
+                </div>
+
+                <!-- Hazır Hızlı Şablonlar -->
+                <div style="margin-bottom: 1.2rem; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); padding: 0.6rem 0.8rem; border-radius: 8px;">
+                    <span style="font-size: 0.75rem; color: #94a3b8; display: block; margin-bottom: 0.4rem; font-weight: 600;">⚡ Hızlı Şablonlar:</span>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
+                        <button type="button" class="btn btn-sm btn-secondary" style="font-size: 0.72rem; padding: 0.2rem 0.55rem;" onclick="sablonUygula(1)">Sağlıklı Günler</button>
+                        <button type="button" class="btn btn-sm btn-secondary" style="font-size: 0.72rem; padding: 0.2rem 0.55rem;" onclick="sablonUygula(2)">Kesintisiz Nöbet</button>
+                        <button type="button" class="btn btn-sm btn-secondary" style="font-size: 0.72rem; padding: 0.2rem 0.55rem;" onclick="sablonUygula(3)">Reçeteli & Medikal</button>
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 0.8rem; padding-top: 0.8rem; border-top: 1px solid var(--border-color);">
+                    <button type="button" class="btn btn-secondary" onclick="modalKapat('modal-ticker')">İptal</button>
+                    <button type="submit" id="btn-save-ticker" class="btn btn-primary" style="display: flex; align-items: center; gap: 0.4rem;">
+                        <span>💾 Duyuruyu Kaydet</span>
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -1384,6 +1436,80 @@
             } finally {
                 btn.textContent = eskiYazi;
                 btn.disabled = false;
+            }
+        // Kayan Yazı / Duyuru Düzenleme Fonksiyonları
+        let aktifTickerEczaneAdi = '';
+
+        function duyuruModalAc(eczaneId, eczaneAdi, mevcutMetin) {
+            document.getElementById('ticker-pharmacy-id').value = eczaneId;
+            aktifTickerEczaneAdi = eczaneAdi || 'Eczane';
+            document.getElementById('ticker-modal-title').textContent = '📢 Kayan Yazı & Duyuru Düzenle';
+            document.getElementById('ticker-modal-subtitle').textContent = aktifTickerEczaneAdi;
+            const inputEl = document.getElementById('ticker-text-input');
+            inputEl.value = mevcutMetin || '';
+            duyuruKarakterSayisiGuncelle();
+            modalAc('modal-ticker');
+            setTimeout(() => inputEl.focus(), 150);
+        }
+
+        function duyuruKarakterSayisiGuncelle() {
+            const val = document.getElementById('ticker-text-input').value;
+            const countEl = document.getElementById('ticker-char-count');
+            if (countEl) countEl.textContent = `${val.length} karakter`;
+        }
+
+        function sablonUygula(no) {
+            const inputEl = document.getElementById('ticker-text-input');
+            if (no === 1) {
+                inputEl.value = `${aktifTickerEczaneAdi} sağlıklı günler diler.`;
+            } else if (no === 2) {
+                inputEl.value = `${aktifTickerEczaneAdi} sabaha kadar kesintisiz nöbet hizmeti vermektedir. Sağlıklı günler dileriz.`;
+            } else if (no === 3) {
+                inputEl.value = `${aktifTickerEczaneAdi} sağlıklı günler diler. Reçeteli ilaçlarınız ve medikal ihtiyaçlarınız için danışabilirsiniz.`;
+            }
+            duyuruKarakterSayisiGuncelle();
+            inputEl.focus();
+        }
+
+        async function duyuruKaydetAjax(e) {
+            e.preventDefault();
+            const eczaneId = document.getElementById('ticker-pharmacy-id').value;
+            const yeniMetin = document.getElementById('ticker-text-input').value.trim();
+            if (!yeniMetin) {
+                alert('Lütfen duyuru metnini boş bırakmayınız.');
+                return;
+            }
+
+            const btn = document.getElementById('btn-save-ticker');
+            const eskiIcerik = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span>⏳ Kaydediliyor...</span>';
+
+            try {
+                const resp = await fetch(`/admin/pharmacy/${eczaneId}/ticker`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ticker_text: yeniMetin })
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    // Tablodaki önizlemeyi anında güncelle
+                    const previewEl = document.getElementById(`ticker-preview-${eczaneId}`);
+                    if (previewEl) {
+                        previewEl.title = 'Kayan Yazı: ' + data.ticker_text;
+                        const spanEl = previewEl.querySelector('span');
+                        if (spanEl) spanEl.textContent = data.ticker_text;
+                    }
+                    modalKapat('modal-ticker');
+                    alert(`✅ ${aktifTickerEczaneAdi} için kayan yazı duyurusu başarıyla kaydedildi!\nTV ekranında otomatik olarak güncellenecektir.`);
+                } else {
+                    alert('Hata: ' + (data.error || 'Duyuru kaydedilemedi.'));
+                }
+            } catch (err) {
+                alert('Bağlantı hatası: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = eskiIcerik;
             }
         }
     </script>
