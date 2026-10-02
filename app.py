@@ -126,6 +126,14 @@ def init_db():
                         conn.execute(text("ALTER TABLE kiosk_devices ADD COLUMN screen_scale VARCHAR(20) DEFAULT 'auto'"))
                     if "identify_until" not in mevcut_dev_kolonlar:
                         conn.execute(text("ALTER TABLE kiosk_devices ADD COLUMN identify_until DATETIME"))
+                    if "mac_address" not in mevcut_dev_kolonlar:
+                        conn.execute(text("ALTER TABLE kiosk_devices ADD COLUMN mac_address VARCHAR(64)"))
+                    if "local_ip" not in mevcut_dev_kolonlar:
+                        conn.execute(text("ALTER TABLE kiosk_devices ADD COLUMN local_ip VARCHAR(64)"))
+                    if "is_approved" not in mevcut_dev_kolonlar:
+                        conn.execute(text("ALTER TABLE kiosk_devices ADD COLUMN is_approved BOOLEAN DEFAULT 1"))
+                    if "approved_at" not in mevcut_dev_kolonlar:
+                        conn.execute(text("ALTER TABLE kiosk_devices ADD COLUMN approved_at DATETIME"))
                     conn.commit()
         except Exception as hata:
             print(f"[UYARI] Veritabanı kolon denetim hatası: {hata}")
@@ -556,23 +564,51 @@ def admin_delete_single_device(eczane_id, device_id):
     return redirect(url_for("admin_dashboard"))
 
 
+@app.route("/admin/pharmacy/<int:eczane_id>/devices-json")
+@login_required
+def admin_pharmacy_devices_json(eczane_id):
+    """Eczanenin bağlı cihazlarını JSON olarak döner (Admin modalı için)."""
+    eczane = Pharmacy.query.get_or_404(eczane_id)
+    return jsonify({
+        "success": True,
+        "pharmacy": eczane.to_dict()
+    })
+
+
+@app.route("/admin/pharmacy/<int:eczane_id>/device/<int:device_id>/approve", methods=["POST"])
+@login_required
+def admin_approve_single_device(eczane_id, device_id):
+    """Cihazın lisansını aktif eder ve onaylar. MAC değişmediği sürece bir daha onay istemez."""
+    eczane = Pharmacy.query.get_or_404(eczane_id)
+    cihaz = KioskDevice.query.filter_by(id=device_id, pharmacy_id=eczane.id).first_or_404()
+    cihaz.is_approved = True
+    cihaz.approved_at = datetime.now()
+    db.session.commit()
+
+    flash(f"'{cihaz.device_name}' cihazının lisansı başarıyla aktif edildi! Ekran otomatik yayına başlayacaktır.", "success")
+    return redirect(url_for("admin_dashboard"))
+
+
 @app.route("/admin/pharmacy/<int:eczane_id>/device/<int:device_id>/edit", methods=["POST"])
 @login_required
 def admin_edit_single_device(eczane_id, device_id):
-    """Tek bir TV/Kiosk cihazının adını ve ekran çözünürlük/ölçek ayarını günceller."""
+    """Tek bir TV/Kiosk cihazının adını, MAC adresini ve ekran ölçeğini günceller."""
     eczane = Pharmacy.query.get_or_404(eczane_id)
     cihaz = KioskDevice.query.filter_by(id=device_id, pharmacy_id=eczane.id).first_or_404()
 
     yeni_ad = request.form.get("device_name", cihaz.device_name).strip()
     yeni_olcek = request.form.get("screen_scale", cihaz.screen_scale or "auto").strip()
+    yeni_mac = request.form.get("mac_address", cihaz.mac_address or "").strip()
 
     if yeni_ad:
         cihaz.device_name = yeni_ad
     if yeni_olcek:
         cihaz.screen_scale = yeni_olcek
+    if yeni_mac:
+        cihaz.mac_address = yeni_mac
 
     db.session.commit()
-    flash(f"'{cihaz.device_name}' cihaz ayarları (Ölçek: {cihaz.screen_scale}) güncellendi.", "success")
+    flash(f"'{cihaz.device_name}' cihaz ayarları güncellendi.", "success")
     return redirect(url_for("admin_dashboard"))
 
 
@@ -702,27 +738,51 @@ def api_kiosk_data():
         }), 403
 
     resolution = request.args.get("res", "").strip()
+    mac_addr = request.args.get("mac", "").strip()
+    local_ip = request.args.get("local_ip", "").strip()
     user_agent = request.headers.get("User-Agent", "")
     client_ip = istemci_ip_al()
 
-    # Çoklu TV / Kiosk Cihazı Doğrulama ve Kayıt
-    if device_token:
-        uyumlu_mu, mesaj = eczane.cihaz_dogrula_veya_kaydet(
+    # Çoklu TV / Kiosk Cihazı Doğrulama ve Kayıt (MAC, Token & Yerel IP)
+    aktif_cihaz = None
+    if device_token or mac_addr:
+        erisim_var, mesaj, cihaz_obj = eczane.cihaz_dogrula_veya_kaydet(
             token=device_token,
+            mac=mac_addr,
+            local_ip=local_ip,
             ip=client_ip,
             resolution=resolution,
             user_agent=user_agent
         )
-        if not uyumlu_mu:
-            return jsonify({
-                "success": False,
-                "license_valid": False,
-                "reason": "device_limit_exceeded",
-                "message": mesaj,
-                "max_devices": eczane.max_devices or 1,
-                "device_count": eczane.devices.count(),
-                "license_key": eczane.license_key
-            }), 403
+        aktif_cihaz = cihaz_obj
+
+        if not erisim_var:
+            if cihaz_obj and not cihaz_obj.is_approved:
+                # Yönetim panelinden lisans aktivasyonu/onayı bekliyor
+                return jsonify({
+                    "success": False,
+                    "license_valid": True,
+                    "reason": "device_pending_approval",
+                    "message": mesaj,
+                    "device_id": cihaz_obj.id,
+                    "device_name": cihaz_obj.device_name,
+                    "mac": cihaz_obj.mac_address or mac_addr or "-",
+                    "local_ip": cihaz_obj.local_ip or local_ip or "-",
+                    "ip": client_ip,
+                    "pharmacy_name": eczane.name,
+                    "license_key": eczane.license_key
+                }), 403
+            else:
+                # Limit dolu veya başka hata
+                return jsonify({
+                    "success": False,
+                    "license_valid": False,
+                    "reason": "device_limit_exceeded",
+                    "message": mesaj,
+                    "max_devices": eczane.max_devices or 1,
+                    "device_count": eczane.devices.count(),
+                    "license_key": eczane.license_key
+                }), 403
     else:
         eczane.last_ping = datetime.now()
         eczane.last_ip = client_ip

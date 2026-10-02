@@ -45,11 +45,15 @@ class KioskDevice(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     pharmacy_id = db.Column(db.Integer, db.ForeignKey("pharmacies.id", ondelete="CASCADE"), nullable=False)
     device_token = db.Column(db.String(128), unique=True, nullable=False)
+    mac_address = db.Column(db.String(64), nullable=True, index=True) # Cihaz MAC / Donanım Parmak İzi
+    local_ip = db.Column(db.String(64), nullable=True)               # Cihaz Yerel Ağ IP Adresi (192.168.x.x)
     device_name = db.Column(db.String(100), default="TV Ekranı")
-    ip_address = db.Column(db.String(64), nullable=True)
-    screen_resolution = db.Column(db.String(50), nullable=True) # Örn: "1920x1080", "1280x720"
+    ip_address = db.Column(db.String(64), nullable=True)              # Dış / Ağ IP Adresi
+    screen_resolution = db.Column(db.String(50), nullable=True)       # Örn: "1920x1080", "1280x720"
     screen_scale = db.Column(db.String(20), default="auto", nullable=False) # 'auto', 'compact', '720p', '1080p', '4k'
-    identify_until = db.Column(db.DateTime, nullable=True) # Ekranda tanımlama / parlatma sinyali süresi
+    identify_until = db.Column(db.DateTime, nullable=True)            # Ekranda tanımlama / parlatma sinyali süresi
+    is_approved = db.Column(db.Boolean, default=True, nullable=False) # Yönetici tarafından lisans aktif edildi mi?
+    approved_at = db.Column(db.DateTime, nullable=True)               # Lisansın aktif edildiği tarih
     user_agent = db.Column(db.String(256), nullable=True)
     last_ping = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -73,10 +77,14 @@ class KioskDevice(db.Model):
             "id": self.id,
             "pharmacy_id": self.pharmacy_id,
             "device_token": self.device_token,
+            "mac_address": self.mac_address or "-",
+            "local_ip": self.local_ip or "-",
             "device_name": self.device_name,
             "ip_address": self.ip_address or "-",
             "screen_resolution": self.screen_resolution or "Bilinmiyor",
             "screen_scale": self.screen_scale or "auto",
+            "is_approved": bool(self.is_approved),
+            "approved_at": self.approved_at.strftime("%d.%m.%Y %H:%M") if self.approved_at else None,
             "identify_active": self.is_identify_active(),
             "is_online": self.is_online(),
             "last_ping": self.last_ping.strftime("%H:%M:%S") if self.last_ping else None,
@@ -148,57 +156,72 @@ class Pharmacy(db.Model):
         """1 saatlik hızlı nöbet testinin şu an aktif olup olmadığını döndürür."""
         return bool(self.manual_duty_override_until and self.manual_duty_override_until > datetime.now())
 
-    def cihaz_dogrula_veya_kaydet(self, token: str, ip: str = None, resolution: str = None, user_agent: str = None) -> tuple[bool, str]:
+    def cihaz_dogrula_veya_kaydet(self, token: str, mac: str = None, local_ip: str = None, ip: str = None, resolution: str = None, user_agent: str = None) -> tuple[bool, str, object]:
         """
         Gelen TV/Kiosk cihazını doğrular veya yeni cihaz olarak kaydeder.
-        Lisansın max_devices sınırına göre kontrol yapar.
-        Döndürür: (basarili_mi: bool, aciklama: str)
+        MAC adresi ve yerel IP eşleşmesini kontrol eder.
+        Döndürür: (erisim_izni_var_mi: bool, aciklama: str, cihaz_nesnesi: KioskDevice)
         """
         if not self.device_lock_enabled:
             self.last_ping = datetime.now()
             if ip: self.last_ip = ip
-            return True, "Cihaz kilidi devre dışı"
+            return True, "Cihaz kilidi devre dışı", None
 
-        if not token:
-            return False, "Cihaz belirteci (token) eksik"
+        if not token and not mac:
+            return False, "Cihaz belirteci (token/MAC) eksik", None
 
-        # 1. Cihaz zaten bu lisansa kayıtlı mı?
-        kayitli_cihaz = self.devices.filter_by(device_token=token).first()
+        # 1. Cihaz zaten bu lisansa kayıtlı mı? (Önce MAC ile, sonra token ile kontrol et)
+        kayitli_cihaz = None
+        if mac:
+            kayitli_cihaz = self.devices.filter_by(mac_address=mac).first()
+        if not kayitli_cihaz and token:
+            kayitli_cihaz = self.devices.filter_by(device_token=token).first()
+
         if kayitli_cihaz:
             kayitli_cihaz.last_ping = datetime.now()
+            if mac: kayitli_cihaz.mac_address = mac
+            if local_ip: kayitli_cihaz.local_ip = local_ip
             if ip: kayitli_cihaz.ip_address = ip
             if resolution: kayitli_cihaz.screen_resolution = resolution
             if user_agent: kayitli_cihaz.user_agent = user_agent[:250]
             self.last_ping = datetime.now()
             if ip: self.last_ip = ip
-            return True, "Kayıtlı cihaz doğrulandı"
+            db.session.commit()
 
-        # 2. Cihaz henüz kayıtlı değil, limit doldu mu?
+            # Cihaz yönetici tarafından onaylanmış mı?
+            if kayitli_cihaz.is_approved:
+                return True, "Kayıtlı ve onaylı cihaz doğrulandı", kayitli_cihaz
+            else:
+                return False, "Bu cihaz yönetim panelinden onay bekliyor. Lütfen yönetici panelinden lisansı aktif ediniz.", kayitli_cihaz
+
+        # 2. Cihaz henüz kayıtlı değil, lisans limitinde yer var mı?
         mevcut_cihaz_sayisi = self.devices.count()
         if mevcut_cihaz_sayisi >= (self.max_devices or 1):
-            return False, f"Lisans cihaz limiti dolu ({mevcut_cihaz_sayisi}/{self.max_devices}). Başka bir cihazdan bağlantıyı kesin veya limiti artırın."
+            return False, f"Lisans cihaz limiti dolu ({mevcut_cihaz_sayisi}/{self.max_devices}). Başka bir cihazdan bağlantıyı kesin veya limiti artırın.", None
 
-        # 3. Limitte yer var, yeni cihazı lisansa kaydet
+        # 3. Limitte yer var, yeni cihazı lisansa kaydet (Varsayılan olarak onay bekliyor!)
         yeni_ad = f"TV Ekranı {mevcut_cihaz_sayisi + 1}"
         yeni_cihaz = KioskDevice(
             pharmacy_id=self.id,
-            device_token=token,
+            device_token=token or f"tv-{mac}",
+            mac_address=mac,
+            local_ip=local_ip,
             device_name=yeni_ad,
             ip_address=ip,
             screen_resolution=resolution,
             screen_scale=self.screen_scale or "auto",
+            is_approved=False, # Yeni bağlanan cihaz admin onayına düşer
             user_agent=user_agent[:250] if user_agent else None,
             last_ping=datetime.now()
         )
         db.session.add(yeni_cihaz)
         self.last_ping = datetime.now()
         if ip: self.last_ip = ip
-        # Geriye dönük uyumluluk için ilk cihazı ana alana da yaz
         if not self.registered_device_token:
             self.registered_device_token = token
         db.session.commit()
 
-        return True, "Yeni cihaz başarıyla lisansa eklendi"
+        return False, "Yeni cihaz sisteme eklendi ve onay bekliyor. Yönetim panelinden lisansı aktif ediniz.", yeni_cihaz
 
     def tum_cihazlari_sifirla(self):
         """Eczaneye bağlı tüm cihaz kayıtlarını sıfırlar."""

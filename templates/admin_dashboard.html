@@ -488,7 +488,7 @@
                             <span class="badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35); font-weight: 700; font-size: 0.75rem;">
                                 📺 {{ dev_sayisi }} / {{ e.max_devices or 1 }} TV
                             </span>
-                            <button type="button" class="btn btn-sm btn-secondary" onclick='cihazYonetimModalAc({{ e.to_dict() | tojson }})' style="padding: 0.2rem 0.45rem; font-size: 0.72rem;" title="Bağlı Cihazları Yönet / Sıfırla">
+                            <button type="button" class="btn btn-sm btn-secondary" onclick="cihazYonetimModalAc({{ e.id }})" style="padding: 0.2rem 0.45rem; font-size: 0.72rem;" title="Bağlı Cihazları Yönet / Sıfırla">
                                 ⚙️ Cihazlar
                             </button>
                         </div>
@@ -974,101 +974,161 @@
             haritayiBaslat('edit', eczane.latitude, eczane.longitude);
         }
 
-        // Çoklu TV Cihaz Yönetim Modalı
-        function cihazYonetimModalAc(eczane) {
-            document.getElementById('devmodal-title').textContent = `📺 ${eczane.name} - Bağlı TV Ekranları`;
-            const devices = eczane.devices || [];
-            document.getElementById('devmodal-subtitle').textContent = `Lisans Kapasitesi: ${devices.length} / ${eczane.max_devices || 1} TV Cihazı`;
-            document.getElementById('devmodal-reset-all-form').action = `/admin/pharmacy/${eczane.id}/reset-devices`;
+        // Çoklu TV Cihaz Yönetim Modalı (API Tabanlı - Güvenli ve Canlı)
+        async function cihazYonetimModalAc(eczaneOrId) {
+            const eczaneId = (typeof eczaneOrId === 'object' && eczaneOrId !== null) ? eczaneOrId.id : eczaneOrId;
+            modalAc('modal-devices');
+
+            document.getElementById('devmodal-title').textContent = `📺 TV Ekranları Yükleniyor...`;
+            document.getElementById('devmodal-subtitle').textContent = `Lütfen bekleyiniz...`;
+            document.getElementById('devmodal-reset-all-form').action = `/admin/pharmacy/${eczaneId}/reset-devices`;
 
             const body = document.getElementById('devmodal-body');
+            body.innerHTML = `
+                <div style="text-align: center; padding: 3rem 1.5rem; color: #94a3b8;">
+                    <div style="font-size: 2.2rem; margin-bottom: 0.8rem; animation: bounceRadar 1.5s infinite;">⏳</div>
+                    <div style="font-size: 1rem; color: #cbd5e1;">Cihaz listesi ve MAC adresleri sunucudan alınıyor...</div>
+                </div>
+            `;
 
-            if (devices.length === 0) {
-                body.innerHTML = `
-                    <div style="text-align: center; padding: 2.5rem 1.5rem; color: #94a3b8; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.12);">
-                        <div style="font-size: 3rem; margin-bottom: 0.6rem;">🔓</div>
-                        <h4 style="color: #cbd5e1; font-size: 1.1rem; margin-bottom: 0.4rem;">Henüz Bağlı TV Ekranı Bulunmuyor</h4>
-                        <p style="font-size: 0.88rem; max-width: 500px; margin: 0 auto; line-height: 1.5;">
-                            Kiosk TV bağlantı linkini herhangi bir TV veya Mi Box cihazında açtığınızda sistem o ekranı otomatik algılayıp bu lisansa bağlayacaktır.
-                        </p>
-                        <div style="margin-top: 1.2rem;">
-                            <span class="badge" style="background: rgba(16,185,129,0.15); color: #34d399; font-size: 0.85rem; padding: 0.45rem 0.9rem; font-weight: 700;">
-                                Boş Kalan Cihaz Kontenjanı: ${eczane.max_devices || 1} TV
-                            </span>
+            try {
+                const res = await fetch(`/admin/pharmacy/${eczaneId}/devices-json?_t=${Date.now()}`);
+                const data = await res.json();
+                if (!data.success || !data.pharmacy) throw new Error('Cihaz bilgileri alınamadı.');
+
+                const eczane = data.pharmacy;
+                document.getElementById('devmodal-title').textContent = `📺 ${eczane.name} - Bağlı TV Ekranları`;
+                const devices = eczane.devices || [];
+                document.getElementById('devmodal-subtitle').textContent = `Lisans Kapasitesi: ${devices.length} / ${eczane.max_devices || 1} TV Cihazı`;
+
+                if (devices.length === 0) {
+                    body.innerHTML = `
+                        <div style="text-align: center; padding: 2.5rem 1.5rem; color: #94a3b8; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.12);">
+                            <div style="font-size: 3rem; margin-bottom: 0.6rem;">🔓</div>
+                            <h4 style="color: #cbd5e1; font-size: 1.1rem; margin-bottom: 0.4rem;">Henüz Bağlı TV Ekranı Bulunmuyor</h4>
+                            <p style="font-size: 0.88rem; max-width: 500px; margin: 0 auto; line-height: 1.5;">
+                                Kiosk TV bağlantı linkini herhangi bir TV veya Mi Box cihazında açtığınızda sistem o ekranı (MAC ve IP bilgileriyle) otomatik algılayıp bu listeye onay bekliyor olarak ekleyecektir.
+                            </p>
+                            <div style="margin-top: 1.2rem;">
+                                <span class="badge" style="background: rgba(16,185,129,0.15); color: #34d399; font-size: 0.85rem; padding: 0.45rem 0.9rem; font-weight: 700;">
+                                    Boş Kalan Cihaz Kontenjanı: ${eczane.max_devices || 1} TV
+                                </span>
+                            </div>
                         </div>
+                    `;
+                } else {
+                    let rowsHtml = '';
+                    devices.forEach((d, idx) => {
+                        const onlineStatus = d.is_online 
+                            ? '<span class="heartbeat-dot dot-online" style="display:inline-block; margin-right: 4px;"></span> <span style="color:#34d399; font-weight:600;">Çevrimiçi</span>' 
+                            : '<span class="heartbeat-dot dot-offline" style="display:inline-block; margin-right: 4px;"></span> <span style="color:#94a3b8;">Çevrimdışı</span>';
+
+                        const scaleVal = d.screen_scale || 'auto';
+
+                        const approvalBadge = d.is_approved
+                            ? `<span class="badge" style="background: rgba(16,185,129,0.2); color: #34d399; border: 1px solid rgba(16,185,129,0.4); font-weight: 700; font-size: 0.74rem;">🟢 Aktif</span>`
+                            : `<span class="badge" style="background: rgba(245,158,11,0.25); color: #fbbf24; border: 1px solid rgba(245,158,11,0.5); font-weight: 800; font-size: 0.74rem; animation: pulseGlow 2s infinite;">⏳ Onay Bekliyor</span>`;
+
+                        const approveButtonHtml = !d.is_approved
+                            ? `<button type="button" class="btn btn-sm btn-success" onclick="cihazOnayla(${eczane.id}, ${d.id})" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; font-weight: 800; background: #059669; border-color: #10b981;" title="Bu cihazın lisansını aktif et ve yayına başlat">
+                                 ✅ Lisansı Aktif Et
+                               </button>`
+                            : '';
+
+                        rowsHtml += `
+                        <tr style="${!d.is_approved ? 'background: rgba(245, 158, 11, 0.06);' : ''}">
+                            <td style="min-width: 150px;">
+                                <input type="text" id="dev-name-${d.id}" value="${escapeHtml(d.device_name || 'TV ' + (idx + 1))}" 
+                                    class="form-control" style="font-size: 0.82rem; padding: 0.35rem 0.55rem; background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.15);" 
+                                    placeholder="Örn: Vitrin TV">
+                            </td>
+                            <td>
+                                <code style="font-family: monospace; font-size: 0.85rem; color: #38bdf8; font-weight: 700; background: rgba(0,0,0,0.4); padding: 0.2rem 0.45rem; border-radius: 4px; border: 1px solid rgba(56,189,248,0.2);">
+                                    ${d.mac_address || '-'}
+                                </code>
+                            </td>
+                            <td>
+                                <div style="font-size: 0.82rem; font-weight: 700; color: #e2e8f0;">🏠 ${d.local_ip || '-'}</div>
+                                <div style="font-size: 0.72rem; color: #94a3b8; font-family: monospace;">🌐 ${d.ip_address || '-'}</div>
+                            </td>
+                            <td style="min-width: 140px;">
+                                <select id="dev-scale-${d.id}" class="form-control" style="font-size: 0.8rem; padding: 0.35rem 0.5rem; background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.15);">
+                                    <option value="auto" ${scaleVal === 'auto' ? 'selected' : ''}>🖥️ Otomatik TV</option>
+                                    <option value="compact" ${scaleVal === 'compact' ? 'selected' : ''}>📺 Mi Box (%80)</option>
+                                    <option value="720p" ${scaleVal === '720p' ? 'selected' : ''}>📺 720p HD (%85)</option>
+                                    <option value="1080p" ${scaleVal === '1080p' ? 'selected' : ''}>📺 1080p FHD (%100)</option>
+                                    <option value="4k" ${scaleVal === '4k' ? 'selected' : ''}>🌟 4K Vitrin (%130)</option>
+                                </select>
+                            </td>
+                            <td>${approvalBadge}</td>
+                            <td>${onlineStatus}</td>
+                            <td>
+                                <div style="display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap;">
+                                    ${approveButtonHtml}
+                                    <button type="button" class="btn btn-sm btn-primary" onclick="cihazAyarlariniKaydet(${eczane.id}, ${d.id})" style="padding: 0.25rem 0.55rem; font-size: 0.75rem;" title="Cihaz İsmi ve Ölçeğini Kaydet">
+                                        💾 Kaydet
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-warning" onclick="cihaziEkrandaGoster(${eczane.id}, ${d.id})" style="padding: 0.25rem 0.55rem; font-size: 0.75rem;" title="Hedef TV Ekranında 25sn Tanımlama Rozeti Patlatır">
+                                        🔔 Ekranda Göster
+                                    </button>
+                                    <form method="POST" action="/admin/pharmacy/${eczane.id}/device/${d.id}/delete" onsubmit="return confirm('${escapeHtml(d.device_name || 'Bu TV')} ekranının bağlantısını kesmek istiyor musunuz?');" style="display:inline; margin: 0;">
+                                        <button type="submit" class="btn btn-sm btn-danger" style="padding: 0.25rem 0.5rem; font-size: 0.72rem;" title="Bağlantıyı Kes">
+                                            🗑️
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        `;
+                    });
+
+                    body.innerHTML = `
+                    <div style="overflow-x: auto;">
+                        <table class="table" style="margin: 0; font-size: 0.85rem;">
+                            <thead>
+                                <tr>
+                                    <th>Cihaz İsmi</th>
+                                    <th>MAC Adresi</th>
+                                    <th>Yerel / Dış IP</th>
+                                    <th>TV Ölçeği</th>
+                                    <th>Lisans Durumu</th>
+                                    <th>Canlılık</th>
+                                    <th>İşlemler</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${rowsHtml}
+                            </tbody>
+                        </table>
+                    </div>
+                    `;
+                }
+            } catch (err) {
+                body.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: #f87171;">
+                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">⚠️</div>
+                        <h4>Cihaz Listesi Yüklenemedi</h4>
+                        <p style="font-size: 0.85rem; color: #cbd5e1;">${escapeHtml(err.message)}</p>
                     </div>
                 `;
-            } else {
-                let rowsHtml = '';
-                devices.forEach((d, idx) => {
-                    const onlineStatus = d.is_online 
-                        ? '<span class="heartbeat-dot dot-online" style="display:inline-block; margin-right: 4px;"></span> <span style="color:#34d399; font-weight:600;">Çevrimiçi</span>' 
-                        : '<span class="heartbeat-dot dot-offline" style="display:inline-block; margin-right: 4px;"></span> <span style="color:#94a3b8;">Çevrimdışı</span>';
-
-                    const scaleVal = d.screen_scale || 'auto';
-
-                    rowsHtml += `
-                    <tr>
-                        <td style="min-width: 170px;">
-                            <input type="text" id="dev-name-${d.id}" value="${escapeHtml(d.device_name || 'TV ' + (idx + 1))}" 
-                                class="form-control" style="font-size: 0.82rem; padding: 0.35rem 0.55rem; background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.15);" 
-                                placeholder="Örn: Vitrin TV">
-                        </td>
-                        <td style="min-width: 160px;">
-                            <select id="dev-scale-${d.id}" class="form-control" style="font-size: 0.8rem; padding: 0.35rem 0.5rem; background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.15);">
-                                <option value="auto" ${scaleVal === 'auto' ? 'selected' : ''}>🖥️ Otomatik TV</option>
-                                <option value="compact" ${scaleVal === 'compact' ? 'selected' : ''}>📺 Mi Box (%80)</option>
-                                <option value="720p" ${scaleVal === '720p' ? 'selected' : ''}>📺 720p HD (%85)</option>
-                                <option value="1080p" ${scaleVal === '1080p' ? 'selected' : ''}>📺 1080p FHD (%100)</option>
-                                <option value="4k" ${scaleVal === '4k' ? 'selected' : ''}>🌟 4K Vitrin (%130)</option>
-                            </select>
-                        </td>
-                        <td>${onlineStatus}</td>
-                        <td style="font-family: monospace; font-size: 0.78rem; color: #94a3b8;">${d.ip_address || '-'}</td>
-                        <td><span class="badge" style="background: rgba(255,255,255,0.06); color: #cbd5e1; font-size: 0.72rem;">${d.screen_resolution || '-'}</span></td>
-                        <td style="font-size: 0.75rem; color: #94a3b8;">${d.last_ping || '-'}</td>
-                        <td>
-                            <div style="display: flex; gap: 0.35rem; align-items: center;">
-                                <button type="button" class="btn btn-sm btn-primary" onclick="cihazAyarlariniKaydet(${eczane.id}, ${d.id})" style="padding: 0.25rem 0.55rem; font-size: 0.75rem;" title="Cihaz İsmi ve Ölçeğini Kaydet">
-                                    💾 Kaydet
-                                </button>
-                                <button type="button" class="btn btn-sm btn-warning" onclick="cihaziEkrandaGoster(${eczane.id}, ${d.id})" style="padding: 0.25rem 0.55rem; font-size: 0.75rem;" title="Hedef TV Ekranında 25sn Tanımlama Rozeti Patlatır">
-                                    🔔 Ekranda Göster
-                                </button>
-                                <form method="POST" action="/admin/pharmacy/${eczane.id}/device/${d.id}/delete" onsubmit="return confirm('${escapeHtml(d.device_name || 'Bu TV')} ekranının bağlantısını kesmek istiyor musunuz?');" style="display:inline; margin: 0;">
-                                    <button type="submit" class="btn btn-sm btn-danger" style="padding: 0.25rem 0.5rem; font-size: 0.72rem;" title="Bağlantıyı Kes">
-                                        🗑️
-                                    </button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                    `;
-                });
-
-                body.innerHTML = `
-                <div style="overflow-x: auto;">
-                    <table class="table" style="margin: 0; font-size: 0.85rem;">
-                        <thead>
-                            <tr>
-                                <th>Cihaz İsmi</th>
-                                <th>TV Çözünürlük / Ölçek</th>
-                                <th>Canlılık</th>
-                                <th>IP</th>
-                                <th>Ekran</th>
-                                <th>Son Görülme</th>
-                                <th>İşlemler</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${rowsHtml}
-                        </tbody>
-                    </table>
-                </div>
-                `;
             }
+        }
 
-            modalAc('modal-devices');
+        // Cihaz Lisansını Aktif Etme / Onaylama
+        async function cihazOnayla(eczaneId, deviceId) {
+            try {
+                const res = await fetch(`/admin/pharmacy/${eczaneId}/device/${deviceId}/approve`, {
+                    method: 'POST'
+                });
+                if (res.ok) {
+                    alert('✅ Cihaz lisansı başarıyla aktif edildi! TV ekranı otomatik yayına başlayacaktır.');
+                    cihazYonetimModalAc(eczaneId);
+                } else {
+                    alert('Cihaz onaylanırken bir hata oluştu.');
+                }
+            } catch (e) {
+                alert('Sunucu ile bağlantı kurulamadı.');
+            }
         }
 
         // Cihaz Adı ve Ekran Ölçeğini AJAX ile Kaydetme
