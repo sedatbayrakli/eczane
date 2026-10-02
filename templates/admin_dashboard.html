@@ -484,6 +484,11 @@
                         <div style="font-size: 0.7rem; color: #64748b; margin-top: 0.2rem;">
                             Ölçek: {{ e.screen_scale or 'auto' }}
                         </div>
+                        <div style="margin-top: 0.25rem;">
+                            <a href="javascript:void(0)" onclick='temaAyarlariModalAc({{ e.id }}, {{ e.name | tojson }}, {{ e.theme | tojson }}, {{ e.get_theme_settings() | tojson }})' style="font-size: 0.72rem; color: #38bdf8; text-decoration: none; display: inline-flex; align-items: center; gap: 0.2rem;">
+                                ⚙️ Parametreler
+                            </a>
+                        </div>
                     </td>
 
                     <!-- Lisans Kodu -->
@@ -561,6 +566,11 @@
                             <!-- Kayan Yazı Duyuru Düzenle -->
                             <button class="btn btn-sm btn-secondary btn-ticker-trigger" id="btn-ticker-{{ e.id }}" data-id="{{ e.id }}" data-name="{{ e.name }}" data-ticker="{{ e.ticker_text or '' }}" onclick="duyuruModalAcFromEl(this)" title="Kayan Yazı Duyurusunu Düzenle">
                                 📢
+                            </button>
+
+                            <!-- Kiosk Ekran Teması & Parametreleri -->
+                            <button class="btn btn-sm btn-secondary" onclick='temaAyarlariModalAc({{ e.id }}, {{ e.name | tojson }}, {{ e.theme | tojson }}, {{ e.get_theme_settings() | tojson }})' title="Kiosk Ekran Teması ve Parametrelerini Ayarla">
+                                🎨
                             </button>
 
                             <!-- Düzenle Modalı Aç -->
@@ -907,13 +917,46 @@
                     </small>
                 </div>
 
-                <!-- Hazır Hızlı Şablonlar -->
-                <div style="margin-bottom: 1.2rem; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); padding: 0.6rem 0.8rem; border-radius: 8px;">
-                    <span style="font-size: 0.75rem; color: #94a3b8; display: block; margin-bottom: 0.4rem; font-weight: 600;">⚡ Hızlı Şablonlar:</span>
-                    <div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
-                        <button type="button" class="btn btn-sm btn-secondary" style="font-size: 0.72rem; padding: 0.2rem 0.55rem;" onclick="sablonUygula(1)">Sağlıklı Günler</button>
-                        <button type="button" class="btn btn-sm btn-secondary" style="font-size: 0.72rem; padding: 0.2rem 0.55rem;" onclick="sablonUygula(2)">Kesintisiz Nöbet</button>
-                        <button type="button" class="btn btn-sm btn-secondary" style="font-size: 0.72rem; padding: 0.2rem 0.55rem;" onclick="sablonUygula(3)">Reçeteli & Medikal</button>
+                <!-- Şablonlar & Yönetim -->
+                <div style="margin-bottom: 1.2rem; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 0.75rem 0.9rem; border-radius: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <span style="font-size: 0.76rem; color: #94a3b8; font-weight: 700;">⚡ Hızlı Şablonlar (Uygulamak için tıkla):</span>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="sablonYonetiminiAcKapat()" style="font-size: 0.7rem; padding: 0.2rem 0.55rem;">
+                            ⚙️ Şablonları Yönet
+                        </button>
+                    </div>
+                    
+                    <div id="ticker-template-chips" style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
+                        <span style="font-size: 0.75rem; color: #64748b;">Şablonlar yükleniyor...</span>
+                    </div>
+
+                    <!-- Şablon Yönetim Bölümü (Açılır/Kapanır) -->
+                    <div id="ticker-template-manager" style="display: none; margin-top: 0.8rem; padding-top: 0.8rem; border-top: 1px dashed rgba(255,255,255,0.1);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <strong style="font-size: 0.78rem; color: #38bdf8;">📋 Şablon Ekle / Düzenle / Sil</strong>
+                            <button type="button" class="btn btn-sm btn-success" onclick="yeniSablonFormuGoster()" style="font-size: 0.7rem; padding: 0.15rem 0.5rem;">
+                                ➕ Yeni Şablon
+                            </button>
+                        </div>
+
+                        <!-- Yeni / Düzenleme Formu -->
+                        <div id="template-editor-box" style="display: none; background: rgba(0,0,0,0.4); border: 1px solid rgba(56,189,248,0.3); border-radius: 8px; padding: 0.6rem; margin-bottom: 0.75rem;">
+                            <input type="hidden" id="edit-template-id" value="">
+                            <div style="margin-bottom: 0.4rem;">
+                                <input type="text" id="edit-template-title" class="form-control" style="font-size: 0.8rem; padding: 0.35rem 0.55rem;" placeholder="Şablon Başlığı (Örn: Özel Kampanya)">
+                            </div>
+                            <div style="margin-bottom: 0.4rem;">
+                                <textarea id="edit-template-text" class="form-control" rows="2" style="font-size: 0.8rem; padding: 0.35rem 0.55rem;" placeholder="Şablon Metni (İpucu: {eczane} yazarsanız otomatik eczane adıyla değişir)"></textarea>
+                            </div>
+                            <div style="display: flex; justify-content: flex-end; gap: 0.4rem;">
+                                <button type="button" class="btn btn-sm btn-secondary" onclick="sablonEditoruKapat()" style="font-size: 0.72rem; padding: 0.2rem 0.5rem;">İptal</button>
+                                <button type="button" class="btn btn-sm btn-primary" onclick="sablonKaydetAjax()" style="font-size: 0.72rem; padding: 0.2rem 0.6rem;">💾 Şablonu Kaydet</button>
+                            </div>
+                        </div>
+
+                        <div id="ticker-template-list" style="max-height: 160px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.35rem;">
+                            <!-- JS ile render edilecek -->
+                        </div>
                     </div>
                 </div>
 
@@ -921,6 +964,119 @@
                     <button type="button" class="btn btn-secondary" onclick="modalKapat('modal-ticker')">İptal</button>
                     <button type="submit" id="btn-save-ticker" class="btn btn-primary" style="display: flex; align-items: center; gap: 0.4rem;">
                         <span>💾 Duyuruyu Kaydet</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 6. MODAL: KİOSK EKRAN TEMASI PARAMETRİK AYARLARI -->
+    <div id="modal-theme-settings" class="modal-overlay">
+        <div class="modal-box" style="max-width: 600px;">
+            <div class="modal-header">
+                <div>
+                    <h3 id="theme-modal-title">🎨 Kiosk Ekran Teması & Parametreleri</h3>
+                    <span id="theme-modal-subtitle" style="font-size: 0.82rem; color: #38bdf8; font-weight: 600;"></span>
+                </div>
+                <button class="modal-close" onclick="modalKapat('modal-theme-settings')">&times;</button>
+            </div>
+            <form id="form-theme-settings" onsubmit="temaAyarlariniKaydetAjax(event)" style="margin-top: 1rem;">
+                <input type="hidden" id="theme-pharmacy-id" value="">
+
+                <!-- 1. Temel Tema Seçimi -->
+                <div class="form-group" style="margin-bottom: 1.2rem;">
+                    <label style="font-size: 0.84rem; font-weight: 700; color: #e2e8f0; margin-bottom: 0.4rem; display: block;">
+                        📺 Aktif Ekran Teması
+                    </label>
+                    <select id="ts-theme-select" class="form-control" style="font-size: 0.88rem; font-weight: 600;">
+                        <option value="classic_grid">1. Versiyon: Klasik 4'lü Izgara & Harita</option>
+                        <option value="animated_route">2. Versiyon: Canlı Yol & Navigasyon Animasyonu</option>
+                        <option value="focus_carousel">3. Versiyon: Vitrin Carousel & Dev Odak Kartı</option>
+                        <option value="dual_card">4. Versiyon: İkili Dev Kart & Harita (2 Eczane)</option>
+                        <option value="auto_rotate">5. Versiyon: Karma Mod (Zaman Ayarlı Otomatik Dönüşüm)</option>
+                    </select>
+                </div>
+
+                <!-- 2. Geçiş & Zamanlama Parametreleri -->
+                <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 1rem; margin-bottom: 1.2rem;">
+                    <div style="font-size: 0.82rem; font-weight: 800; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.8rem;">
+                        ⏱️ Zamanlama ve Geçiş Süreleri
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label style="font-size: 0.8rem; color: #cbd5e1;">Slayt / Karusel Geçişi</label>
+                            <select id="ts-carousel-interval" class="form-control" style="font-size: 0.85rem;">
+                                <option value="5">5 Saniye (Çok Hızlı)</option>
+                                <option value="8">8 Saniye (Hızlı)</option>
+                                <option value="10" selected>10 Saniye (Standart Önerilen)</option>
+                                <option value="15">15 Saniye (Geniş Okuma)</option>
+                                <option value="20">20 Saniye (Yavaş)</option>
+                                <option value="30">30 Saniye (Sabit Odak)</option>
+                            </select>
+                            <small style="color: #64748b; font-size: 0.72rem; display: block; margin-top: 0.2rem;">Tema 2 ve Tema 3'te nöbetçi kartının ekranda kalma süresi.</small>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label style="font-size: 0.8rem; color: #cbd5e1;">Karma Mod Dönüşüm Sıklığı</label>
+                            <select id="ts-autorotate-interval" class="form-control" style="font-size: 0.85rem;">
+                                <option value="15">15 Dakikada Bir</option>
+                                <option value="30">30 Dakikada Bir</option>
+                                <option value="60" selected>Her 1 Saatte Bir (Önerilen)</option>
+                                <option value="120">Her 2 Saatte Bir</option>
+                            </select>
+                            <small style="color: #64748b; font-size: 0.72rem; display: block; margin-top: 0.2rem;">Tema 5'te temaların otomatik yer değiştirme periyodu.</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Harita & Görünüm Parametreleri -->
+                <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 1rem; margin-bottom: 1.2rem;">
+                    <div style="font-size: 0.82rem; font-weight: 800; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.8rem;">
+                        🗺️ Harita ve Ölçek Ayarları
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label style="font-size: 0.8rem; color: #cbd5e1;">Harita Başlangıç Yakınlaştırma (Zoom)</label>
+                        <select id="ts-map-zoom" class="form-control" style="font-size: 0.85rem;">
+                            <option value="13">13 - Geniş İlçe Çerçevesi</option>
+                            <option value="14" selected>14 - Standart İlçe Görünümü</option>
+                            <option value="15">15 - Yakın Mahalle Odaklı</option>
+                            <option value="16">16 - Detaylı Cadde / Sokak Odaklı</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 4. İçerik ve Bileşen Görünürlük Ayarları -->
+                <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 1rem; margin-bottom: 1.2rem;">
+                    <div style="font-size: 0.82rem; font-weight: 800; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.8rem;">
+                        👁️ Ekran Bileşenleri ve İçerik Kontrolleri
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                        <label style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.84rem; color: #e2e8f0; cursor: pointer;">
+                            <input type="checkbox" id="ts-show-countdown" checked style="width: 16px; height: 16px; accent-color: #38bdf8;">
+                            <span>Nöbet Bitimi Canlı Sayacı</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.84rem; color: #e2e8f0; cursor: pointer;">
+                            <input type="checkbox" id="ts-show-qr" checked style="width: 16px; height: 16px; accent-color: #38bdf8;">
+                            <span>Navigasyon QR Kodu</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.84rem; color: #e2e8f0; cursor: pointer;">
+                            <input type="checkbox" id="ts-show-travel-times" checked style="width: 16px; height: 16px; accent-color: #38bdf8;">
+                            <span>Araba & Yürüme Süreleri</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.84rem; color: #e2e8f0; cursor: pointer;">
+                            <input type="checkbox" id="ts-show-district-counter" checked style="width: 16px; height: 16px; accent-color: #38bdf8;">
+                            <span>İlçe Nöbetçi Sayacı</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.84rem; color: #e2e8f0; cursor: pointer;">
+                            <input type="checkbox" id="ts-show-landmark" checked style="width: 16px; height: 16px; accent-color: #38bdf8;">
+                            <span>Önemli Nokta / Muhtarlık Bandı</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 0.8rem; padding-top: 0.8rem; border-top: 1px solid var(--border-color);">
+                    <button type="button" class="btn btn-secondary" onclick="modalKapat('modal-theme-settings')">İptal</button>
+                    <button type="submit" id="btn-save-theme-settings" class="btn btn-primary" style="display: flex; align-items: center; gap: 0.4rem;">
+                        <span>💾 Tema Ayarlarını Kaydet</span>
                     </button>
                 </div>
             </form>
@@ -1457,6 +1613,7 @@
             const inputEl = document.getElementById('ticker-text-input');
             inputEl.value = mevcutMetin || '';
             duyuruKarakterSayisiGuncelle();
+            sablonlariYukle();
             modalAc('modal-ticker');
             setTimeout(() => inputEl.focus(), 150);
         }
@@ -1467,17 +1624,123 @@
             if (countEl) countEl.textContent = `${val.length} karakter`;
         }
 
-        function sablonUygula(no) {
-            const inputEl = document.getElementById('ticker-text-input');
-            if (no === 1) {
-                inputEl.value = `${aktifTickerEczaneAdi} sağlıklı günler diler.`;
-            } else if (no === 2) {
-                inputEl.value = `${aktifTickerEczaneAdi} sabaha kadar kesintisiz nöbet hizmeti vermektedir. Sağlıklı günler dileriz.`;
-            } else if (no === 3) {
-                inputEl.value = `${aktifTickerEczaneAdi} sağlıklı günler diler. Reçeteli ilaçlarınız ve medikal ihtiyaçlarınız için danışabilirsiniz.`;
+        // ==========================================
+        // Duyuru Şablonları Yönetimi
+        // ==========================================
+        let yukluSablonlar = [];
+
+        async function sablonlariYukle() {
+            const chipsEl = document.getElementById('ticker-template-chips');
+            const listEl = document.getElementById('ticker-template-list');
+            try {
+                const res = await fetch(`/admin/api/ticker-templates?_t=${Date.now()}`);
+                const data = await res.json();
+                if (data.success && data.templates) {
+                    yukluSablonlar = data.templates;
+                    // 1. Hızlı Çipleri Render Et
+                    if (chipsEl) {
+                        chipsEl.innerHTML = yukluSablonlar.map(s => `
+                            <button type="button" class="btn btn-sm btn-secondary" style="font-size: 0.72rem; padding: 0.2rem 0.55rem;" onclick='sablonUygulaMetin(${JSON.stringify(s.text)})'>
+                                ${escapeHtml(s.title)}
+                            </button>
+                        `).join('');
+                    }
+                    // 2. Yönetim Listesini Render Et
+                    if (listEl) {
+                        listEl.innerHTML = yukluSablonlar.map(s => `
+                            <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.06); padding:0.4rem 0.6rem; border-radius:6px;">
+                                <div style="flex:1; overflow:hidden; padding-right:0.5rem;">
+                                    <strong style="font-size:0.78rem; color:#fff; display:block;">${escapeHtml(s.title)}</strong>
+                                    <span style="font-size:0.7rem; color:#94a3b8; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(s.text)}</span>
+                                </div>
+                                <div style="display:flex; gap:0.3rem;">
+                                    <button type="button" class="btn btn-sm btn-secondary" style="padding:0.15rem 0.4rem; font-size:0.7rem;" onclick='sablonDuzenle(${s.id}, ${JSON.stringify(s.title)}, ${JSON.stringify(s.text)})' title="Düzenle">✏️</button>
+                                    <button type="button" class="btn btn-sm btn-danger" style="padding:0.15rem 0.4rem; font-size:0.7rem;" onclick="sablonSilAjax(${s.id})" title="Sil">🗑️</button>
+                                </div>
+                            </div>
+                        `).join('');
+                    }
+                }
+            } catch (e) {
+                console.error('Şablon yükleme hatası:', e);
             }
+        }
+
+        function sablonUygulaMetin(rawText) {
+            const inputEl = document.getElementById('ticker-text-input');
+            if (!inputEl) return;
+            const metin = (rawText || '').replace(/\{eczane\}/g, aktifTickerEczaneAdi);
+            inputEl.value = metin;
             duyuruKarakterSayisiGuncelle();
             inputEl.focus();
+        }
+
+        function sablonYonetiminiAcKapat() {
+            const mgr = document.getElementById('ticker-template-manager');
+            if (!mgr) return;
+            mgr.style.display = (mgr.style.display === 'none' || !mgr.style.display) ? 'block' : 'none';
+        }
+
+        function yeniSablonFormuGoster() {
+            document.getElementById('edit-template-id').value = '';
+            document.getElementById('edit-template-title').value = '';
+            document.getElementById('edit-template-text').value = '';
+            document.getElementById('template-editor-box').style.display = 'block';
+            document.getElementById('edit-template-title').focus();
+        }
+
+        function sablonDuzenle(id, title, text) {
+            document.getElementById('edit-template-id').value = id;
+            document.getElementById('edit-template-title').value = title || '';
+            document.getElementById('edit-template-text').value = text || '';
+            document.getElementById('template-editor-box').style.display = 'block';
+            document.getElementById('edit-template-title').focus();
+        }
+
+        function sablonEditoruKapat() {
+            document.getElementById('template-editor-box').style.display = 'none';
+        }
+
+        async function sablonKaydetAjax() {
+            const id = document.getElementById('edit-template-id').value;
+            const title = document.getElementById('edit-template-title').value.trim();
+            const text = document.getElementById('edit-template-text').value.trim();
+            if (!title || !text) {
+                alert('Lütfen şablon başlığı ve metnini doldurunuz.');
+                return;
+            }
+            const url = id ? `/admin/api/ticker-templates/${id}/edit` : `/admin/api/ticker-templates`;
+            try {
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ title, text })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    sablonEditoruKapat();
+                    sablonlariYukle();
+                } else {
+                    alert('Hata: ' + (data.error || 'Kaydedilemedi'));
+                }
+            } catch (err) {
+                alert('Bağlantı hatası: ' + err.message);
+            }
+        }
+
+        async function sablonSilAjax(id) {
+            if (!confirm('Bu duyuru şablonunu silmek istediğinize emin misiniz?')) return;
+            try {
+                const res = await fetch(`/admin/api/ticker-templates/${id}/delete`, { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    sablonlariYukle();
+                } else {
+                    alert('Hata: ' + (data.error || 'Silinemedi'));
+                }
+            } catch (err) {
+                alert('Bağlantı hatası: ' + err.message);
+            }
         }
 
         async function duyuruKaydetAjax(e) {
@@ -1502,7 +1765,6 @@
                 });
                 const data = await resp.json();
                 if (data.success) {
-                    // Tablodaki önizlemeyi ve data-ticker attributelerini anında güncelle
                     const previewEl = document.getElementById(`ticker-preview-${eczaneId}`);
                     if (previewEl) {
                         previewEl.setAttribute('data-ticker', data.ticker_text);
@@ -1518,6 +1780,82 @@
                     alert(`✅ ${aktifTickerEczaneAdi} için kayan yazı duyurusu başarıyla kaydedildi!\nTV ekranında otomatik olarak güncellenecektir.`);
                 } else {
                     alert('Hata: ' + (data.error || 'Duyuru kaydedilemedi.'));
+                }
+            } catch (err) {
+                alert('Bağlantı hatası: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = eskiIcerik;
+            }
+        }
+
+        // ==========================================
+        // Kiosk Ekran Teması Parametrik Ayar Fonksiyonları
+        // ==========================================
+        let aktifTemaEczaneAdi = '';
+
+        function temaAyarlariModalAc(eczaneId, eczaneAdi, mevcutTema, mevcutAyarlar) {
+            document.getElementById('theme-pharmacy-id').value = eczaneId;
+            aktifTemaEczaneAdi = eczaneAdi || 'Eczane';
+            document.getElementById('theme-modal-title').textContent = '🎨 Kiosk Ekran Teması & Parametreleri';
+            document.getElementById('theme-modal-subtitle').textContent = aktifTemaEczaneAdi;
+
+            // Tema Seçimi
+            document.getElementById('ts-theme-select').value = mevcutTema || 'classic_grid';
+
+            // Parametreler
+            const ayar = mevcutAyarlar || {};
+            document.getElementById('ts-carousel-interval').value = ayar.carousel_interval_sec || 10;
+            document.getElementById('ts-autorotate-interval').value = ayar.auto_rotate_minutes || 60;
+            document.getElementById('ts-map-zoom').value = ayar.map_zoom || 14;
+
+            // Görünürlük Checkbox'ları
+            document.getElementById('ts-show-countdown').checked = (ayar.show_countdown !== false);
+            document.getElementById('ts-show-qr').checked = (ayar.show_qr !== false);
+            document.getElementById('ts-show-travel-times').checked = (ayar.show_travel_times !== false);
+            document.getElementById('ts-show-district-counter').checked = (ayar.show_district_counter !== false);
+            document.getElementById('ts-show-landmark').checked = (ayar.show_landmark !== false);
+
+            modalAc('modal-theme-settings');
+        }
+
+        async function temaAyarlariniKaydetAjax(e) {
+            e.preventDefault();
+            const eczaneId = document.getElementById('theme-pharmacy-id').value;
+            const yeniTema = document.getElementById('ts-theme-select').value;
+
+            const theme_settings = {
+                carousel_interval_sec: parseInt(document.getElementById('ts-carousel-interval').value, 10) || 10,
+                auto_rotate_minutes: parseInt(document.getElementById('ts-autorotate-interval').value, 10) || 60,
+                map_zoom: parseInt(document.getElementById('ts-map-zoom').value, 10) || 14,
+                show_countdown: document.getElementById('ts-show-countdown').checked,
+                show_qr: document.getElementById('ts-show-qr').checked,
+                show_travel_times: document.getElementById('ts-show-travel-times').checked,
+                show_district_counter: document.getElementById('ts-show-district-counter').checked,
+                show_landmark: document.getElementById('ts-show-landmark').checked
+            };
+
+            const btn = document.getElementById('btn-save-theme-settings');
+            const eskiIcerik = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span>⏳ Kaydediliyor...</span>';
+
+            try {
+                const resp = await fetch(`/admin/pharmacy/${eczaneId}/theme-settings`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        theme: yeniTema,
+                        theme_settings: theme_settings
+                    })
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    modalKapat('modal-theme-settings');
+                    alert(`✅ ${aktifTemaEczaneAdi} ekran teması ve parametreleri kaydedildi!\nKiosk ekranı bir sonraki güncellemede yeni ayarları uygulayacaktır.`);
+                    setTimeout(() => location.reload(), 500);
+                } else {
+                    alert('Hata: ' + (data.error || 'Ayarlar kaydedilemedi.'));
                 }
             } catch (err) {
                 alert('Bağlantı hatası: ' + err.message);

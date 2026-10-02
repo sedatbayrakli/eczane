@@ -12,70 +12,77 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
         body {
-            background: #080a10;
+            background: radial-gradient(circle at center, #0f172a 0%, #080a10 100%);
             color: #f8fafc;
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 2rem;
+            padding: 1.5rem;
             text-align: center;
         }
         .error-card {
-            background: rgba(18, 24, 38, 0.95);
-            border: 2px solid rgba(239, 68, 68, 0.4);
+            background: rgba(18, 24, 38, 0.96);
+            border: 1.5px solid rgba(239, 68, 68, 0.35);
             border-radius: 24px;
-            padding: 3.5rem 3rem;
-            max-width: 720px;
-            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(239, 68, 68, 0.15);
+            padding: 2.2rem 2.8rem;
+            max-width: 640px;
+            width: 100%;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.65), 0 0 35px rgba(239, 68, 68, 0.15);
+            box-sizing: border-box;
         }
         .warning-icon {
-            font-size: 4rem;
-            margin-bottom: 1.2rem;
-            animation: pulseWarning 2s infinite;
-        }
-        @keyframes pulseWarning {
-            0% { transform: scale(0.95); opacity: 0.8; }
-            50% { transform: scale(1.08); opacity: 1; }
-            100% { transform: scale(0.95); opacity: 0.8; }
-        }
-        h1 {
-            font-size: 2.3rem;
-            font-weight: 800;
-            color: #ffffff;
+            width: 58px;
+            height: 58px;
+            background: rgba(239, 68, 68, 0.12);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
             margin-bottom: 1rem;
         }
+        h1 {
+            font-size: 1.45rem;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.01em;
+        }
         p {
-            font-size: 1.3rem;
-            color: #cbd5e1;
-            line-height: 1.6;
-            margin-bottom: 2rem;
+            font-size: 0.92rem;
+            color: #94a3b8;
+            line-height: 1.5;
+            margin-bottom: 1.4rem;
         }
         .license-box {
-            background: rgba(0, 0, 0, 0.45);
-            border: 1px dashed rgba(255, 255, 255, 0.2);
-            padding: 1.2rem 2rem;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 0.75rem 1.5rem;
             border-radius: 12px;
             display: inline-block;
-            margin-bottom: 2rem;
+            margin-bottom: 1.4rem;
         }
         .license-label {
-            font-size: 0.9rem;
+            font-size: 0.7rem;
             color: #94a3b8;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 0.3rem;
+            letter-spacing: 0.04em;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
         }
         .license-value {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 1.8rem;
+            font-size: 1.05rem;
             font-weight: 800;
             color: #fbbf24;
             letter-spacing: 0.05em;
         }
         .footer-note {
-            font-size: 1rem;
+            font-size: 0.82rem;
             color: #64748b;
+            line-height: 1.5;
         }
     </style>
 </head>

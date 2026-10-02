@@ -133,6 +133,8 @@ class Pharmacy(db.Model):
     )
     # Kiosk Ekran Teması ('classic_grid', 'animated_route', 'focus_carousel', 'dual_card', 'auto_rotate')
     theme = db.Column(db.String(50), default="classic_grid", nullable=False)
+    # Kiosk Ekran Teması Parametrik Ayarları (JSON)
+    theme_settings = db.Column(db.Text, default='{}', nullable=False)
     
     # TV Ekranı Cihaz Kilitleme & IP Takibi
     registered_device_token = db.Column(db.String(128), nullable=True) # Geriye dönük uyumluluk için
@@ -303,8 +305,40 @@ class Pharmacy(db.Model):
             "screen_scale": self.screen_scale or "auto",
             "devices": cihazlar,
             "ticker_text": self.ticker_text,
-            "theme": self.theme or "classic_grid"
+            "theme": self.theme or "classic_grid",
+            "theme_settings": self.get_theme_settings()
         }
+
+    def get_theme_settings(self) -> dict:
+        """Kiosk ekran teması parametrik ayarlarını döndürür (varsayılanlarla harmanlanmış)."""
+        import json
+        varsayilan = {
+            "carousel_interval_sec": 10,
+            "auto_rotate_minutes": 60,
+            "map_zoom": 14,
+            "show_countdown": True,
+            "show_qr": True,
+            "show_travel_times": True,
+            "show_district_counter": True,
+            "show_landmark": True
+        }
+        if not self.theme_settings:
+            return varsayilan
+        try:
+            kayitli = json.loads(self.theme_settings)
+            if isinstance(kayitli, dict):
+                varsayilan.update(kayitli)
+        except Exception:
+            pass
+        return varsayilan
+
+    def set_theme_settings(self, ayarlar: dict):
+        """Kiosk ekran teması parametrik ayarlarını günceller."""
+        import json
+        guncel = self.get_theme_settings()
+        if isinstance(ayarlar, dict):
+            guncel.update(ayarlar)
+        self.theme_settings = json.dumps(guncel, ensure_ascii=False)
 
     def __repr__(self):
         return f"<Pharmacy {self.name} - {self.license_key}>"
@@ -357,3 +391,43 @@ class SystemSetting(db.Model):
             "map_theme": self.map_theme,
             "updated_at": self.updated_at.strftime("%d.%m.%Y %H:%M") if self.updated_at else None
         }
+
+
+class TickerTemplate(db.Model):
+    """
+    Sık kullanılan kayan yazı / duyuru şablonları.
+    Yöneticinin ekleyip düzenleyebileceği, silebileceği ve tek tıkla uygulayabileceği duyurular.
+    """
+    __tablename__ = "ticker_templates"
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(100), nullable=False) # Örn: "Sağlıklı Günler"
+    text = db.Column(db.Text, nullable=False)          # Örn: "{eczane} sağlıklı günler diler."
+    is_default = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "title": self.title,
+            "text": self.text,
+            "is_default": self.is_default,
+            "created_at": self.created_at.strftime("%d.%m.%Y") if self.created_at else None
+        }
+
+    @classmethod
+    def seed_defaults(cls):
+        """Varsayılan şablonlar yoksa oluşturur."""
+        if cls.query.count() == 0:
+            sablonlar = [
+                cls(title="Sağlıklı Günler", text="{eczane} sağlıklı günler diler.", is_default=True),
+                cls(title="Kesintisiz Nöbet", text="{eczane} sabaha kadar kesintisiz nöbet hizmeti vermektedir. Sağlıklı günler dileriz.", is_default=True),
+                cls(title="Reçeteli & Medikal", text="{eczane} sağlıklı günler diler. Reçeteli ilaçlarınız ve medikal ihtiyaçlarınız için danışabilirsiniz.", is_default=True)
+            ]
+            for s in sablonlar:
+                db.session.add(s)
+            try:
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+

@@ -70,9 +70,10 @@ const elProgressBar = document.getElementById('route-progress-bar');
  */
 function aktifGorunumuBelirle() {
     if (aktifTema === 'auto_rotate') {
-        const saat = new Date().getHours();
+        const arMinutes = (window._kioskThemeSettings && window._kioskThemeSettings.auto_rotate_minutes) ? window._kioskThemeSettings.auto_rotate_minutes : 60;
+        const totalPeriods = Math.floor(Date.now() / (arMinutes * 60 * 1000));
         const temalar = ['classic_grid', 'animated_route', 'focus_carousel', 'dual_card'];
-        return temalar[saat % temalar.length];
+        return temalar[totalPeriods % temalar.length];
     }
     return aktifTema;
 }
@@ -924,6 +925,7 @@ function slaytGoster() {
     }
 
     slaytIlerlemeAnimasyonunuBaslat();
+    temaIcerikGorunurlukleriniUygula();
 }
 
 function manuelSlaytaGit(index) {
@@ -936,6 +938,45 @@ function manuelSlaytaGit(index) {
             slaytIndex = (slaytIndex + 1) % guncelEczaneler.length;
             slaytGoster();
         }, KIOSK_AYARLAR.SLAYT_SURESI_MS);
+    }
+}
+
+
+/**
+ * Kiosk Ekran Teması Parametrik Görünürlük Ayarlarını DOM'a Uygular
+ */
+function temaIcerikGorunurlukleriniUygula(ts) {
+    if (!ts) ts = window._kioskThemeSettings;
+    if (!ts) return;
+
+    // Nöbet Bitimi Sayacı (show_countdown)
+    const countdownEls = document.querySelectorAll('.duty-countdown-frame, .duty-live-countdown');
+    countdownEls.forEach(el => {
+        el.style.display = (ts.show_countdown === false) ? 'none' : '';
+    });
+
+    // QR Kod Bölümü (show_qr)
+    const qrCols = document.querySelectorAll('.focus-qr-col, .pharmacy-qr, .qr-section');
+    qrCols.forEach(el => {
+        el.style.display = (ts.show_qr === false) ? 'none' : '';
+    });
+
+    // Ulaşım / Seyahat Süreleri (show_travel_times)
+    const travelBoxes = document.querySelectorAll('.travel-modes-box');
+    travelBoxes.forEach(el => {
+        el.style.display = (ts.show_travel_times === false) ? 'none' : '';
+    });
+
+    // İlçe Nöbetçi Sayacı (show_district_counter)
+    const counterPill = document.querySelector('.pharmacy-counter');
+    if (counterPill) {
+        counterPill.style.display = (ts.show_district_counter === false) ? 'none' : '';
+    }
+
+    // Yol Tarifi / Landmark Bandı (show_landmark)
+    const landmarkBar = document.getElementById('map-panel-landmark-bar');
+    if (landmarkBar && ts.show_landmark === false) {
+        landmarkBar.style.display = 'none';
     }
 }
 
@@ -967,6 +1008,22 @@ function arayuzuGuncelle(veri, isOffline = false, savedTime = '') {
 
         // TV / Mi Box Ekran Çözünürlüğü ve Ölçek Ayarını Uygula
         ekranOlceginiUygula(veri.pharmacy.screen_scale || 'auto');
+
+        // Kiosk Ekran Teması Parametrik Ayarlarını Uygula
+        if (veri.pharmacy.theme_settings) {
+            const ts = veri.pharmacy.theme_settings;
+            window._kioskThemeSettings = ts;
+            if (ts.carousel_interval_sec && ts.carousel_interval_sec > 0) {
+                KIOSK_AYARLAR.SLAYT_SURESI_MS = ts.carousel_interval_sec * 1000;
+            }
+            if (ts.auto_rotate_minutes && ts.auto_rotate_minutes > 0) {
+                KIOSK_AYARLAR.AUTO_ROTATE_MINUTES = ts.auto_rotate_minutes;
+            }
+            if (ts.map_zoom) {
+                KIOSK_AYARLAR.MAP_ZOOM = ts.map_zoom;
+            }
+            temaIcerikGorunurlukleriniUygula(ts);
+        }
     }
 
     // Cihaz Tanımlama (Identify / Ekranda Göster) Sinyali Kontrolü
@@ -1122,30 +1179,36 @@ async function kioskVerileriniGetir() {
                 }
 
                 overlay.innerHTML = `
-                    <div style="background:rgba(18,24,38,0.98);border:2px solid #38bdf8;border-radius:28px;padding:3rem 3.5rem;max-width:700px;box-shadow:0 0 50px rgba(56,189,248,0.25);">
-                        <div style="font-size:3.8rem;margin-bottom:0.8rem;animation:bounceRadar 1.5s infinite;">📺</div>
-                        <h1 style="font-size:2rem;margin-bottom:0.6rem;color:#ffffff;letter-spacing:-0.02em;">Cihaz Lisans Onayı Bekleniyor</h1>
-                        <p style="font-size:1.05rem;color:#cbd5e1;line-height:1.6;margin-bottom:1.5rem;">
-                            Bu ekran sisteme kaydedildi ve <strong>${escapeHtml(errData.pharmacy_name || 'Eczane')}</strong> lisansına bağlandı.<br>
-                            Yönetim panelinden cihazın lisansı aktif edildiği anda ekran <strong>otomatik olarak yayına başlayacaktır</strong>.
+                    <div style="background:rgba(18,24,38,0.96);border:1.5px solid rgba(56,189,248,0.35);border-radius:24px;padding:2.2rem 2.8rem;max-width:640px;width:100%;box-shadow:0 25px 60px rgba(0,0,0,0.65), 0 0 35px rgba(56,189,248,0.15);box-sizing:border-box;">
+                        <div style="width:58px;height:58px;background:rgba(56,189,248,0.12);border:1px solid rgba(56,189,248,0.3);border-radius:16px;display:inline-flex;align-items:center;justify-content:center;font-size:2rem;margin-bottom:1rem;">📺</div>
+                        <h1 style="font-size:1.45rem;font-weight:800;margin-bottom:0.4rem;color:#ffffff;letter-spacing:-0.01em;">Cihaz Lisans Onayı Bekleniyor</h1>
+                        <p style="font-size:0.92rem;color:#94a3b8;line-height:1.5;margin-bottom:1.4rem;">
+                            Bu ekran sisteme kaydedildi ve <strong style="color:#e2e8f0;">${escapeHtml(errData.pharmacy_name || 'Eczane')}</strong> lisansına bağlandı.<br>
+                            Yönetim panelinden onay verildiğinde ekran <strong>otomatik olarak yayına başlayacaktır</strong>.
                         </p>
-                        <div style="background:rgba(0,0,0,0.6);border:1.5px solid rgba(56,189,248,0.3);padding:1.2rem 1.8rem;border-radius:16px;margin-bottom:1.5rem;text-align:left;">
-                            <div style="margin-bottom:0.6rem;font-size:0.95rem;color:#94a3b8;">
-                                📡 Cihaz MAC Adresi: <strong style="color:#38bdf8;font-family:'JetBrains Mono',monospace;font-size:1.15rem;">${escapeHtml(errData.mac || deviceMac)}</strong>
+                        
+                        <!-- Dengeli 3 Kutucuklu Bilgi Alanı -->
+                        <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:0.75rem;margin-bottom:1.4rem;">
+                            <div style="background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:0.7rem 0.5rem;text-align:center;">
+                                <div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase;font-weight:700;letter-spacing:0.04em;margin-bottom:0.25rem;">Cihaz MAC</div>
+                                <div style="font-size:0.92rem;font-weight:800;color:#38bdf8;font-family:'JetBrains Mono',monospace;word-break:break-all;">${escapeHtml(errData.mac || deviceMac)}</div>
                             </div>
-                            <div style="margin-bottom:0.6rem;font-size:0.92rem;color:#94a3b8;">
-                                🏠 Yerel Ağ IP: <strong style="color:#e2e8f0;font-family:'JetBrains Mono',monospace;">${escapeHtml(errData.local_ip || localIp || 'Tespit ediliyor')}</strong>
+                            <div style="background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:0.7rem 0.5rem;text-align:center;">
+                                <div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase;font-weight:700;letter-spacing:0.04em;margin-bottom:0.25rem;">Yerel IP</div>
+                                <div style="font-size:0.92rem;font-weight:800;color:#f8fafc;font-family:'JetBrains Mono',monospace;word-break:break-all;">${escapeHtml(errData.local_ip || localIp || '-')}</div>
                             </div>
-                            <div style="font-size:0.92rem;color:#94a3b8;">
-                                🌐 Dış Ağ IP: <span style="color:#cbd5e1;font-family:'JetBrains Mono',monospace;">${escapeHtml(errData.ip || '-')}</span>
+                            <div style="background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:0.7rem 0.5rem;text-align:center;">
+                                <div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase;font-weight:700;letter-spacing:0.04em;margin-bottom:0.25rem;">Dış Ağ IP</div>
+                                <div style="font-size:0.92rem;font-weight:800;color:#cbd5e1;font-family:'JetBrains Mono',monospace;word-break:break-all;">${escapeHtml(errData.ip || '-')}</div>
                             </div>
                         </div>
-                        <div style="display:flex;align-items:center;justify-content:center;gap:1rem;flex-wrap:wrap;">
-                            <div style="display:inline-flex;align-items:center;gap:0.6rem;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.4);color:#fbbf24;padding:0.6rem 1.2rem;border-radius:9999px;font-size:0.88rem;font-weight:700;">
-                                <span class="pulse-indicator" style="background:#f59e0b;"></span>
-                                Yönetim Panelinden "Lisansı Aktif Et" butonu bekleniyor... (Otomatik Kontrol: 3sn)
+
+                        <div style="display:flex;align-items:center;justify-content:center;gap:0.75rem;flex-wrap:wrap;">
+                            <div style="display:inline-flex;align-items:center;gap:0.5rem;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.35);color:#fbbf24;padding:0.45rem 1rem;border-radius:9999px;font-size:0.82rem;font-weight:700;">
+                                <span class="pulse-indicator" style="background:#f59e0b;width:7px;height:7px;"></span>
+                                Panelden onay bekleniyor... (Oto: 3sn)
                             </div>
-                            <button onclick="window.location.reload(true);" style="background:rgba(56,189,248,0.2);border:1px solid #38bdf8;color:#38bdf8;padding:0.6rem 1.2rem;border-radius:9999px;font-size:0.88rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:0.4rem;">
+                            <button onclick="window.location.reload(true);" style="background:rgba(56,189,248,0.15);border:1px solid rgba(56,189,248,0.4);color:#38bdf8;padding:0.45rem 1rem;border-radius:9999px;font-size:0.82rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:0.35rem;">
                                 🔄 Şimdi Kontrol Et
                             </button>
                         </div>
@@ -1159,18 +1222,18 @@ async function kioskVerileriniGetir() {
             // Cihaz Limiti Aşımı Durumu
             if (errData.reason === 'device_limit_exceeded') {
                 document.body.innerHTML = `
-                    <div style="background:#080a10;color:#fff;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem;text-align:center;font-family:Inter,sans-serif;">
-                        <div style="background:rgba(18,24,38,0.95);border:2px solid #f59e0b;border-radius:24px;padding:3.5rem 3rem;max-width:700px;box-shadow:0 0 40px rgba(245,158,11,0.2);">
-                            <div style="font-size:4rem;margin-bottom:1rem;">📺</div>
-                            <h1 style="font-size:2.2rem;margin-bottom:1rem;color:#fbbf24;">Cihaz Limiti Dolu</h1>
-                            <p style="font-size:1.25rem;color:#cbd5e1;line-height:1.6;margin-bottom:2rem;">
+                    <div style="background:radial-gradient(circle at center, #0f172a 0%, #080a10 100%);color:#fff;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1.5rem;text-align:center;font-family:Inter,sans-serif;box-sizing:border-box;">
+                        <div style="background:rgba(18,24,38,0.96);border:1.5px solid rgba(245,158,11,0.4);border-radius:24px;padding:2.2rem 2.8rem;max-width:640px;width:100%;box-shadow:0 25px 60px rgba(0,0,0,0.65), 0 0 35px rgba(245,158,11,0.15);box-sizing:border-box;">
+                            <div style="width:58px;height:58px;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);border-radius:16px;display:inline-flex;align-items:center;justify-content:center;font-size:2rem;margin-bottom:1rem;">📺</div>
+                            <h1 style="font-size:1.45rem;font-weight:800;margin-bottom:0.4rem;color:#fbbf24;">Cihaz Limiti Dolu</h1>
+                            <p style="font-size:0.92rem;color:#94a3b8;line-height:1.5;margin-bottom:1.4rem;">
                                 Bu lisans anahtarı için tanımlı maksimum TV ekranı sınırına (${errData.max_devices || 1} Cihaz) ulaşılmıştır.
                             </p>
-                            <div style="background:rgba(0,0,0,0.5);border:1px dashed rgba(255,255,255,0.2);padding:1rem 1.8rem;border-radius:12px;display:inline-block;font-family:'JetBrains Mono',monospace;color:#38bdf8;font-size:1.3rem;font-weight:700;margin-bottom:1.5rem;">
+                            <div style="background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.08);padding:0.75rem 1.4rem;border-radius:12px;display:inline-block;font-family:'JetBrains Mono',monospace;color:#38bdf8;font-size:1rem;font-weight:700;margin-bottom:1.4rem;">
                                 Lisans: ${escapeHtml(LISANS_KEY)} (${errData.max_devices}/${errData.max_devices} TV Dolu)
                             </div>
-                            <p style="font-size:0.95rem;color:#94a3b8;line-height:1.5;">
-                                Yeni bir TV veya kiosk ekranı bağlamak için lütfen Yönetim Panelinden cihaz limitini artırın veya eski bir TV ekranının kilidini kaldırın.
+                            <p style="font-size:0.82rem;color:#64748b;line-height:1.5;margin:0;">
+                                Yeni bir TV veya kiosk ekranı bağlamak için Yönetim Panelinden cihaz limitini artırabilir veya eski bir TV ekranının kilidini kaldırabilirsiniz.
                             </p>
                         </div>
                     </div>
@@ -1180,17 +1243,17 @@ async function kioskVerileriniGetir() {
 
             if (errData.reason === 'device_mismatch') {
                 document.body.innerHTML = `
-                    <div style="background:#080a10;color:#fff;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem;text-align:center;font-family:Inter,sans-serif;">
-                        <div style="background:rgba(18,24,38,0.95);border:2px solid #ef4444;border-radius:24px;padding:3.5rem 3rem;max-width:700px;box-shadow:0 0 40px rgba(239,68,68,0.2);">
-                            <div style="font-size:4rem;margin-bottom:1rem;">🔒</div>
-                            <h1 style="font-size:2.2rem;margin-bottom:1rem;color:#f87171;">Cihaz Kilidi Engeli</h1>
-                            <p style="font-size:1.25rem;color:#cbd5e1;line-height:1.6;margin-bottom:2rem;">
+                    <div style="background:radial-gradient(circle at center, #0f172a 0%, #080a10 100%);color:#fff;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1.5rem;text-align:center;font-family:Inter,sans-serif;box-sizing:border-box;">
+                        <div style="background:rgba(18,24,38,0.96);border:1.5px solid rgba(239,68,68,0.4);border-radius:24px;padding:2.2rem 2.8rem;max-width:640px;width:100%;box-shadow:0 25px 60px rgba(0,0,0,0.65), 0 0 35px rgba(239,68,68,0.15);box-sizing:border-box;">
+                            <div style="width:58px;height:58px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);border-radius:16px;display:inline-flex;align-items:center;justify-content:center;font-size:2rem;margin-bottom:1rem;">🔒</div>
+                            <h1 style="font-size:1.45rem;font-weight:800;margin-bottom:0.4rem;color:#f87171;">Cihaz Kilidi Engeli</h1>
+                            <p style="font-size:0.92rem;color:#94a3b8;line-height:1.5;margin-bottom:1.4rem;">
                                 Bu lisans anahtarı başka bir TV ekranına kilitlenmiştir.
                             </p>
-                            <div style="background:rgba(0,0,0,0.5);border:1px dashed rgba(255,255,255,0.2);padding:1rem 1.8rem;border-radius:12px;display:inline-block;font-family:'JetBrains Mono',monospace;color:#fbbf24;font-size:1.4rem;font-weight:700;margin-bottom:1.5rem;">
+                            <div style="background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.08);padding:0.75rem 1.4rem;border-radius:12px;display:inline-block;font-family:'JetBrains Mono',monospace;color:#fbbf24;font-size:1rem;font-weight:700;margin-bottom:1.4rem;">
                                 Lisans: ${escapeHtml(LISANS_KEY)}
                             </div>
-                            <p style="font-size:0.95rem;color:#64748b;">
+                            <p style="font-size:0.82rem;color:#64748b;line-height:1.5;margin:0;">
                                 Yönetim Panelinden "Cihaz Kilitlerini Sıfırla" butonuna tıklayıp sayfayı yenileyiniz.
                             </p>
                         </div>

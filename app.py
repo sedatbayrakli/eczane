@@ -18,7 +18,7 @@ from flask import (
 )
 import requests
 
-from models import db, AdminUser, Pharmacy, KioskDevice, SystemSetting, lisans_anahtari_uret
+from models import db, AdminUser, Pharmacy, KioskDevice, SystemSetting, TickerTemplate, lisans_anahtari_uret
 from services.pharmacy_service import (
     nobetci_eczaneleri_getir,
     turkce_karakter_temizle,
@@ -118,6 +118,8 @@ def init_db():
                         conn.execute(text("ALTER TABLE pharmacies ADD COLUMN max_devices INTEGER DEFAULT 1"))
                     if "screen_scale" not in mevcut_kolonlar:
                         conn.execute(text("ALTER TABLE pharmacies ADD COLUMN screen_scale VARCHAR(20) DEFAULT 'auto'"))
+                    if "theme_settings" not in mevcut_kolonlar:
+                        conn.execute(text("ALTER TABLE pharmacies ADD COLUMN theme_settings TEXT DEFAULT '{}'"))
                     conn.commit()
 
             if "kiosk_devices" in tablolar:
@@ -147,6 +149,12 @@ def init_db():
             db.session.add(yeni_admin)
             db.session.commit()
             print(f"[BİLGİ] Varsayılan yönetici oluşturuldu: {ADMIN_USER}")
+
+        # Duyuru şablonlarını seed et
+        try:
+            TickerTemplate.seed_defaults()
+        except Exception as e:
+            print(f"[UYARI] TickerTemplate seed hatası: {e}")
 
         # Eğer hiç eczane yoksa demo eczane kaydı aç
         if Pharmacy.query.count() == 0:
@@ -516,6 +524,99 @@ def admin_update_ticker(eczane_id):
     eczane.ticker_text = yeni_metin
     db.session.commit()
     return jsonify({"success": True, "ticker_text": eczane.ticker_text})
+
+
+# ==========================================
+# Duyuru Şablonları Yönetimi (CRUD API)
+# ==========================================
+@app.route("/admin/api/ticker-templates", methods=["GET"])
+@login_required
+def admin_get_ticker_templates():
+    """Tüm duyuru şablonlarını listeler."""
+    TickerTemplate.seed_defaults()
+    sablonlar = TickerTemplate.query.order_by(TickerTemplate.is_default.desc(), TickerTemplate.id.asc()).all()
+    return jsonify({"success": True, "templates": [s.to_dict() for s in sablonlar]})
+
+
+@app.route("/admin/api/ticker-templates", methods=["POST"])
+@login_required
+def admin_create_ticker_template():
+    """Yeni duyuru şablonu ekler."""
+    veri = request.get_json(silent=True) or {}
+    baslik = veri.get("title", "").strip()
+    metin = veri.get("text", "").strip()
+    if not baslik or not metin:
+        return jsonify({"success": False, "error": "Şablon başlığı ve metni zorunludur."}), 400
+    yeni = TickerTemplate(title=baslik, text=metin, is_default=False)
+    db.session.add(yeni)
+    db.session.commit()
+    return jsonify({"success": True, "template": yeni.to_dict()})
+
+
+@app.route("/admin/api/ticker-templates/<int:t_id>/edit", methods=["POST"])
+@login_required
+def admin_edit_ticker_template(t_id):
+    """Mevcut duyuru şablonunu günceller."""
+    sablon = TickerTemplate.query.get_or_404(t_id)
+    veri = request.get_json(silent=True) or {}
+    baslik = veri.get("title", "").strip()
+    metin = veri.get("text", "").strip()
+    if not baslik or not metin:
+        return jsonify({"success": False, "error": "Şablon başlığı ve metni zorunludur."}), 400
+    sablon.title = baslik
+    sablon.text = metin
+    db.session.commit()
+    return jsonify({"success": True, "template": sablon.to_dict()})
+
+
+@app.route("/admin/api/ticker-templates/<int:t_id>/delete", methods=["POST"])
+@login_required
+def admin_delete_ticker_template(t_id):
+    """Duyuru şablonunu siler."""
+    sablon = TickerTemplate.query.get_or_404(t_id)
+    db.session.delete(sablon)
+    db.session.commit()
+    return jsonify({"success": True, "id": t_id})
+
+
+# ==========================================
+# Kiosk Ekran Teması Parametrik Ayarları
+# ==========================================
+@app.route("/admin/pharmacy/<int:eczane_id>/theme-settings", methods=["GET"])
+@login_required
+def admin_get_theme_settings(eczane_id):
+    """Eczanenin tema parametrelerini döndürür."""
+    eczane = Pharmacy.query.get_or_404(eczane_id)
+    return jsonify({
+        "success": True,
+        "pharmacy_name": eczane.name,
+        "theme": eczane.theme,
+        "theme_settings": eczane.get_theme_settings()
+    })
+
+
+@app.route("/admin/pharmacy/<int:eczane_id>/theme-settings", methods=["POST"])
+@login_required
+def admin_save_theme_settings(eczane_id):
+    """Eczanenin tema parametrik ayarlarını kaydeder (AJAX)."""
+    eczane = Pharmacy.query.get_or_404(eczane_id)
+    veri = request.get_json(silent=True) or {}
+    
+    yeni_tema = veri.get("theme")
+    if yeni_tema and yeni_tema in ["classic_grid", "animated_route", "focus_carousel", "dual_card", "auto_rotate"]:
+        eczane.theme = yeni_tema
+        
+    ayarlar = veri.get("theme_settings", {})
+    if isinstance(ayarlar, dict):
+        eczane.set_theme_settings(ayarlar)
+        
+    db.session.commit()
+    return jsonify({
+        "success": True, 
+        "theme": eczane.theme,
+        "theme_settings": eczane.get_theme_settings()
+    })
+
 
 
 @app.route("/admin/pharmacy/<int:eczane_id>/toggle", methods=["POST"])
@@ -1005,7 +1106,8 @@ def api_kiosk_data():
             "theme": eczane.theme or "classic_grid",
             "screen_scale": cihaz_ekran_olcegi,
             "max_devices": eczane.max_devices or 1,
-            "device_count": eczane.devices.count()
+            "device_count": eczane.devices.count(),
+            "theme_settings": eczane.get_theme_settings()
         },
         "identify": identify_bilgisi,
         "is_on_duty_today": nihai_nobet_durumu,
