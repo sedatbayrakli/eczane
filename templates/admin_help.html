@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kullanım Kılavuzu & Rehber | Nöbetçi Eczane TV</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css?v=4.1">
+    <style>
+        :root {
+            --bg-body: #0b0f19;
+            --bg-card: rgba(17, 24, 39, 0.85);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --color-primary: #ef4444;
+            --color-accent: #38bdf8;
+            --color-success: #10b981;
+            --color-warning: #f59e0b;
+            --color-purple: #a855f7;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            background-image: 
+                radial-gradient(circle at 10% 10%, rgba(168, 85, 247, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 90% 90%, rgba(56, 189, 248, 0.05) 0%, transparent 40%);
+            color: var(--text-main);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            min-height: 100vh;
+            margin: 0;
+            padding: 1.5rem;
+            box-sizing: border-box;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        /* Üst Gezinme Çubuğu */
+        .top-navbar {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            backdrop-filter: blur(12px);
+            border-radius: 16px;
+            padding: 1rem 1.6rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .brand-logo {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, #9333ea, #c084fc);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            box-shadow: 0 0 15px rgba(168, 85, 247, 0.4);
+        }
+
+        .brand-text h1 {
+            font-size: 1.25rem;
+            font-weight: 800;
+            margin: 0;
+            color: #fff;
+        }
+
+        .brand-text p {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin: 0.15rem 0 0 0;
+        }
+
+        .nav-actions {
+            display: flex;
+            gap: 0.8rem;
+            align-items: center;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.55rem 1.1rem;
+            border-radius: 8px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            color: #fff;
+        }
+        .btn-secondary { background: rgba(255, 255, 255, 0.08); border: 1px solid var(--border-color); color: var(--text-main); }
+        .btn-secondary:hover { background: rgba(255, 255, 255, 0.14); }
+
+        /* Rehber Kartları */
+        .guide-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 1.6rem 2rem;
+            margin-bottom: 1.8rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+        }
+
+        .guide-card h2 {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            margin-top: 0;
+            margin-bottom: 0.6rem;
+        }
+
+        .guide-card p {
+            color: #cbd5e1;
+            font-size: 0.92rem;
+            line-height: 1.65;
+            margin-top: 0;
+        }
+
+        /* Adım Kutuları */
+        .steps-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.2rem;
+            margin: 1.2rem 0;
+        }
+
+        .step-box {
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.2rem;
+            position: relative;
+        }
+
+        .step-number {
+            width: 32px;
+            height: 32px;
+            background: rgba(56, 189, 248, 0.15);
+            color: var(--color-accent);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .step-box h3 {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #fff;
+            margin: 0 0 0.4rem 0;
+        }
+
+        .step-box p {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+            margin: 0;
+        }
+
+        /* Vurgulu Bilgi Kutusu */
+        .info-callout {
+            background: rgba(56, 189, 248, 0.08);
+            border-left: 4px solid var(--color-accent);
+            border-radius: 0 10px 10px 0;
+            padding: 1rem 1.2rem;
+            margin: 1rem 0;
+        }
+
+        .info-callout strong {
+            color: var(--color-accent);
+        }
+
+        /* Özellik Listesi */
+        .feature-list {
+            list-style: none;
+            padding: 0;
+            margin: 1rem 0;
+        }
+
+        .feature-list li {
+            padding: 0.55rem 0;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.6rem;
+            font-size: 0.9rem;
+            color: #cbd5e1;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .feature-list li:last-child {
+            border-bottom: none;
+        }
+
+        .feature-list .icon {
+            font-size: 1.1rem;
+            flex-shrink: 0;
+            margin-top: 0.1rem;
+        }
+
+        /* Kod Blokları */
+        code {
+            font-family: 'JetBrains Mono', monospace;
+            background: rgba(0, 0, 0, 0.45);
+            padding: 0.2rem 0.45rem;
+            border-radius: 6px;
+            color: #38bdf8;
+            font-size: 0.85rem;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        /* Tema Karşılaştırma Izgarası */
+        .themes-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .themes-table th, .themes-table td {
+            padding: 0.85rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.88rem;
+        }
+
+        .themes-table th {
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-size: 0.76rem;
+            letter-spacing: 0.05em;
+            background: rgba(0, 0, 0, 0.25);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Üst Gezinme Çubuğu -->
+        <header class="top-navbar">
+            <div class="brand">
+                <div class="brand-logo">📖</div>
+                <div class="brand-text">
+                    <h1>Sistem Kullanım Kılavuzu & Rehber</h1>
+                    <p>TV Kiosk Kurulumu, Mi Box Ayarları, Lisanslama ve Özellikler</p>
+                </div>
+            </div>
+            <div class="nav-actions">
+                <a href="/admin" class="btn btn-secondary">
+                    ⬅️ Eczaneler Paneline Dön
+                </a>
+                <a href="/admin/settings" class="btn btn-secondary">
+                    ⚙️ Genel Ayarlar
+                </a>
+            </div>
+        </header>
+
+        <!-- 1. BÖLÜM: 3 Adımda Kolay TV / Mi Box Kurulumu -->
+        <section class="guide-card">
+            <h2>🚀 3 Adımda Hızlı TV Kurulumu</h2>
+            <p>Android TV, Mi Box veya Smart TV cihazınızı birkaç dakika içinde nöbetçi ekranına dönüştürebilirsiniz:</p>
+
+            <div class="steps-grid">
+                <div class="step-box">
+                    <div class="step-number">1</div>
+                    <h3>TV Bro Tarayıcısını Açın</h3>
+                    <p>Android TV veya Mi Box'ınıza Google Play Store üzerinden <strong>TV Bro</strong> tarayıcısını kurun ve açın.</p>
+                </div>
+
+                <div class="step-box">
+                    <div class="step-number">2</div>
+                    <h3>Lisans Linkini Girin</h3>
+                    <p>Admin panelinden eczanenizin yanındaki <strong>📋 (Kopyala)</strong> butonuna basıp adresi TV Bro'ya yazın. (Örn: <code>/kiosk?key=ECZ-...</code>)</p>
+                </div>
+
+                <div class="step-box">
+                    <div class="step-number">3</div>
+                    <h3>Admin Panelinden Onaylayın</h3>
+                    <p>TV ilk açıldığında onay bekler. Admin panelinde <strong>⚙️ Cihazlar</strong> menüsünü açıp <strong>✅ Onayla</strong> butonuna basın. Ekran anında açılır!</p>
+                </div>
+            </div>
+
+            <div class="info-callout">
+                <strong>💡 Önemli İpucu:</strong> TV Bro tarayıcısı kapatılıp açılsa bile sistem cihazı donanımsal parmak izi ve yerel IP'sinden otomatik tanır. Bir daha asla lisans ekranına düşmez ve onay istemez.
+            </div>
+        </section>
+
+        <!-- 2. BÖLÜM: Mi Box ve TV Çözünürlük Ayarları -->
+        <section class="guide-card">
+            <h2>📺 Mi Box ve TV Ölçekleme / Çözünürlük Ayarları</h2>
+            <p>TV ekranlarında taşma olmaması ve yazıların uzaktan kusursuz okunması için cihaza özel ölçekleme seçenekleri sunulmuştur:</p>
+
+            <ul class="feature-list">
+                <li>
+                    <span class="icon">🖥️</span>
+                    <div>
+                        <strong>Mi Box / Android Box (Kompakt - %80):</strong>
+                        Mi Box ve Android kutularda TV tarayıcıları bazen aşırı yakınlaştırma yapabilir. Admin panelindeki Cihazlar menüsünden ölçeği <code>Mi Box (%80)</code> seçtiğinizde tüm kutular ekrana mükemmel sığar, sıfır taşma sağlanır.
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">📺</span>
+                    <div>
+                        <strong>Full HD (1080p - %100) & HD (720p - %85):</strong>
+                        Standart LED/LCD TV ekranları için tasarlanmış doğal çözünürlük ölçeğidir.
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🌟</span>
+                    <div>
+                        <strong>4K Vitrin Ekranı (%130):</strong>
+                        Büyük boyutlu 4K vitrin televizyonlarında yazıların ve karekodların cadde/kaldırımdan devasa boyutta okunabilmesini sağlar.
+                    </div>
+                </li>
+            </ul>
+        </section>
+
+        <!-- 3. BÖLÜM: Çoklu Cihaz ve Donanım Tanımlama -->
+        <section class="guide-card">
+            <h2>🔔 Çoklu Cihaz Yönetimi & TV Tanımlama Sinyali</h2>
+            <p>Bir eczanede birden fazla ekran olduğunda (Örn: 1 Vitrin TV, 1 Kasa Arkası TV, 1 Danışma Monitörü):</p>
+
+            <ul class="feature-list">
+                <li>
+                    <span class="icon">🏷️</span>
+                    <div>
+                        <strong>Özel Cihaz İsimlendirmesi:</strong> Cihazlar menüsünden her ekrana istediğiniz adı verebilirsiniz (Örn: <em>Cadde Vitrin TV</em>, <em>Kasa Yanı Box</em>).
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔔</span>
+                    <div>
+                        <strong>Ekranda Göster / Tanımla Butonu:</strong> Hangi cihazın hangi fiziksel ekrana ait olduğunu anlamak için listedeki <strong>🔔</strong> butonuna bastığınız anda, hedef TV ekranında 25 saniye boyunca parlayan bir tanımlama bildirimi (<code>CİHAZ #ID</code>) gösterilir.
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">⚡</span>
+                    <div>
+                        <strong>Canlılık Testi (Heartbeat):</strong> TV ekranlarının internete bağlı olup olmadığını görmek için panodaki <strong>⚡ Canlılık Testi Yap</strong> butonuna basabilirsiniz. Çevrimiçi cihazlar parlak yeşil (🟢), çevrimdışı olanlar parlak kırmızı (🔴) olarak güncellenir.
+                    </div>
+                </li>
+            </ul>
+        </section>
+
+        <!-- 4. BÖLÜM: Kiosk Ekran Temaları -->
+        <section class="guide-card">
+            <h2>🎨 Kiosk Ekran Temaları</h2>
+            <p>Eczanenizin konumuna ve vitrin tasarımınıza göre 5 farklı görsel moddan birini seçebilirsiniz:</p>
+
+            <table class="themes-table">
+                <thead>
+                    <tr>
+                        <th>Tema Adı</th>
+                        <th>Görsel Yapı</th>
+                        <th>En Uygun Kullanım</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>1. Klasik 4'lü Izgara</strong></td>
+                        <td>Sol tarafta nöbetçi kartları, sağ tarafta harita ve yön okları.</td>
+                        <td>Aynı anda çok sayıda nöbetçiyi tek ekranda görmek isteyen eczaneler.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>2. Canlı Yol & Navigasyon</strong></td>
+                        <td>Nöbetçi eczanelere doğru adım adım hareket eden canlı rota animasyonu.</td>
+                        <td>Cadde vitrinlerinde yayaların dikkatini çeken dinamik navigasyon ekranı.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>3. Vitrin Carousel</strong></td>
+                        <td>Büyük puntolu dev nöbetçi kartı, 15 saniyede bir otomatik nöbetçiler arası geçiş.</td>
+                        <td>Uzaktan veya araçtan geçenlerin kolayca okuyabilmesi için dev yazılar.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>4. İkili Dev Kart</strong></td>
+                        <td>Sadece en yakın 2 nöbetçi eczaneyi dev kartlar halinde haritayla sunar.</td>
+                        <td>Sade, kalabalıktan uzak ve hızlı yönlendirme isteyen vitrinler.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>5. Karma Mod (Saatlik)</strong></td>
+                        <td>Her saat başı ekran temasını otomatik olarak bir sonrakine dönüştürür.</td>
+                        <td>Vitrin ekranında sürekli hareketlilik ve modern görünüm sağlar.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- 5. BÖLÜM: 1 Saatlik Test Nöbeti ve Mesafe Bilgisi -->
+        <section class="guide-card">
+            <h2>⚡ 1 Saatlik Hızlı Nöbet Testi & Süre Hesapları</h2>
+            <p>Gündüz saatlerinde vitrin ekranınızın "Bu Gece Nöbetçiyiz" tasarımını ve uyarılarını test etmek için:</p>
+
+            <ul class="feature-list">
+                <li>
+                    <span class="icon">⚡</span>
+                    <div>
+                        <strong>1 Saatlik Nöbet Testi Butonu:</strong> Tablodaki <strong>⚡ (Yeşil)</strong> butonuna bastığınız anda ekran 1 saatliğine test modunda nöbetçi yayınına geçer. Kapatmak istediğinizde <strong>⚡ (Kırmızı)</strong> butonuna basabilirsiniz.
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🚗</span>
+                    <div>
+                        <strong>Araç & Yürüme Süresi:</strong> Sistem her nöbetçi eczanenin uzaklığına göre hem <strong>araba ile tahmini varış süresini (🚗)</strong> hem de <strong>yürüme süresini (🚶)</strong> otomatik hesaplar ve QR kodunda yürüme navigasyonunu hazır sunar.
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔄</span>
+                    <div>
+                        <strong>Resmi Fallback Pipeline:</strong> Sistem verileri sırasıyla 1. İEO Resmi, 2. Eczaneler.gen.tr, 3. Nobetcieczaneler.org kaynaklarından çeker. Biri arızalansa bile ekran asla boş kalmaz.
+                    </div>
+                </li>
+            </ul>
+        </section>
+
+        <!-- Alt Gezinme -->
+        <div style="text-align: center; margin: 2rem 0 3rem 0;">
+            <a href="/admin" class="btn btn-secondary" style="padding: 0.75rem 2rem; font-size: 1rem;">
+                ⬅️ Eczaneler Paneline Geri Dön
+            </a>
+        </div>
+    </div>
+
+</body>
+</html>

@@ -560,15 +560,75 @@ def admin_reset_device(eczane_id):
 @app.route("/admin/pharmacy/<int:eczane_id>/device/<int:device_id>/delete", methods=["POST"])
 @login_required
 def admin_delete_single_device(eczane_id, device_id):
-    """Tek bir TV cihazının lisans bağlantısını keser ve siler."""
+    """Tek bir TV cihazının lisans bağlantısını keser ve siler (AJAX destekli)."""
     eczane = Pharmacy.query.get_or_404(eczane_id)
     cihaz = KioskDevice.query.filter_by(id=device_id, pharmacy_id=eczane.id).first_or_404()
     cihaz_adi = cihaz.device_name
     db.session.delete(cihaz)
     db.session.commit()
 
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.is_json:
+        return jsonify({
+            "success": True,
+            "message": f"'{cihaz_adi}' bağlantısı kesildi ve silindi.",
+            "device_id": device_id,
+            "remaining_count": eczane.devices.count()
+        })
+
     flash(f"'{eczane.name}' - '{cihaz_adi}' bağlantısı kesildi ve cihaz silindi.", "warning")
     return redirect(url_for("admin_dashboard"))
+
+
+@app.route("/admin/api/health-check-devices")
+@login_required
+def admin_api_health_check_devices():
+    """Tüm kayıtlı eczanelerin ve TV ekranlarının anlık canlılık (heartbeat) durumunu döner."""
+    sistem_ayari = SystemSetting.get_settings()
+    tolerans = sistem_ayari.heartbeat_tolerance_min or 5
+
+    eczaneler = Pharmacy.query.all()
+    sonuc = []
+    cevrimici_sayisi = 0
+
+    for e in eczaneler:
+        e_online = e.ekran_cevrimici_mi(tolerans_dakika=tolerans)
+        if e_online:
+            cevrimici_sayisi += 1
+
+        dev_list = []
+        for d in e.devices:
+            d_online = d.ekran_cevrimici_mi(tolerans_dakika=tolerans)
+            dev_list.append({
+                "id": d.id,
+                "name": d.device_name,
+                "is_online": d_online,
+                "last_ping": d.last_ping.strftime("%H:%M:%S") if d.last_ping else None,
+                "local_ip": d.local_ip,
+                "ip": d.ip_address
+            })
+
+        sonuc.append({
+            "id": e.id,
+            "name": e.name,
+            "is_online": e_online,
+            "last_ip": e.last_ip,
+            "last_ping": e.last_ping.strftime("%H:%M:%S") if e.last_ping else None,
+            "devices": dev_list
+        })
+
+    return jsonify({
+        "success": True,
+        "pharmacies": sonuc,
+        "online_count": cevrimici_sayisi,
+        "checked_at": datetime.now().strftime("%H:%M:%S")
+    })
+
+
+@app.route("/admin/help")
+@login_required
+def admin_help():
+    """Sistemin kullanım kılavuzu, TV kurulumu ve özellikler rehberi sayfası."""
+    return render_template("admin_help.html")
 
 
 @app.route("/admin/pharmacy/<int:eczane_id>/devices-json")

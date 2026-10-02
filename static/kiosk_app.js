@@ -560,8 +560,11 @@ function eczaneKartiHtmlUret(eczane, index) {
         ? `<span class="badge-semt">${escapeHtml(eczane.semt)}</span>` 
         : '';
 
+    const arabaMetin = eczane.araba_metin || (eczane.mesafe_metre ? `~${Math.max(1, Math.round(eczane.mesafe_metre / 500))} dk` : '');
+    const yurumeMetin = eczane.yurume_metin || (eczane.mesafe_metre ? `~${Math.max(1, Math.round(eczane.mesafe_metre / 75))} dk` : '');
+
     const mesafeHtml = eczane.mesafe_metin 
-        ? `<span class="badge-distance">🚶 <strong>${escapeHtml(eczane.mesafe_metin)}</strong> (${escapeHtml(eczane.yurume_metin)})</span>` 
+        ? `<span class="badge-distance">${arabaMetin ? `🚗 <strong>${escapeHtml(arabaMetin)}</strong> • ` : ''}🚶 <strong>${escapeHtml(eczane.mesafe_metin)}</strong> (${escapeHtml(yurumeMetin)})</span>` 
         : '';
 
     const yolTarifiHtml = eczane.yol_tarifi 
@@ -578,18 +581,21 @@ function eczaneKartiHtmlUret(eczane, index) {
     <article class="pharmacy-card" data-id="${eczane.id}" data-index="${index}">
         <div class="card-left-info">
             <div class="card-top-row">
-                <h2 class="pharmacy-name-title">${escapeHtml(eczane.isim)}</h2>
                 <div class="card-badges">
                     <span class="badge-duty">
                         <span class="pulse-indicator" style="width: 7px; height: 7px;"></span>
                         ${escapeHtml(eczane.nobet_durumu || 'Sabaha kadar açık')}
                     </span>
                     ${mesafeHtml}
-                    ${semtHtml}
                 </div>
             </div>
 
+            <!-- Eczane İsmi Açık Adres Kutusunun İçine Alındı -->
             <div class="card-address-block">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.4rem; flex-wrap: wrap;">
+                    <h2 class="pharmacy-name-title" style="margin: 0;">${escapeHtml(eczane.isim)}</h2>
+                    ${semtHtml}
+                </div>
                 <p class="card-address-text">${escapeHtml(eczane.adres)}</p>
                 ${yolTarifiHtml}
             </div>
@@ -625,6 +631,9 @@ function eczaneKartiHtmlUret(eczane, index) {
 function devOdakKartiHtmlUret(eczane, siraNo, toplamAdet, modAdi = 'NAVİGASYON') {
     const qrKodUrl = eczane.qr_kod_url || `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(eczane.rota_linki || eczane.harita_linki)}`;
 
+    const arabaMetin = eczane.araba_metin || (eczane.mesafe_metre ? `~${Math.max(1, Math.round(eczane.mesafe_metre / 500))} dk` : '');
+    const yurumeMetin = eczane.yurume_metin || (eczane.mesafe_metre ? `~${Math.max(1, Math.round(eczane.mesafe_metre / 75))} dk` : '');
+
     let paginationPills = '';
     for (let i = 0; i < toplamAdet; i++) {
         const isCurrent = (i === siraNo);
@@ -645,22 +654,15 @@ function devOdakKartiHtmlUret(eczane, siraNo, toplamAdet, modAdi = 'NAVİGASYON'
             <div class="focus-mode-badge">${modAdi} MODU</div>
         </div>
 
-        <!-- Eczane Başlığı (Telefon buradan alınıp eski yerine, açık adresin altına taşındı) -->
-        <div class="focus-main-info">
-            <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
-                <h2 class="focus-title" style="margin-bottom: 0;">${escapeHtml(eczane.isim)}</h2>
-                ${eczane.semt ? `<span class="badge-semt" style="font-size: 0.88rem;">${escapeHtml(eczane.semt)}</span>` : ''}
-            </div>
-        </div>
-
         <div class="focus-body-grid">
-            <!-- Sol Sütun: Mesafe Bilgisi (İkon Yanında Tek Satır Kompakt) & Karekod -->
+            <!-- Sol Sütun: Mesafe Bilgisi (Araba + Yürüme İkonları Kompakt) & Karekod -->
             <div class="focus-qr-col">
                 ${eczane.mesafe_metin ? `
-                    <div class="focus-qr-distance-badge-compact">
+                    <div class="focus-qr-distance-badge-compact" style="display: flex; align-items: center; justify-content: center; gap: 0.35rem; flex-wrap: wrap;">
+                        ${arabaMetin ? `<span class="qr-dist-car" style="color: #38bdf8; font-weight: 800;">🚗 ${escapeHtml(arabaMetin)}</span> <span style="opacity: 0.35;">•</span>` : ''}
                         <span class="qr-dist-icon">🚶</span>
                         <strong class="qr-dist-val">${escapeHtml(eczane.mesafe_metin)}</strong>
-                        <span class="qr-walk-val">(${escapeHtml(eczane.yurume_metin)})</span>
+                        <span class="qr-walk-val">(${escapeHtml(yurumeMetin)})</span>
                     </div>` : ''}
 
                 <div class="focus-qr-frame">
@@ -673,9 +675,13 @@ function devOdakKartiHtmlUret(eczane, siraNo, toplamAdet, modAdi = 'NAVİGASYON'
                 </div>
             </div>
 
-            <!-- Sağ Sütun: Açık Adres ve Sabit Telefon -->
+            <!-- Sağ Sütun: Eczane İsmi & Açık Adres Tek Kutuda + Sabit Telefon -->
             <div class="focus-details-col">
                 <div class="focus-address-card">
+                    <div class="focus-pharmacy-name-row" style="display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 0.45rem; margin-bottom: 0.5rem; flex-wrap: wrap;">
+                        <h2 class="focus-title" style="margin: 0; font-size: 1.55rem; color: #fff; font-weight: 800;">${escapeHtml(eczane.isim)}</h2>
+                        ${eczane.semt ? `<span class="badge-semt" style="font-size: 0.88rem;">${escapeHtml(eczane.semt)}</span>` : ''}
+                    </div>
                     <span class="focus-section-label">AÇIK ADRES</span>
                     <p class="focus-address-text">${escapeHtml(eczane.adres)}</p>
                 </div>
@@ -707,6 +713,9 @@ function devOdakKartiHtmlUret(eczane, siraNo, toplamAdet, modAdi = 'NAVİGASYON'
 function ikiliEczaneKartiHtmlUret(eczane, siraNo) {
     const qrKodUrl = eczane.qr_kod_url || `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(eczane.rota_linki || eczane.harita_linki)}`;
 
+    const arabaMetin = eczane.araba_metin || (eczane.mesafe_metre ? `~${Math.max(1, Math.round(eczane.mesafe_metre / 500))} dk` : '');
+    const yurumeMetin = eczane.yurume_metin || (eczane.mesafe_metre ? `~${Math.max(1, Math.round(eczane.mesafe_metre / 75))} dk` : '');
+
     const yolTarifiHtml = eczane.yol_tarifi 
         ? `
         <div class="card-landmark-box" style="margin-top: 0.2rem;">
@@ -729,16 +738,17 @@ function ikiliEczaneKartiHtmlUret(eczane, siraNo) {
                     </span>
                     ${eczane.mesafe_metin ? `
                         <span class="badge-distance">
-                            🚶 <strong>${escapeHtml(eczane.mesafe_metin)}</strong> (${escapeHtml(eczane.yurume_metin)})
+                            ${arabaMetin ? `🚗 <strong>${escapeHtml(arabaMetin)}</strong> • ` : ''}🚶 <strong>${escapeHtml(eczane.mesafe_metin)}</strong> (${escapeHtml(yurumeMetin)})
                         </span>` : ''}
                 </div>
             </div>
 
-            <div>
-                <h2 class="dual-pharmacy-title">${escapeHtml(eczane.isim)}</h2>
-            </div>
-
+            <!-- Eczane İsmi Açık Adres Kutusuna Alındı -->
             <div class="dual-card-address-block">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.4rem; flex-wrap: wrap;">
+                    <h2 class="dual-pharmacy-title" style="margin: 0;">${escapeHtml(eczane.isim)}</h2>
+                    ${eczane.semt ? `<span class="badge-semt">${escapeHtml(eczane.semt)}</span>` : ''}
+                </div>
                 <p class="dual-card-address-text">${escapeHtml(eczane.adres)}</p>
                 ${yolTarifiHtml}
             </div>

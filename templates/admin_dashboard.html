@@ -336,6 +336,9 @@
             </div>
         </div>
         <div class="nav-actions">
+            <a href="/admin/help" class="btn btn-secondary" style="border-color: rgba(168, 85, 247, 0.4); color: #c084fc;">
+                📖 Yardım
+            </a>
             <a href="/admin/settings" class="btn btn-secondary" style="border-color: rgba(56, 189, 248, 0.4); color: #38bdf8;">
                 ⚙️ Genel Ayarlar
             </a>
@@ -378,7 +381,7 @@
         <div class="stat-card">
             <div class="stat-info">
                 <h3>Çevrimiçi TV Ekranı</h3>
-                <div class="stat-number">{{ cevrimici_sayi }}</div>
+                <div class="stat-number" id="stat-online-count">{{ cevrimici_sayi }}</div>
             </div>
             <div class="stat-badge orange">📺</div>
         </div>
@@ -387,10 +390,15 @@
     <!-- Eczane & Lisans Tablosu -->
     <section class="table-card">
         <div class="table-header-title">
-            <h2>Eczaneler, Kiosk Cihazları ve Canlı Nöbet Durumu</h2>
-            <span style="font-size: 0.82rem; color: var(--text-muted);">
-                Heartbeat toleransı: Son 5 dakika | Fallback: İEO &rarr; eczaneler.gen.tr &rarr; nobetcieczaneler.org
-            </span>
+            <div>
+                <h2>Eczaneler, Kiosk Cihazları ve Canlı Nöbet Durumu</h2>
+                <span style="font-size: 0.82rem; color: var(--text-muted);">
+                    Heartbeat toleransı: Son 5 dakika | Fallback: İEO &rarr; eczaneler.gen.tr &rarr; nobetcieczaneler.org
+                </span>
+            </div>
+            <button type="button" class="btn btn-sm btn-success" id="btn-test-live" onclick="canlilikKontroluYap()" style="padding: 0.45rem 1rem; font-size: 0.85rem; font-weight: 700; box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);">
+                ⚡ Canlılık Testi Yap
+            </button>
         </div>
 
         <table>
@@ -414,9 +422,9 @@
                     <td>
                         <div style="display: inline-flex; align-items: center; gap: 0.5rem;" title="{% if e.ekran_cevrimici_mi() %}Çevrimiçi (Son ping: {{ e.last_ping.strftime('%H:%M:%S') }}){% else %}Çevrimdışı (Sinyal yok){% endif %}">
                             {% if e.ekran_cevrimici_mi() %}
-                                <span class="heartbeat-dot dot-online" style="width: 12px; height: 12px;"></span>
+                                <span id="pharmacy-dot-{{ e.id }}" class="heartbeat-dot dot-online" style="width: 12px; height: 12px;"></span>
                             {% else %}
-                                <span class="heartbeat-dot dot-offline" style="width: 12px; height: 12px;"></span>
+                                <span id="pharmacy-dot-{{ e.id }}" class="heartbeat-dot dot-offline" style="width: 12px; height: 12px;"></span>
                             {% endif %}
                             <span style="font-size: 0.85rem; color: #f1f5f9; font-family: monospace; font-weight: 700;">
                                 {{ e.last_ip or '-' }}
@@ -848,7 +856,12 @@
                     <h3 id="devmodal-title">📺 Bağlı TV & Kiosk Cihazları</h3>
                     <span id="devmodal-subtitle" style="font-size: 0.8rem; color: #94a3b8;"></span>
                 </div>
-                <button class="modal-close" onclick="modalKapat('modal-devices')">&times;</button>
+                <div style="display: flex; align-items: center; gap: 0.6rem;">
+                    <button type="button" class="btn btn-sm btn-success" id="devmodal-btn-live" onclick="modalCihazCanlilikTesti()" style="padding: 0.35rem 0.8rem; font-size: 0.82rem; font-weight: 700; box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);">
+                        ⚡ Canlılığı Kontrol Et
+                    </button>
+                    <button class="modal-close" onclick="modalKapat('modal-devices')">&times;</button>
+                </div>
             </div>
             <div id="devmodal-body" style="margin-top: 1rem;">
                 <!-- JS ile dinamik cihaz listesi yüklenecek -->
@@ -983,6 +996,7 @@
         // Çoklu TV Cihaz Yönetim Modalı (API Tabanlı - Güvenli ve Canlı)
         async function cihazYonetimModalAc(eczaneOrId) {
             const eczaneId = (typeof eczaneOrId === 'object' && eczaneOrId !== null) ? eczaneOrId.id : eczaneOrId;
+            window._aktifModalEczaneId = eczaneId;
             modalAc('modal-devices');
 
             document.getElementById('devmodal-title').textContent = `📺 TV Ekranları Yükleniyor...`;
@@ -1042,7 +1056,7 @@
                             : '';
 
                         rowsHtml += `
-                        <tr style="${!d.is_approved ? 'background: rgba(245, 158, 11, 0.06);' : ''}">
+                        <tr id="device-row-${d.id}" style="${!d.is_approved ? 'background: rgba(245, 158, 11, 0.06);' : ''}">
                             <td style="min-width: 140px;">
                                 <input type="text" id="dev-name-${d.id}" value="${escapeHtml(d.device_name || 'TV ' + (idx + 1))}" 
                                     class="form-control" style="font-size: 0.82rem; padding: 0.35rem 0.55rem; background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.15);" 
@@ -1083,11 +1097,9 @@
                                     <button type="button" class="btn btn-sm btn-warning" onclick="cihaziEkrandaGoster(${eczane.id}, ${d.id})" style="padding: 0.3rem 0.55rem; font-size: 0.85rem;" title="Hedef TV Ekranında 25 Saniye Tanımlama Sinyali Göster">
                                         🔔
                                     </button>
-                                    <form method="POST" action="/admin/pharmacy/${eczane.id}/device/${d.id}/delete" onsubmit="return confirm('${escapeHtml(d.device_name || 'Bu TV')} ekranının bağlantısını kesmek istiyor musunuz?');" style="display:inline; margin: 0;">
-                                        <button type="submit" class="btn btn-sm btn-danger" style="padding: 0.3rem 0.55rem; font-size: 0.85rem;" title="Bu TV Ekranının Bağlantısını Kes / Sil">
-                                            🗑️
-                                        </button>
-                                    </form>
+                                    <button type="button" class="btn btn-sm btn-danger" onclick="cihazSil(${eczane.id}, ${d.id}, '${escapeHtml(d.device_name || 'Bu TV')}')" style="padding: 0.3rem 0.55rem; font-size: 0.85rem;" title="Bu TV Ekranının Bağlantısını Kes / Sil (Ekran Kapanmaz)">
+                                        🗑️
+                                    </button>
                                 </div>
                             </td>
                         </tr>
@@ -1184,6 +1196,118 @@
                 }
             } catch (err) {
                 alert('Sunucu ile bağlantı kurulamadı.');
+            }
+        }
+
+        // Cihazı Menü Kapanmadan AJAX ile Silme
+        async function cihazSil(eczaneId, deviceId, deviceName) {
+            if (!confirm(`'${deviceName}' TV ekranının lisans bağlantısını kesmek ve silmek istediğinize emin misiniz?`)) {
+                return;
+            }
+            try {
+                const res = await fetch(`/admin/pharmacy/${eczaneId}/device/${deviceId}/delete`, {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    const row = document.getElementById(`device-row-${deviceId}`);
+                    if (row) {
+                        row.style.transition = 'all 0.35s ease';
+                        row.style.opacity = '0';
+                        row.style.transform = 'scale(0.95)';
+                        setTimeout(() => {
+                            row.remove();
+                            // Kalan cihaz sayısını güncelle
+                            const subTitle = document.getElementById('devmodal-subtitle');
+                            if (subTitle && data.remaining_count !== undefined) {
+                                subTitle.textContent = `Kalan Cihaz Sayısı: ${data.remaining_count} TV`;
+                            }
+                            const tbody = document.querySelector('#modal-devices tbody');
+                            if (!tbody || tbody.children.length === 0) {
+                                cihazYonetimModalAc(eczaneId);
+                            }
+                        }, 350);
+                    }
+                } else {
+                    alert(data.message || 'Cihaz silinemedi.');
+                }
+            } catch (e) {
+                alert('Sunucu ile bağlantı hatası oluştu.');
+            }
+        }
+
+        // Admin Tablosu Genel Canlılık Kontrolü (Sayfa Yenilenmeden)
+        async function canlilikKontroluYap() {
+            const btn = document.getElementById('btn-test-live');
+            const origHtml = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.innerHTML = '🔄 Kontrol Ediliyor...';
+                btn.disabled = true;
+            }
+
+            try {
+                const res = await fetch(`/admin/api/health-check-devices?_t=${Date.now()}`);
+                const data = await res.json();
+                if (data.success) {
+                    // Tüm eczanelerin noktalarını güncelle
+                    data.pharmacies.forEach(p => {
+                        const dot = document.getElementById(`pharmacy-dot-${p.id}`);
+                        if (dot) {
+                            if (p.is_online) {
+                                dot.className = 'heartbeat-dot dot-online';
+                                dot.parentElement.setAttribute('title', `Çevrimiçi (Son ping: ${p.last_ping || '-'})`);
+                            } else {
+                                dot.className = 'heartbeat-dot dot-offline';
+                                dot.parentElement.setAttribute('title', 'Çevrimdışı (Sinyal yok)');
+                            }
+                        }
+                    });
+
+                    // İstatistik kartındaki çevrimiçi sayısını güncelle
+                    const cevrimiciStat = document.getElementById('stat-online-count');
+                    if (cevrimiciStat && data.online_count !== undefined) {
+                        cevrimiciStat.textContent = data.online_count;
+                    }
+
+                    if (btn) {
+                        btn.innerHTML = `✅ Canlılık Test Edildi (${data.online_count} TV Çevrimiçi)`;
+                        setTimeout(() => {
+                            btn.innerHTML = origHtml;
+                            btn.disabled = false;
+                        }, 2500);
+                    }
+                }
+            } catch (e) {
+                if (btn) {
+                    btn.innerHTML = '⚠️ Test Hatası';
+                    setTimeout(() => {
+                        btn.innerHTML = origHtml;
+                        btn.disabled = false;
+                    }, 2000);
+                }
+            }
+        }
+
+        // Cihaz Yönetim Modalı İçinde Anlık Canlılık Testi
+        async function modalCihazCanlilikTesti() {
+            const btn = document.getElementById('devmodal-btn-live');
+            if (btn) {
+                btn.innerHTML = '🔄 Test Ediliyor...';
+                btn.disabled = true;
+            }
+            try {
+                if (window._aktifModalEczaneId) {
+                    await cihazYonetimModalAc(window._aktifModalEczaneId);
+                }
+            } finally {
+                if (btn) {
+                    btn.innerHTML = '✅ Canlılık Güncellendi';
+                    setTimeout(() => {
+                        btn.innerHTML = '⚡ Canlılığı Kontrol Et';
+                        btn.disabled = false;
+                    }, 1500);
+                }
             }
         }
 

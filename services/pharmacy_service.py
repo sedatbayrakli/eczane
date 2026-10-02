@@ -79,10 +79,11 @@ def haversine_mesafe(lat1: float, lon1: float, lat2: float, lon2: float) -> floa
     return R * c
 
 
-def mesafe_ve_yurume_hesapla(mesafe_metre: float) -> Tuple[str, str]:
+def mesafe_ve_yurume_hesapla(mesafe_metre: float) -> Tuple[str, str, str]:
     """
-    Mesafeyi '850 m' veya '2.4 km' formatında ve ortalama yürüme süresini döndürür.
-    (Ortalama yürüme hızı: 4.5 km/saat -> dakikada ~75 metre)
+    Mesafeyi '850 m' veya '2.4 km' formatında,
+    ortalama yürüme süresini (4.5 km/saat -> dakikada ~75 metre)
+    ve şehir içi araç sürüş süresini (30 km/saat -> dakikada ~500 metre) döndürür.
     """
     if mesafe_metre < 1000:
         mesafe_metin = f"{int(round(mesafe_metre))} m"
@@ -91,7 +92,11 @@ def mesafe_ve_yurume_hesapla(mesafe_metre: float) -> Tuple[str, str]:
 
     yurume_dakika = max(1, int(round(mesafe_metre / 75.0)))
     yurume_metin = f"~{yurume_dakika} dk"
-    return mesafe_metin, yurume_metin
+
+    araba_dakika = max(1, int(round(mesafe_metre / 500.0)))
+    araba_metin = f"~{araba_dakika} dk"
+
+    return mesafe_metin, yurume_metin, araba_metin
 
 
 def rota_linki_olustur(hedef_enlem: Optional[float], hedef_boylam: Optional[float],
@@ -691,14 +696,15 @@ def _mesafe_ve_rotalari_zenginlestir(eczaneler: List[Dict[str, Any]],
         # Rota veya Harita QR Kodu
         qr_kod_url = qr_kod_url_olustur(rota_linki)
 
-        # Mesafe ve Yürüme Süresi Hesabı
+        # Mesafe, Yürüme ve Araç Süresi Hesabı
         mesafe_metin = ""
         yurume_metin = ""
+        araba_metin = ""
         mesafe_metre_deger = None
 
         if kendi_enlem and kendi_boylam and hedef_lat and hedef_lon:
             mesafe_metre_deger = haversine_mesafe(kendi_enlem, kendi_boylam, hedef_lat, hedef_lon)
-            mesafe_metin, yurume_metin = mesafe_ve_yurume_hesapla(mesafe_metre_deger)
+            mesafe_metin, yurume_metin, araba_metin = mesafe_ve_yurume_hesapla(mesafe_metre_deger)
 
         item["harita_linki"] = harita_linki
         item["rota_linki"] = rota_linki
@@ -706,6 +712,7 @@ def _mesafe_ve_rotalari_zenginlestir(eczaneler: List[Dict[str, Any]],
         item["mesafe_metre"] = int(mesafe_metre_deger) if mesafe_metre_deger else None
         item["mesafe_metin"] = mesafe_metin
         item["yurume_metin"] = yurume_metin
+        item["araba_metin"] = araba_metin
 
         zengin_liste.append(item)
 
