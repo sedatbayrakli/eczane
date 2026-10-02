@@ -7,8 +7,17 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/style.css?v=4.1">
+    <link rel="stylesheet" href="/static/style.css?v=4.4">
     <style>
+        /* Kiosk style.css'teki html,body overflow:hidden kuralını sıfırla */
+        html, body {
+            height: auto !important;
+            min-height: 100vh !important;
+            overflow: auto !important;
+            overflow-x: hidden !important;
+            width: 100% !important;
+        }
+
         :root {
             --bg-body: #0b0f19;
             --bg-card: rgba(17, 24, 39, 0.85);
