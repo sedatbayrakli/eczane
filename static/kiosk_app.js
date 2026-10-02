@@ -259,33 +259,97 @@ function nobetBilgisiHtmlUret(stil = 'focus') {
 
 
 /**
- * 4. Bu TV Ekranı İçin Kalıcı Cihaz Kimliği (Token) ve Donanımsal MAC Adresi
+ * 4. Sabit Donanım Parmak İzi (Hardware Fingerprint) ve Değişmez MAC Üretimi
+ * Web tarayıcıları doğrudan fiziksel MAC'e erişemediği için ekran, CPU, WebGL GPU ve
+ * platform donanım özelliklerinden deterministik (sabit) kimlik üretilir.
+ * TV Bro veya tarayıcı kapanıp açılsa, önbellek silinse bile HER ZAMAN AYNI MAC ÜRETİLİR.
  */
-function getOrCreateDeviceToken() {
-    let token = localStorage.getItem('kiosk_device_token');
-    if (!token) {
-        if (window.crypto && crypto.randomUUID) {
-            token = 'tv-' + crypto.randomUUID();
-        } else {
-            token = 'tv-' + Math.random().toString(36).substring(2, 15) + '-' + Date.now();
+function getHardwareFingerprint() {
+    let components = [
+        navigator.userAgent || '',
+        screen.width + 'x' + screen.height,
+        screen.colorDepth || 24,
+        navigator.hardwareConcurrency || 4,
+        navigator.platform || '',
+        navigator.language || ''
+    ];
+
+    // WebGL GPU Renderer Bilgisi (Android TV ve Box cihazlarında donanıma özeldir)
+    try {
+        const canvas = document.createElement('canvas');
+        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+        if (gl) {
+            const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+            if (debugInfo) {
+                components.push(gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) || '');
+                components.push(gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL) || '');
+            }
         }
-        localStorage.setItem('kiosk_device_token', token);
+    } catch (e) {}
+
+    // FNV-1a benzeri 64-bit deterministik hash algoritması
+    const str = components.join('###');
+    let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+    for (let i = 0; i < str.length; i++) {
+        const ch = str.charCodeAt(i);
+        h1 = Math.imul(h1 ^ ch, 2654435761);
+        h2 = Math.imul(h2 ^ ch, 1597334677);
     }
+    h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+    h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+
+    const part1 = (h1 >>> 0).toString(16).padStart(8, '0').toUpperCase();
+    const part2 = (h2 >>> 0).toString(16).padStart(8, '0').toUpperCase();
+    return (part1 + part2);
+}
+
+function getOrCreateDeviceToken() {
+    // 1. LocalStorage
+    let token = localStorage.getItem('kiosk_device_token');
+    if (token) return token;
+
+    // 2. Cookie kontrolü
+    const cookieMatch = document.cookie.match(/(?:^|; )kiosk_device_token=([^;]*)/);
+    if (cookieMatch && cookieMatch[1]) {
+        token = decodeURIComponent(cookieMatch[1]);
+        localStorage.setItem('kiosk_device_token', token);
+        return token;
+    }
+
+    // 3. Deterministik Donanım Parmak İzinden Sabit Token
+    const fp = getHardwareFingerprint();
+    token = 'tv-hw-' + fp;
+    try {
+        localStorage.setItem('kiosk_device_token', token);
+        document.cookie = `kiosk_device_token=${encodeURIComponent(token)}; max-age=315360000; path=/; SameSite=Lax`;
+    } catch (e) {}
     return token;
 }
 
 function getOrCreateDeviceMac() {
+    // 1. LocalStorage
     let mac = localStorage.getItem('kiosk_device_mac');
-    if (!mac) {
-        // Kalıcı ve benzersiz IEEE 802 standardında 6 bloklu Hex MAC formatı üret
-        const hex = '0123456789ABCDEF';
-        let parts = ['4A']; // Yerel donanım tanımlı blok
-        for (let i = 0; i < 5; i++) {
-            parts.push(hex[Math.floor(Math.random() * 16)] + hex[Math.floor(Math.random() * 16)]);
-        }
-        mac = parts.join(':');
-        localStorage.setItem('kiosk_device_mac', mac);
+    if (mac && /^([0-9A-F]{2}:){5}[0-9A-F]{2}$/i.test(mac)) {
+        return mac;
     }
+
+    // 2. Cookie
+    const cookieMatch = document.cookie.match(/(?:^|; )kiosk_device_mac=([^;]*)/);
+    if (cookieMatch && cookieMatch[1]) {
+        mac = decodeURIComponent(cookieMatch[1]);
+        localStorage.setItem('kiosk_device_mac', mac);
+        return mac;
+    }
+
+    // 3. Deterministik Donanım Parmak İzinden Sabit MAC Üret
+    const fp = getHardwareFingerprint();
+    mac = `4A:${fp.substring(0,2)}:${fp.substring(2,4)}:${fp.substring(4,6)}:${fp.substring(6,8)}:${fp.substring(8,10)}`.toUpperCase();
+
+    try {
+        localStorage.setItem('kiosk_device_mac', mac);
+        document.cookie = `kiosk_device_mac=${encodeURIComponent(mac)}; max-age=315360000; path=/; SameSite=Lax`;
+    } catch (e) {}
+
     return mac;
 }
 

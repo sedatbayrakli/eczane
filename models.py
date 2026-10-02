@@ -170,12 +170,27 @@ class Pharmacy(db.Model):
         if not token and not mac:
             return False, "Cihaz belirteci (token/MAC) eksik", None
 
-        # 1. Cihaz zaten bu lisansa kayıtlı mı? (Önce MAC ile, sonra token ile kontrol et)
+        # 1. Cihaz zaten bu lisansa kayıtlı mı?
         kayitli_cihaz = None
         if mac:
             kayitli_cihaz = self.devices.filter_by(mac_address=mac).first()
         if not kayitli_cihaz and token:
             kayitli_cihaz = self.devices.filter_by(device_token=token).first()
+
+        # C) Akıllı Cihaz & Yerel IP Eşleştirmesi:
+        # TV Bro veya tarayıcı önbelleği silinse bile aynı TV kutusunun yerel IP'si (örn: 192.168.1.10)
+        # zaten onaylı bir cihaza aitse, mükerrer cihaz kaydı açmak yerine o onaylı cihazı koru ve güncelle.
+        if not kayitli_cihaz and local_ip and not local_ip.startswith("127.") and local_ip != "-":
+            ayni_ip_onayli_cihaz = self.devices.filter(
+                KioskDevice.local_ip == local_ip,
+                KioskDevice.is_approved == True
+            ).first()
+            if ayni_ip_onayli_cihaz:
+                kayitli_cihaz = ayni_ip_onayli_cihaz
+                if mac:
+                    kayitli_cihaz.mac_address = mac
+                if token:
+                    kayitli_cihaz.device_token = token
 
         if kayitli_cihaz:
             kayitli_cihaz.last_ping = datetime.now()
