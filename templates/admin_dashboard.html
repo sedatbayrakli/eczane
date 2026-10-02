@@ -385,7 +385,7 @@
                     <th>Ekran Teması</th>
                     <th>Nöbet Durumu</th>
                     <th>Lisans Kodu</th>
-                    <th>Cihaz Kilidi</th>
+                    <th>Cihazlar & Kilit</th>
                     <th>Kalan Süre</th>
                     <th>Durum</th>
                     <th>İşlemler</th>
@@ -446,7 +446,7 @@
                                 🌟 Vitrin
                             </span>
                         {% elif e.theme == 'dual_card' %}
-                            <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4);" title="İkili Dev Kart & Harita (2 Eczane)">
+                            <span class="badge" style="background: rgba(168, 85, 247, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4);" title="İkili Dev Kart & Harita (2 Eczane)">
                                 👥 İkili Kart
                             </span>
                         {% elif e.theme == 'auto_rotate' %}
@@ -458,6 +458,9 @@
                                 🔲 Klasik Izgara
                             </span>
                         {% endif %}
+                        <div style="font-size: 0.7rem; color: #64748b; margin-top: 0.2rem;">
+                            Ölçek: {{ e.screen_scale or 'auto' }}
+                        </div>
                     </td>
 
                     <!-- Nöbetçi Durumu -->
@@ -478,24 +481,17 @@
                         <span class="license-code">{{ e.license_key }}</span>
                     </td>
 
-                    <!-- Cihaz Kilidi & Eşleşme -->
+                    <!-- Çoklu Cihaz Durumu & Yönetim -->
                     <td>
-                        {% if e.registered_device_token %}
-                            <div style="display: flex; align-items: center; gap: 0.3rem;">
-                                <span class="badge" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); font-size: 0.72rem;">
-                                    🔒 TV Kilitli
-                                </span>
-                                <form method="POST" action="/admin/pharmacy/{{ e.id }}/reset-device" style="display:inline;" onsubmit="return confirm('{{ e.name }} TV cihaz kilidini sıfırlamak istiyor musunuz?');">
-                                    <button type="submit" class="btn btn-sm btn-secondary" style="padding: 0.15rem 0.35rem; font-size: 0.68rem;" title="Yeni TV için kilidi sıfırla">
-                                        Sıfırla
-                                    </button>
-                                </form>
-                            </div>
-                        {% else %}
-                            <span class="badge" style="background: rgba(16, 185, 129, 0.12); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.25); font-size: 0.72rem;">
-                                🔓 Beklemede
+                        <div style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">
+                            {% set dev_sayisi = e.devices.count() %}
+                            <span class="badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35); font-weight: 700; font-size: 0.75rem;">
+                                📺 {{ dev_sayisi }} / {{ e.max_devices or 1 }} TV
                             </span>
-                        {% endif %}
+                            <button type="button" class="btn btn-sm btn-secondary" onclick='cihazYonetimModalAc({{ e.to_dict() | tojson }})' style="padding: 0.2rem 0.45rem; font-size: 0.72rem;" title="Bağlı Cihazları Yönet / Sıfırla">
+                                ⚙️ Cihazlar
+                            </button>
+                        </div>
                     </td>
 
                     <!-- Kalan Süre -->
@@ -672,6 +668,25 @@
                     </div>
                 </div>
 
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Lisans Cihaz Limiti (TV Sayısı)</label>
+                        <input type="number" name="max_devices" value="1" min="1" max="20" class="form-control" required>
+                        <small style="color: #64748b; font-size: 0.72rem;">Aynı lisansla kaç adet TV ekranı açılabileceğini belirler.</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Ekran Çözünürlüğü / TV Ölçeği</label>
+                        <select name="screen_scale" class="form-control">
+                            <option value="auto" selected>🖥️ Otomatik TV Algılama (Önerilen)</option>
+                            <option value="compact">📺 Mi Box / Android Box (Kompakt - %80)</option>
+                            <option value="720p">📺 HD TV (720p - %85)</option>
+                            <option value="1080p">📺 Full HD TV (1080p - %100)</option>
+                            <option value="4k">🌟 4K Vitrin Ekranı (Dev - %130)</option>
+                        </select>
+                        <small style="color: #64748b; font-size: 0.72rem;">TV tarayıcısındaki taşmaları önlemek için font/padding ölçeği.</small>
+                    </div>
+                </div>
+
                 <div class="form-group">
                     <label>Kayan Yazı Duyurusu</label>
                     <input type="text" name="ticker_text" class="form-control" placeholder="Eczanemiz halk sağlığı için hizmetinizdedir.">
@@ -773,6 +788,25 @@
                     </div>
                 </div>
 
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Lisans Cihaz Limiti (TV Sayısı)</label>
+                        <input type="number" id="edit-max_devices" name="max_devices" min="1" max="20" class="form-control" required>
+                        <small style="color: #64748b; font-size: 0.72rem;">Aynı lisansla kaç adet TV ekranı açılabileceğini belirler.</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Ekran Çözünürlüğü / TV Ölçeği</label>
+                        <select id="edit-screen_scale" name="screen_scale" class="form-control">
+                            <option value="auto">🖥️ Otomatik TV Algılama (Önerilen)</option>
+                            <option value="compact">📺 Mi Box / Android Box (Kompakt - %80)</option>
+                            <option value="720p">📺 HD TV (720p - %85)</option>
+                            <option value="1080p">📺 Full HD TV (1080p - %100)</option>
+                            <option value="4k">🌟 4K Vitrin Ekranı (Dev - %130)</option>
+                        </select>
+                        <small style="color: #64748b; font-size: 0.72rem;">TV tarayıcısındaki taşmaları önlemek için font/padding ölçeği.</small>
+                    </div>
+                </div>
+
                 <div class="form-group">
                     <label>Kayan Yazı Duyurusu</label>
                     <input type="text" id="edit-ticker" name="ticker_text" class="form-control">
@@ -803,6 +837,28 @@
             </div>
             <div class="preview-iframe-wrapper">
                 <iframe id="preview-iframe" class="preview-iframe" src="about:blank"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. MODAL: ÇOKLU CİHAZ (TV/KIOSK) YÖNETİMİ -->
+    <div id="modal-devices" class="modal-overlay">
+        <div class="modal-box modal-box-large">
+            <div class="modal-header">
+                <div>
+                    <h3 id="devmodal-title">📺 Bağlı TV & Kiosk Cihazları</h3>
+                    <span id="devmodal-subtitle" style="font-size: 0.8rem; color: #94a3b8;"></span>
+                </div>
+                <button class="modal-close" onclick="modalKapat('modal-devices')">&times;</button>
+            </div>
+            <div id="devmodal-body" style="margin-top: 1rem;">
+                <!-- JS ile dinamik cihaz listesi yüklenecek -->
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+                <form id="devmodal-reset-all-form" method="POST" action="" onsubmit="return confirm('Bu eczanenin TÜM TV cihaz bağlantılarını sıfırlamak istediğinize emin misiniz?');">
+                    <button type="submit" class="btn btn-sm btn-danger">🗑️ Tüm TV Kilitlerini Sıfırla</button>
+                </form>
+                <button type="button" class="btn btn-secondary" onclick="modalKapat('modal-devices')">Kapat</button>
             </div>
         </div>
     </div>
@@ -907,6 +963,8 @@
             document.getElementById('edit-longitude').value = eczane.longitude || '';
             document.getElementById('edit-ticker').value = eczane.ticker_text || '';
             document.getElementById('edit-theme').value = eczane.theme || 'classic_grid';
+            document.getElementById('edit-max_devices').value = eczane.max_devices || 1;
+            document.getElementById('edit-screen_scale').value = eczane.screen_scale || 'auto';
 
             if (eczane.expires_at) {
                 document.getElementById('edit-expires-at').value = eczane.expires_at.split(' ')[0];
@@ -914,6 +972,79 @@
 
             modalAc('modal-edit');
             haritayiBaslat('edit', eczane.latitude, eczane.longitude);
+        }
+
+        // Çoklu TV Cihaz Yönetim Modalı
+        function cihazYonetimModalAc(eczane) {
+            document.getElementById('devmodal-title').textContent = `📺 ${eczane.name} - Bağlı TV Ekranları`;
+            const devices = eczane.devices || [];
+            document.getElementById('devmodal-subtitle').textContent = `Lisans Kapasitesi: ${devices.length} / ${eczane.max_devices || 1} TV Cihazı`;
+            document.getElementById('devmodal-reset-all-form').action = `/admin/pharmacy/${eczane.id}/reset-devices`;
+
+            const body = document.getElementById('devmodal-body');
+
+            if (devices.length === 0) {
+                body.innerHTML = `
+                    <div style="text-align: center; padding: 2.5rem 1.5rem; color: #94a3b8; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.12);">
+                        <div style="font-size: 3rem; margin-bottom: 0.6rem;">🔓</div>
+                        <h4 style="color: #cbd5e1; font-size: 1.1rem; margin-bottom: 0.4rem;">Henüz Bağlı TV Ekranı Bulunmuyor</h4>
+                        <p style="font-size: 0.88rem; max-width: 500px; margin: 0 auto; line-height: 1.5;">
+                            Kiosk TV bağlantı linkini herhangi bir TV veya Mi Box cihazında açtığınızda sistem o ekranı otomatik algılayıp bu lisansa bağlayacaktır.
+                        </p>
+                        <div style="margin-top: 1.2rem;">
+                            <span class="badge" style="background: rgba(16,185,129,0.15); color: #34d399; font-size: 0.85rem; padding: 0.45rem 0.9rem; font-weight: 700;">
+                                Boş Kalan Cihaz Kontenjanı: ${eczane.max_devices || 1} TV
+                            </span>
+                        </div>
+                    </div>
+                `;
+            } else {
+                let rowsHtml = '';
+                devices.forEach((d, idx) => {
+                    const onlineStatus = d.is_online 
+                        ? '<span class="heartbeat-dot dot-online" style="display:inline-block; margin-right: 4px;"></span> <span style="color:#34d399; font-weight:600;">Çevrimiçi</span>' 
+                        : '<span class="heartbeat-dot dot-offline" style="display:inline-block; margin-right: 4px;"></span> <span style="color:#94a3b8;">Çevrimdışı</span>';
+
+                    rowsHtml += `
+                    <tr>
+                        <td><strong>${d.device_name || 'TV ' + (idx + 1)}</strong></td>
+                        <td>${onlineStatus}</td>
+                        <td style="font-family: monospace; font-size: 0.82rem;">${d.ip_address}</td>
+                        <td><span class="badge" style="background: rgba(255,255,255,0.06); color: #cbd5e1; font-size: 0.75rem;">${d.screen_resolution}</span></td>
+                        <td style="font-size: 0.8rem; color: #94a3b8;">${d.last_ping || '-'}</td>
+                        <td>
+                            <form method="POST" action="/admin/pharmacy/${eczane.id}/device/${d.id}/delete" onsubmit="return confirm('${d.device_name || 'Bu TV'} ekranının bağlantısını kesmek istiyor musunuz?');" style="display:inline;">
+                                <button type="submit" class="btn btn-sm btn-danger" style="padding: 0.2rem 0.55rem; font-size: 0.72rem;">
+                                    Bağlantıyı Kes
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    `;
+                });
+
+                body.innerHTML = `
+                <div style="overflow-x: auto;">
+                    <table class="table" style="margin: 0; font-size: 0.85rem;">
+                        <thead>
+                            <tr>
+                                <th>Cihaz Adı</th>
+                                <th>Canlılık</th>
+                                <th>IP Adresi</th>
+                                <th>Çözünürlük</th>
+                                <th>Son Görülme</th>
+                                <th>İşlem</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rowsHtml}
+                        </tbody>
+                    </table>
+                </div>
+                `;
+            }
+
+            modalAc('modal-devices');
         }
 
         // Otomatik Eczane Bilgileri ve Koordinat Bulucu (Eczacı Odası & Akıllı Ağ)

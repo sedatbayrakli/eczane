@@ -1149,10 +1149,74 @@ body,
     line-height: 1.35;
     color: var(--text-primary);
     font-weight: 600;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
+    display: block;
+    max-height: 4.2em;
     overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* TV Ekran Ölçeği Sınıfları (Android Box / Mi Box / 720p / 1080p / 4K) */
+body.scale-compact {
+    font-size: 12.5px !important;
+}
+body.scale-compact .kiosk-header {
+    padding: 0.5rem 1.2rem !important;
+}
+body.scale-compact .focus-container-card {
+    padding: 0.65rem 1rem !important;
+}
+body.scale-compact .focus-qr-frame {
+    width: 115px !important;
+    height: 115px !important;
+}
+body.scale-compact .dual-qr-wrapper {
+    width: 95px !important;
+    height: 95px !important;
+}
+body.scale-compact .focus-title {
+    font-size: clamp(1.3rem, 2vw, 1.7rem) !important;
+}
+
+body.scale-720p {
+    font-size: 13.5px !important;
+}
+body.scale-720p .focus-qr-frame {
+    width: 125px !important;
+    height: 125px !important;
+}
+
+body.scale-1080p {
+    font-size: 16px !important;
+}
+
+body.scale-4k {
+    font-size: 22px !important;
+}
+
+/* TV Tam Ekran Tetikleyici Butonu (Sağ Üst Köşe) */
+.tv-fullscreen-btn {
+    position: fixed;
+    top: 10px;
+    right: 12px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #94a3b8;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 14px;
+    z-index: 9999;
+    opacity: 0.35;
+    transition: opacity 0.2s ease;
+}
+.tv-fullscreen-btn:hover {
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.7);
+    color: #fff;
 }
 
 .focus-landmark-box {

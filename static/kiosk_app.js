@@ -719,6 +719,9 @@ function arayuzuGuncelle(veri, isOffline = false, savedTime = '') {
         if (veri.pharmacy.theme && veri.pharmacy.theme !== aktifTema) {
             aktifTema = veri.pharmacy.theme;
         }
+
+        // TV / Mi Box Ekran Çözünürlüğü ve Ölçek Ayarını Uygula
+        ekranOlceginiUygula(veri.pharmacy.screen_scale || 'auto');
     }
 
     // Aktif Görünümü Belirle (auto_rotate ise saat bazlı mod)
@@ -842,13 +845,37 @@ function arayuzuGuncelle(veri, isOffline = false, savedTime = '') {
  */
 async function kioskVerileriniGetir() {
     const deviceToken = getOrCreateDeviceToken();
-    const apiAdresi = `/api/kiosk-data?key=${encodeURIComponent(LISANS_KEY)}&device_token=${encodeURIComponent(deviceToken)}&_t=${Date.now()}`;
+    const ekranCozunurluk = `${window.innerWidth}x${window.innerHeight}`;
+    const apiAdresi = `/api/kiosk-data?key=${encodeURIComponent(LISANS_KEY)}&device_token=${encodeURIComponent(deviceToken)}&res=${encodeURIComponent(ekranCozunurluk)}&_t=${Date.now()}`;
 
     try {
         const yanit = await fetch(apiAdresi);
 
         if (yanit.status === 403 || yanit.status === 401) {
             const errData = await yanit.json().catch(() => ({}));
+            
+            // Cihaz Limiti Aşımı Durumu
+            if (errData.reason === 'device_limit_exceeded') {
+                document.body.innerHTML = `
+                    <div style="background:#080a10;color:#fff;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem;text-align:center;font-family:Inter,sans-serif;">
+                        <div style="background:rgba(18,24,38,0.95);border:2px solid #f59e0b;border-radius:24px;padding:3.5rem 3rem;max-width:700px;box-shadow:0 0 40px rgba(245,158,11,0.2);">
+                            <div style="font-size:4rem;margin-bottom:1rem;">📺</div>
+                            <h1 style="font-size:2.2rem;margin-bottom:1rem;color:#fbbf24;">Cihaz Limiti Dolu</h1>
+                            <p style="font-size:1.25rem;color:#cbd5e1;line-height:1.6;margin-bottom:2rem;">
+                                Bu lisans anahtarı için tanımlı maksimum TV ekranı sınırına (${errData.max_devices || 1} Cihaz) ulaşılmıştır.
+                            </p>
+                            <div style="background:rgba(0,0,0,0.5);border:1px dashed rgba(255,255,255,0.2);padding:1rem 1.8rem;border-radius:12px;display:inline-block;font-family:'JetBrains Mono',monospace;color:#38bdf8;font-size:1.3rem;font-weight:700;margin-bottom:1.5rem;">
+                                Lisans: ${escapeHtml(LISANS_KEY)} (${errData.max_devices}/${errData.max_devices} TV Dolu)
+                            </div>
+                            <p style="font-size:0.95rem;color:#94a3b8;line-height:1.5;">
+                                Yeni bir TV veya kiosk ekranı bağlamak için lütfen Yönetim Panelinden cihaz limitini artırın veya eski bir TV ekranının kilidini kaldırın.
+                            </p>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
             if (errData.reason === 'device_mismatch') {
                 document.body.innerHTML = `
                     <div style="background:#080a10;color:#fff;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem;text-align:center;font-family:Inter,sans-serif;">
@@ -856,13 +883,13 @@ async function kioskVerileriniGetir() {
                             <div style="font-size:4rem;margin-bottom:1rem;">🔒</div>
                             <h1 style="font-size:2.2rem;margin-bottom:1rem;color:#f87171;">Cihaz Kilidi Engeli</h1>
                             <p style="font-size:1.25rem;color:#cbd5e1;line-height:1.6;margin-bottom:2rem;">
-                                Bu lisans anahtarı başka bir TV ekranına kilitlenmiştir. Sistem güvenliği gereği aynı lisans birden fazla cihazda açılamaz.
+                                Bu lisans anahtarı başka bir TV ekranına kilitlenmiştir.
                             </p>
                             <div style="background:rgba(0,0,0,0.5);border:1px dashed rgba(255,255,255,0.2);padding:1rem 1.8rem;border-radius:12px;display:inline-block;font-family:'JetBrains Mono',monospace;color:#fbbf24;font-size:1.4rem;font-weight:700;margin-bottom:1.5rem;">
                                 Lisans: ${escapeHtml(LISANS_KEY)}
                             </div>
                             <p style="font-size:0.95rem;color:#64748b;">
-                                TV cihazınızı değiştirdiyseniz, Yönetim Panelinden "Cihaz Kilidini Sıfırla" butonuna tıklayıp sayfayı yenileyiniz.
+                                Yönetim Panelinden "Cihaz Kilitlerini Sıfırla" butonuna tıklayıp sayfayı yenileyiniz.
                             </p>
                         </div>
                     </div>
@@ -907,6 +934,48 @@ function kioskBaslat() {
 
     kioskVerileriniGetir();
     setInterval(kioskVerileriniGetir, KIOSK_AYARLAR.POLLING_ARALIGI_MS);
+
+    // Çift tıklamayla TV tam ekran modunu açıp kapatma
+    document.addEventListener('dblclick', () => {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(() => {});
+        } else {
+            document.exitFullscreen().catch(() => {});
+        }
+    });
+
+    // Pencere boyutu değiştiğinde ölçeği ve haritayı yeniden hesapla
+    window.addEventListener('resize', () => {
+        if (sonGecerliVeri && sonGecerliVeri.pharmacy) {
+            ekranOlceginiUygula(sonGecerliVeri.pharmacy.screen_scale || 'auto');
+        }
+        if (kioskMap) {
+            setTimeout(() => kioskMap.invalidateSize(), 200);
+        }
+    });
+}
+
+/**
+ * TV ve Kiosk Ekran Çözünürlüğünü Ayarlar (Mi Box & TV Uyumluluğu)
+ */
+function ekranOlceginiUygula(scaleAyar = 'auto') {
+    document.body.classList.remove('scale-compact', 'scale-720p', 'scale-1080p', 'scale-4k');
+
+    if (scaleAyar === 'auto') {
+        const vh = window.innerHeight;
+        // Mi Box veya TV tarayıcılarında navigasyon barı açıkken yükseklik < 780px kalır
+        if (vh < 780) {
+            document.body.classList.add('scale-compact');
+        } else if (vh < 920) {
+            document.body.classList.add('scale-720p');
+        } else if (vh < 1450) {
+            document.body.classList.add('scale-1080p');
+        } else {
+            document.body.classList.add('scale-4k');
+        }
+    } else {
+        document.body.classList.add(`scale-${scaleAyar}`);
+    }
 }
 
 document.addEventListener('DOMContentLoaded', kioskBaslat);

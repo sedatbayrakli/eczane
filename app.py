@@ -113,6 +113,10 @@ def init_db():
                         conn.execute(text("ALTER TABLE pharmacies ADD COLUMN manual_duty_override_until DATETIME"))
                     if "theme" not in mevcut_kolonlar:
                         conn.execute(text("ALTER TABLE pharmacies ADD COLUMN theme VARCHAR(50) DEFAULT 'classic_grid'"))
+                    if "max_devices" not in mevcut_kolonlar:
+                        conn.execute(text("ALTER TABLE pharmacies ADD COLUMN max_devices INTEGER DEFAULT 1"))
+                    if "screen_scale" not in mevcut_kolonlar:
+                        conn.execute(text("ALTER TABLE pharmacies ADD COLUMN screen_scale VARCHAR(20) DEFAULT 'auto'"))
                     conn.commit()
         except Exception as hata:
             print(f"[UYARI] Veritabanı kolon denetim hatası: {hata}")
@@ -408,6 +412,8 @@ def admin_add_pharmacy():
     kayan_yazi = request.form.get("ticker_text", "").strip()
     lisans_gun = request.form.get("license_days", 365, type=int)
     tema = request.form.get("theme", "classic_grid").strip()
+    cihaz_limiti = request.form.get("max_devices", 1, type=int)
+    ekran_olcegi = request.form.get("screen_scale", "auto").strip()
 
     if not isim:
         flash("Eczane adı zorunludur!", "danger")
@@ -425,6 +431,8 @@ def admin_add_pharmacy():
         mobile_phone=cep_telefonu,
         address=acik_adres,
         theme=tema,
+        max_devices=max(1, cihaz_limiti),
+        screen_scale=ekran_olcegi,
         license_key=lisans_anahtari_uret(),
         expires_at=datetime.now() + timedelta(days=lisans_gun),
         is_active=True,
@@ -433,7 +441,7 @@ def admin_add_pharmacy():
     db.session.add(yeni_eczane)
     db.session.commit()
 
-    flash(f"'{isim}' başarıyla eklendi. Lisans Anahtarı: {yeni_eczane.license_key}", "success")
+    flash(f"'{isim}' başarıyla eklendi. Lisans Anahtarı: {yeni_eczane.license_key} (Cihaz Limiti: {yeni_eczane.max_devices})", "success")
     return redirect(url_for("admin_dashboard"))
 
 
@@ -456,6 +464,8 @@ def admin_edit_pharmacy(eczane_id):
     eczane.address = request.form.get("address", eczane.address).strip()
     eczane.ticker_text = request.form.get("ticker_text", eczane.ticker_text).strip()
     eczane.theme = request.form.get("theme", eczane.theme or "classic_grid").strip()
+    eczane.max_devices = request.form.get("max_devices", eczane.max_devices or 1, type=int)
+    eczane.screen_scale = request.form.get("screen_scale", eczane.screen_scale or "auto").strip()
 
     bitis_str = request.form.get("expires_at", "")
     if bitis_str:
@@ -512,14 +522,28 @@ def admin_delete_pharmacy(eczane_id):
 
 
 @app.route("/admin/pharmacy/<int:eczane_id>/reset-device", methods=["POST"])
+@app.route("/admin/pharmacy/<int:eczane_id>/reset-devices", methods=["POST"])
 @login_required
 def admin_reset_device(eczane_id):
-    """Eczanenin TV ekranı cihaz kilidini sıfırlar."""
+    """Eczanenin TV ekranı cihaz kilitlerini sıfırlar."""
     eczane = Pharmacy.query.get_or_404(eczane_id)
-    eczane.cihaz_kilidi_sifirla()
+    eczane.tum_cihazlari_sifirla()
+
+    flash(f"'{eczane.name}' TV cihaz kilitleri sıfırlandı. Yeni TV ekranları lisansa bağlanabilir.", "info")
+    return redirect(url_for("admin_dashboard"))
+
+
+@app.route("/admin/pharmacy/<int:eczane_id>/device/<int:device_id>/delete", methods=["POST"])
+@login_required
+def admin_delete_single_device(eczane_id, device_id):
+    """Tek bir TV cihazının lisans bağlantısını keser ve siler."""
+    eczane = Pharmacy.query.get_or_404(eczane_id)
+    cihaz = KioskDevice.query.filter_by(id=device_id, pharmacy_id=eczane.id).first_or_404()
+    cihaz_adi = cihaz.device_name
+    db.session.delete(cihaz)
     db.session.commit()
 
-    flash(f"'{eczane.name}' TV cihaz kilidi sıfırlandı. Yeni bağlanacak ilk TV cihazına kilitlenecektir.", "info")
+    flash(f"'{eczane.name}' - '{cihaz_adi}' bağlantısı kesildi ve cihaz silindi.", "warning")
     return redirect(url_for("admin_dashboard"))
 
 
@@ -634,19 +658,31 @@ def api_kiosk_data():
             "license_key": eczane.license_key
         }), 403
 
-    # Cihaz Kilidi Kontrolü
+    resolution = request.args.get("res", "").strip()
+    user_agent = request.headers.get("User-Agent", "")
+    client_ip = istemci_ip_al()
+
+    # Çoklu TV / Kiosk Cihazı Doğrulama ve Kayıt
     if device_token:
-        if not eczane.cihaz_uyumlu_mu(device_token):
+        uyumlu_mu, mesaj = eczane.cihaz_dogrula_veya_kaydet(
+            token=device_token,
+            ip=client_ip,
+            resolution=resolution,
+            user_agent=user_agent
+        )
+        if not uyumlu_mu:
             return jsonify({
                 "success": False,
                 "license_valid": False,
-                "reason": "device_mismatch",
-                "message": "Bu lisans anahtarı başka bir TV cihazına kilitlenmiştir. Lisansınızı tek ekranda kullanabilirsiniz."
+                "reason": "device_limit_exceeded",
+                "message": mesaj,
+                "max_devices": eczane.max_devices or 1,
+                "device_count": eczane.devices.count(),
+                "license_key": eczane.license_key
             }), 403
-
-    # Canlılık ve IP güncellemesi
-    eczane.last_ping = datetime.now()
-    eczane.last_ip = istemci_ip_al()
+    else:
+        eczane.last_ping = datetime.now()
+        eczane.last_ip = client_ip
 
     # İlgili ilçenin nöbetçi eczanelerini Fallback Pipeline ile çek
     kendi_lat = eczane.latitude
@@ -690,7 +726,10 @@ def api_kiosk_data():
             "mobile_phone": eczane.mobile_phone or "",
             "address": eczane.address or "",
             "ticker_text": eczane.ticker_text,
-            "theme": eczane.theme or "classic_grid"
+            "theme": eczane.theme or "classic_grid",
+            "screen_scale": eczane.screen_scale or "auto",
+            "max_devices": eczane.max_devices or 1,
+            "device_count": eczane.devices.count()
         },
         "is_on_duty_today": nihai_nobet_durumu,
         "duty_test_active": eczane.duty_test_aktif_mi(),
