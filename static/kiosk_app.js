@@ -224,9 +224,8 @@ function nobetBilgisiHtmlUret(stil = 'focus') {
                 </div>
             </div>
             <div class="duty-live-countdown">
-                <div class="countdown-tag-row">
-                    <span class="pulse-indicator" style="background:#38bdf8;width:6px;height:6px;"></span>
-                    <span class="countdown-label">${zaman.etiket}</span>
+                <div class="countdown-tag-row" style="justify-content: center; width: 100%;">
+                    <span class="countdown-label" style="white-space: nowrap; font-size: 0.62rem; letter-spacing: 0.02em;">${zaman.etiket}</span>
                 </div>
                 <div class="countdown-clock">
                     <span class="countdown-num countdown-h">${zaman.saatStr}</span><span class="countdown-unit">sa</span>
@@ -655,14 +654,22 @@ function devOdakKartiHtmlUret(eczane, siraNo, toplamAdet, modAdi = 'NAVİGASYON'
         </div>
 
         <div class="focus-body-grid">
-            <!-- Sol Sütun: Mesafe Bilgisi (Araba + Yürüme İkonları Kompakt) & Karekod -->
+            <!-- Sol Sütun: Mesafe Bilgisi (3 Satır: Mesafe, Araba, Yürüme) & Karekod -->
             <div class="focus-qr-col">
                 ${eczane.mesafe_metin ? `
-                    <div class="focus-qr-distance-badge-compact" style="display: flex; align-items: center; justify-content: center; gap: 0.35rem; flex-wrap: wrap;">
-                        ${arabaMetin ? `<span class="qr-dist-car" style="color: #38bdf8; font-weight: 800;">🚗 ${escapeHtml(arabaMetin)}</span> <span style="opacity: 0.35;">•</span>` : ''}
-                        <span class="qr-dist-icon">🚶</span>
-                        <strong class="qr-dist-val">${escapeHtml(eczane.mesafe_metin)}</strong>
-                        <span class="qr-walk-val">(${escapeHtml(yurumeMetin)})</span>
+                    <div class="focus-qr-distance-badge-stacked">
+                        <div class="dist-row-meter">
+                            <span class="dist-pin-symbol">📍</span>
+                            <strong class="dist-meter-text">${escapeHtml(eczane.mesafe_metin)}</strong>
+                        </div>
+                        <div class="dist-row-car">
+                            <span class="dist-mode-icon">🚗</span>
+                            <span class="dist-mode-text">Araba ${escapeHtml((arabaMetin || '~1 dk').replace('~', ''))}</span>
+                        </div>
+                        <div class="dist-row-walk">
+                            <span class="dist-mode-icon">🚶</span>
+                            <span class="dist-mode-text">Yürüme ${escapeHtml((yurumeMetin || '~2 dk').replace('~', ''))}</span>
+                        </div>
                     </div>` : ''}
 
                 <div class="focus-qr-frame">
