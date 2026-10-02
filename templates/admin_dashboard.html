@@ -441,7 +441,7 @@
                         {% if e.phone %}
                             <div style="font-size: 0.72rem; color: #38bdf8; font-family: monospace;">☎ {{ e.phone }}</div>
                         {% endif %}
-                        <div id="ticker-preview-{{ e.id }}" style="font-size: 0.73rem; color: #f59e0b; margin-top: 0.25rem; max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;" onclick="duyuruModalAc({{ e.id }}, {{ e.name | tojson }}, {{ (e.ticker_text or '') | tojson }})" title="Kayan Yazı: {{ e.ticker_text or 'Duyuru girilmemiş (Tıkla ve düzenle)' }}">
+                        <div id="ticker-preview-{{ e.id }}" class="ticker-preview-trigger" data-id="{{ e.id }}" data-name="{{ e.name }}" data-ticker="{{ e.ticker_text or '' }}" style="font-size: 0.73rem; color: #f59e0b; margin-top: 0.25rem; max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;" onclick="duyuruModalAcFromEl(this)" title="Kayan Yazı: {{ e.ticker_text or 'Duyuru girilmemiş (Tıkla ve düzenle)' }}">
                             📢 <span>{{ e.ticker_text or 'Duyuru ekle...' }}</span>
                         </div>
                     </td>
@@ -559,7 +559,7 @@
                             </form>
 
                             <!-- Kayan Yazı Duyuru Düzenle -->
-                            <button class="btn btn-sm btn-secondary" onclick="duyuruModalAc({{ e.id }}, {{ e.name | tojson }}, {{ (e.ticker_text or '') | tojson }})" title="Kayan Yazı Duyurusunu Düzenle">
+                            <button class="btn btn-sm btn-secondary btn-ticker-trigger" id="btn-ticker-{{ e.id }}" data-id="{{ e.id }}" data-name="{{ e.name }}" data-ticker="{{ e.ticker_text or '' }}" onclick="duyuruModalAcFromEl(this)" title="Kayan Yazı Duyurusunu Düzenle">
                                 📢
                             </button>
 
@@ -1442,6 +1442,13 @@
         // Kayan Yazı / Duyuru Düzenleme Fonksiyonları
         let aktifTickerEczaneAdi = '';
 
+        function duyuruModalAcFromEl(el) {
+            const eczaneId = el.getAttribute('data-id');
+            const eczaneAdi = el.getAttribute('data-name');
+            const mevcutMetin = el.getAttribute('data-ticker');
+            duyuruModalAc(eczaneId, eczaneAdi, mevcutMetin);
+        }
+
         function duyuruModalAc(eczaneId, eczaneAdi, mevcutMetin) {
             document.getElementById('ticker-pharmacy-id').value = eczaneId;
             aktifTickerEczaneAdi = eczaneAdi || 'Eczane';
@@ -1495,12 +1502,17 @@
                 });
                 const data = await resp.json();
                 if (data.success) {
-                    // Tablodaki önizlemeyi anında güncelle
+                    // Tablodaki önizlemeyi ve data-ticker attributelerini anında güncelle
                     const previewEl = document.getElementById(`ticker-preview-${eczaneId}`);
                     if (previewEl) {
+                        previewEl.setAttribute('data-ticker', data.ticker_text);
                         previewEl.title = 'Kayan Yazı: ' + data.ticker_text;
                         const spanEl = previewEl.querySelector('span');
                         if (spanEl) spanEl.textContent = data.ticker_text;
+                    }
+                    const btnEl = document.getElementById(`btn-ticker-${eczaneId}`);
+                    if (btnEl) {
+                        btnEl.setAttribute('data-ticker', data.ticker_text);
                     }
                     modalKapat('modal-ticker');
                     alert(`✅ ${aktifTickerEczaneAdi} için kayan yazı duyurusu başarıyla kaydedildi!\nTV ekranında otomatik olarak güncellenecektir.`);
