@@ -201,11 +201,9 @@ function nobetGeriSayiminiGuncelle() {
     sayaclar.forEach(sayac => {
         const saatEl = sayac.querySelector('.countdown-h');
         const dakEl = sayac.querySelector('.countdown-m');
-        const sanEl = sayac.querySelector('.countdown-s');
         const etiketEl = sayac.querySelector('.countdown-label');
         if (saatEl) saatEl.textContent = zaman.saatStr;
         if (dakEl) dakEl.textContent = zaman.dakikaStr;
-        if (sanEl) sanEl.textContent = zaman.saniyeStr;
         if (etiketEl && etiketEl.textContent !== zaman.etiket) {
             etiketEl.textContent = zaman.etiket;
         }
@@ -234,8 +232,6 @@ function nobetBilgisiHtmlUret(stil = 'focus') {
                     <span class="countdown-num countdown-h">${zaman.saatStr}</span><span class="countdown-unit">sa</span>
                     <span class="countdown-sep">:</span>
                     <span class="countdown-num countdown-m">${zaman.dakikaStr}</span><span class="countdown-unit">dk</span>
-                    <span class="countdown-sep">:</span>
-                    <span class="countdown-num countdown-s">${zaman.saniyeStr}</span><span class="countdown-unit">sn</span>
                 </div>
             </div>
         </div>
@@ -252,8 +248,8 @@ function nobetBilgisiHtmlUret(stil = 'focus') {
                 <span class="countdown-label">${zaman.etiket}:</span>
                 <div class="countdown-clock">
                     <span class="countdown-num countdown-h">${zaman.saatStr}</span><span class="countdown-unit">sa</span>
+                    <span class="countdown-sep">:</span>
                     <span class="countdown-num countdown-m">${zaman.dakikaStr}</span><span class="countdown-unit">dk</span>
-                    <span class="countdown-num countdown-s">${zaman.saniyeStr}</span><span class="countdown-unit">sn</span>
                 </div>
             </div>
         </div>
