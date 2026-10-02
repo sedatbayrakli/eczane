@@ -912,35 +912,49 @@ async function kioskVerileriniGetir() {
             
             // Cihaz Lisans Onayı Bekleme Durumu (Admin Aktivasyonu)
             if (errData.reason === 'device_pending_approval') {
-                document.body.innerHTML = `
-                    <div style="background:#080a10;color:#fff;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem;text-align:center;font-family:Inter,sans-serif;">
-                        <div style="background:rgba(18,24,38,0.98);border:2px solid #38bdf8;border-radius:28px;padding:3rem 3.5rem;max-width:700px;box-shadow:0 0 50px rgba(56,189,248,0.25);">
-                            <div style="font-size:3.8rem;margin-bottom:0.8rem;animation:bounceRadar 1.5s infinite;">📺</div>
-                            <h1 style="font-size:2rem;margin-bottom:0.6rem;color:#ffffff;letter-spacing:-0.02em;">Cihaz Lisans Onayı Bekleniyor</h1>
-                            <p style="font-size:1.05rem;color:#cbd5e1;line-height:1.6;margin-bottom:1.5rem;">
-                                Bu ekran sisteme kaydedildi ve <strong>${escapeHtml(errData.pharmacy_name || 'Eczane')}</strong> lisansına bağlandı.<br>
-                                Yönetim panelinden cihazın lisansı aktif edildiği anda ekran <strong>otomatik olarak yayına başlayacaktır</strong>.
-                            </p>
-                            <div style="background:rgba(0,0,0,0.6);border:1.5px solid rgba(56,189,248,0.3);padding:1.2rem 1.8rem;border-radius:16px;margin-bottom:1.5rem;text-align:left;">
-                                <div style="margin-bottom:0.6rem;font-size:0.95rem;color:#94a3b8;">
-                                    📡 Cihaz MAC Adresi: <strong style="color:#38bdf8;font-family:'JetBrains Mono',monospace;font-size:1.15rem;">${escapeHtml(errData.mac || deviceMac)}</strong>
-                                </div>
-                                <div style="margin-bottom:0.6rem;font-size:0.92rem;color:#94a3b8;">
-                                    🏠 Yerel Ağ IP: <strong style="color:#e2e8f0;font-family:'JetBrains Mono',monospace;">${escapeHtml(errData.local_ip || localIp || 'Tespit ediliyor')}</strong>
-                                </div>
-                                <div style="font-size:0.92rem;color:#94a3b8;">
-                                    🌐 Dış Ağ IP: <span style="color:#cbd5e1;font-family:'JetBrains Mono',monospace;">${escapeHtml(errData.ip || '-')}</span>
-                                </div>
+                window._cihazOnayBekliyor = true;
+
+                // Orijinal sayfa yapısını yok etmeden tam ekran overlay göster
+                let overlay = document.getElementById('device-pending-approval-overlay');
+                if (!overlay) {
+                    overlay = document.createElement('div');
+                    overlay.id = 'device-pending-approval-overlay';
+                    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:999999;background:#080a10;display:flex;align-items:center;justify-content:center;padding:2rem;text-align:center;font-family:Inter,sans-serif;';
+                    document.body.appendChild(overlay);
+                }
+
+                overlay.innerHTML = `
+                    <div style="background:rgba(18,24,38,0.98);border:2px solid #38bdf8;border-radius:28px;padding:3rem 3.5rem;max-width:700px;box-shadow:0 0 50px rgba(56,189,248,0.25);">
+                        <div style="font-size:3.8rem;margin-bottom:0.8rem;animation:bounceRadar 1.5s infinite;">📺</div>
+                        <h1 style="font-size:2rem;margin-bottom:0.6rem;color:#ffffff;letter-spacing:-0.02em;">Cihaz Lisans Onayı Bekleniyor</h1>
+                        <p style="font-size:1.05rem;color:#cbd5e1;line-height:1.6;margin-bottom:1.5rem;">
+                            Bu ekran sisteme kaydedildi ve <strong>${escapeHtml(errData.pharmacy_name || 'Eczane')}</strong> lisansına bağlandı.<br>
+                            Yönetim panelinden cihazın lisansı aktif edildiği anda ekran <strong>otomatik olarak yayına başlayacaktır</strong>.
+                        </p>
+                        <div style="background:rgba(0,0,0,0.6);border:1.5px solid rgba(56,189,248,0.3);padding:1.2rem 1.8rem;border-radius:16px;margin-bottom:1.5rem;text-align:left;">
+                            <div style="margin-bottom:0.6rem;font-size:0.95rem;color:#94a3b8;">
+                                📡 Cihaz MAC Adresi: <strong style="color:#38bdf8;font-family:'JetBrains Mono',monospace;font-size:1.15rem;">${escapeHtml(errData.mac || deviceMac)}</strong>
                             </div>
+                            <div style="margin-bottom:0.6rem;font-size:0.92rem;color:#94a3b8;">
+                                🏠 Yerel Ağ IP: <strong style="color:#e2e8f0;font-family:'JetBrains Mono',monospace;">${escapeHtml(errData.local_ip || localIp || 'Tespit ediliyor')}</strong>
+                            </div>
+                            <div style="font-size:0.92rem;color:#94a3b8;">
+                                🌐 Dış Ağ IP: <span style="color:#cbd5e1;font-family:'JetBrains Mono',monospace;">${escapeHtml(errData.ip || '-')}</span>
+                            </div>
+                        </div>
+                        <div style="display:flex;align-items:center;justify-content:center;gap:1rem;flex-wrap:wrap;">
                             <div style="display:inline-flex;align-items:center;gap:0.6rem;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.4);color:#fbbf24;padding:0.6rem 1.2rem;border-radius:9999px;font-size:0.88rem;font-weight:700;">
                                 <span class="pulse-indicator" style="background:#f59e0b;"></span>
-                                Yönetim Panelinden "Lisansı Aktif Et" butonu bekleniyor... (Otomatik Kontrol)
+                                Yönetim Panelinden "Lisansı Aktif Et" butonu bekleniyor... (Otomatik Kontrol: 3sn)
                             </div>
+                            <button onclick="window.location.reload(true);" style="background:rgba(56,189,248,0.2);border:1px solid #38bdf8;color:#38bdf8;padding:0.6rem 1.2rem;border-radius:9999px;font-size:0.88rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:0.4rem;">
+                                🔄 Şimdi Kontrol Et
+                            </button>
                         </div>
                     </div>
                 `;
-                // Yönetici panelden onayladığı an ekran otomatik açılsın diye 5 saniyede bir yeniden sorgula
-                setTimeout(kioskVerileriniGetir, 5000);
+                // Yönetici panelden onayladığı an ekran otomatik açılsın diye 3 saniyede bir yeniden sorgula
+                setTimeout(kioskVerileriniGetir, 3000);
                 return;
             }
 
@@ -995,6 +1009,15 @@ async function kioskVerileriniGetir() {
         const veri = await yanit.json();
 
         if (veri && veri.success) {
+            // Eğer cihaz daha önce onay bekleme durumundaysa veya onay overlay'i açıksa:
+            // Sayfayı temiz bir şekilde yeniden yükle (böylece harita ve tüm vitrin sıfırdan sorunsuz başlar!)
+            const beklemeOverlay = document.getElementById('device-pending-approval-overlay');
+            if (window._cihazOnayBekliyor || beklemeOverlay || !document.getElementById('pharmacy-brand-name')) {
+                console.log('[KİOSK] Cihaz lisansı onaylandı! Sayfa otomatik yenilenerek vitrin açılıyor...');
+                window.location.reload(true);
+                return;
+            }
+
             yerelOnbellegeKaydet(veri);
             arayuzuGuncelle(veri, false);
         }
