@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Genel Ayarları | Nöbetçi Eczane TV</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css?v=4.0">
+    <style>
+        :root {
+            --bg-body: #0b0f19;
+            --bg-card: rgba(17, 24, 39, 0.85);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --border-hover: rgba(255, 255, 255, 0.18);
+            --color-primary: #ef4444;
+            --color-accent: #38bdf8;
+            --color-success: #10b981;
+            --color-warning: #f59e0b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(56, 189, 248, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 85% 85%, rgba(239, 68, 68, 0.04) 0%, transparent 40%);
+            color: var(--text-main);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            min-height: 100vh;
+            margin: 0;
+            padding: 1.5rem;
+            box-sizing: border-box;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        /* Üst Gezinme Çubuğu */
+        .top-navbar {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            backdrop-filter: blur(12px);
+            border-radius: 16px;
+            padding: 1rem 1.6rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .brand-logo {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, #0284c7, #38bdf8);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+        }
+
+        .brand-text h1 {
+            font-size: 1.25rem;
+            font-weight: 800;
+            margin: 0;
+            color: #fff;
+        }
+
+        .brand-text p {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin: 0.15rem 0 0 0;
+        }
+
+        .nav-actions {
+            display: flex;
+            gap: 0.8rem;
+            align-items: center;
+        }
+
+        /* Buton Stilleri */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.55rem 1.1rem;
+            border-radius: 8px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            color: #fff;
+        }
+
+        .btn-primary { background: #38bdf8; color: #0f172a; }
+        .btn-primary:hover { background: #7dd3fc; }
+        .btn-secondary { background: rgba(255, 255, 255, 0.08); border: 1px solid var(--border-color); color: var(--text-main); }
+        .btn-secondary:hover { background: rgba(255, 255, 255, 0.14); }
+        .btn-success { background: #059669; }
+        .btn-success:hover { background: #047857; }
+        .btn-danger { background: #dc2626; }
+        .btn-danger:hover { background: #b91c1c; }
+
+        /* Kartlar */
+        .settings-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 1.6rem;
+            margin-bottom: 1.8rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+        }
+
+        .card-header-custom {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1rem;
+            margin-bottom: 1.4rem;
+        }
+
+        .card-header-custom .icon {
+            font-size: 1.4rem;
+        }
+
+        .card-header-custom h2 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin: 0;
+            color: #fff;
+        }
+
+        .card-header-custom p {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin: 0.2rem 0 0 0;
+        }
+
+        /* Form Grupları */
+        .form-grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.4rem;
+        }
+
+        .form-grid-3 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.84rem;
+            font-weight: 700;
+            color: #e2e8f0;
+            margin-bottom: 0.45rem;
+        }
+
+        .form-group .form-control {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.65rem 0.85rem;
+            color: #fff;
+            font-size: 0.9rem;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+
+        .form-group .form-control:focus {
+            outline: none;
+            border-color: var(--color-accent);
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+        }
+
+        .form-group small {
+            display: block;
+            font-size: 0.76rem;
+            color: var(--text-muted);
+            margin-top: 0.35rem;
+            line-height: 1.4;
+        }
+
+        /* Bildirim Mesajları */
+        .alert {
+            padding: 0.85rem 1.2rem;
+            border-radius: 10px;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        .alert-success { background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #34d399; }
+        .alert-danger { background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; }
+        .alert-info { background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); color: #38bdf8; }
+        .alert-warning { background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); color: #fbbf24; }
+
+        /* Hızlı İşlem Kutusu */
+        .action-banner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(239, 68, 68, 0.08);
+            border: 1px dashed rgba(239, 68, 68, 0.3);
+            border-radius: 12px;
+            padding: 1.2rem 1.5rem;
+            margin-bottom: 1.8rem;
+        }
+
+        .action-banner-text h4 {
+            margin: 0;
+            color: #f87171;
+            font-size: 1rem;
+            font-weight: 700;
+        }
+
+        .action-banner-text p {
+            margin: 0.3rem 0 0 0;
+            color: #94a3b8;
+            font-size: 0.82rem;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Üst Gezinme Çubuğu -->
+        <header class="top-navbar">
+            <div class="brand">
+                <div class="brand-logo">⚙️</div>
+                <div class="brand-text">
+                    <h1>Sistem Genel Ayarları</h1>
+                    <p>Veri Kaynağı Pipeline, TV Sorgulama, Önbellek ve Harita Yapılandırması</p>
+                </div>
+            </div>
+            <div class="nav-actions">
+                <a href="/admin" class="btn btn-secondary">
+                    ⬅️ Eczaneler Paneline Dön
+                </a>
+                <a href="/admin/logout" class="btn btn-secondary">
+                    Çıkış Yap
+                </a>
+            </div>
+        </header>
+
+        <!-- Bildirimler -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Hızlı İşlem Kartı: Önbellek Temizleme -->
+        <div class="action-banner">
+            <div class="action-banner-text">
+                <h4>🧹 Nöbetçi Eczane Veri Önbelleğini Sıfırla</h4>
+                <p>Sunucuda kayıtlı tüm il ve ilçelere ait nöbetçi eczane listelerini anında temizler. Bir sonraki sorguda veriler doğrudan 1. öncelikli kaynaktan taze olarak çekilir.</p>
+            </div>
+            <form method="POST" action="/admin/cache/clear" onsubmit="return confirm('Tüm nöbetçi eczane veri önbelleğini temizlemek istediğinize emin misiniz?');">
+                <button type="submit" class="btn btn-danger" style="white-space: nowrap;">
+                    🗑️ Önbelleği Temizle
+                </button>
+            </form>
+        </div>
+
+        <!-- Ana Ayarlar Formu -->
+        <form method="POST" action="/admin/settings">
+
+            <!-- 1. KART: Veri Çekme & Önbellek Sıklığı -->
+            <div class="settings-card">
+                <div class="card-header-custom">
+                    <span class="icon">⏱️</span>
+                    <div>
+                        <h2>Veri Çekme & Önbellekleme (Cache) Sıklığı</h2>
+                        <p>Resmi ve harici kaynaklardan çekilen verilerin sunucu belleğinde saklanma süresi.</p>
+                    </div>
+                </div>
+
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label>Veri Saklama / Önbellek Süresi</label>
+                        <select name="cache_duration_minutes" class="form-control">
+                            <option value="15" {% if ayar.cache_duration_minutes == 15 %}selected{% endif %}>15 Dakika (Daha Sık Güncelleme)</option>
+                            <option value="30" {% if ayar.cache_duration_minutes == 30 %}selected{% endif %}>30 Dakika (Önerilen - Dengeli)</option>
+                            <option value="45" {% if ayar.cache_duration_minutes == 45 %}selected{% endif %}>45 Dakika (Klasik Süre)</option>
+                            <option value="60" {% if ayar.cache_duration_minutes == 60 %}selected{% endif %}>60 Dakika (1 Saat)</option>
+                            <option value="120" {% if ayar.cache_duration_minutes == 120 %}selected{% endif %}>120 Dakika (2 Saat - Düşük Kaynak Tüketimi)</option>
+                        </select>
+                        <small>Bu süre zarfında aynı il/ilçe için gelen istekler sunucu belleğinden anında yanıtlanır, kaynak sitelere yük bindirilmez.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Maksimum Nöbetçi Çemberi Mesafesi</label>
+                        <select name="max_search_distance_km" class="form-control">
+                            <option value="5" {% if ayar.max_search_distance_km == 5 %}selected{% endif %}>5 km (Sadece Yakın Çevre)</option>
+                            <option value="10" {% if ayar.max_search_distance_km == 10 %}selected{% endif %}>10 km</option>
+                            <option value="15" {% if ayar.max_search_distance_km == 15 %}selected{% endif %}>15 km (Önerilen Standart)</option>
+                            <option value="25" {% if ayar.max_search_distance_km == 25 %}selected{% endif %}>25 km (Geniş İlçe / Taşra)</option>
+                            <option value="50" {% if ayar.max_search_distance_km == 50 %}selected{% endif %}>50 km (Kırsal Alanlar)</option>
+                        </select>
+                        <small>Eczanenin koordinatına göre bu yarıçapın dışındaki eczaneler ekranda filtrelenebilir.</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. KART: Fallback Pipeline (Kaynak Öncelik Sıralaması) -->
+            <div class="settings-card">
+                <div class="card-header-custom">
+                    <span class="icon">🔄</span>
+                    <div>
+                        <h2>Veri Kaynakları & Öncelik Sıralaması (Fallback Pipeline)</h2>
+                        <p>Sistem nöbetçi listesini çekerken önce 1. kaynağı dener, çökerse veya erişilemezse otomatik 2. ve 3. kaynağa geçer.</p>
+                    </div>
+                </div>
+
+                <div class="form-grid-3">
+                    <div class="form-group">
+                        <label>🥇 1. Öncelikli Kaynak</label>
+                        <select name="primary_source" class="form-control">
+                            <option value="ieo_resmi" {% if ayar.primary_source == 'ieo_resmi' %}selected{% endif %}>İEO (İstanbul Eczacı Odası Resmi)</option>
+                            <option value="eczaneler_gen_tr" {% if ayar.primary_source == 'eczaneler_gen_tr' %}selected{% endif %}>Eczaneler.gen.tr</option>
+                            <option value="nobetcieczaneler_org" {% if ayar.primary_source == 'nobetcieczaneler_org' %}selected{% endif %}>Nobetcieczaneler.org</option>
+                        </select>
+                        <small>Her zaman ilk sorgulanacak ana ve en güvenilir kaynak.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>🥈 2. Öncelikli Kaynak (Yedek 1)</label>
+                        <select name="secondary_source" class="form-control">
+                            <option value="eczaneler_gen_tr" {% if ayar.secondary_source == 'eczaneler_gen_tr' %}selected{% endif %}>Eczaneler.gen.tr</option>
+                            <option value="nobetcieczaneler_org" {% if ayar.secondary_source == 'nobetcieczaneler_org' %}selected{% endif %}>Nobetcieczaneler.org</option>
+                            <option value="ieo_resmi" {% if ayar.secondary_source == 'ieo_resmi' %}selected{% endif %}>İEO (İstanbul Eczacı Odası)</option>
+                        </select>
+                        <small>1. Kaynak yanıt vermez veya zaman aşımına uğrarsa devreye girer.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>🥉 3. Öncelikli Kaynak (Yedek 2)</label>
+                        <select name="tertiary_source" class="form-control">
+                            <option value="nobetcieczaneler_org" {% if ayar.tertiary_source == 'nobetcieczaneler_org' %}selected{% endif %}>Nobetcieczaneler.org</option>
+                            <option value="eczaneler_gen_tr" {% if ayar.tertiary_source == 'eczaneler_gen_tr' %}selected{% endif %}>Eczaneler.gen.tr</option>
+                            <option value="ieo_resmi" {% if ayar.tertiary_source == 'ieo_resmi' %}selected{% endif %}>İEO (İstanbul Eczacı Odası)</option>
+                        </select>
+                        <small>İlk iki kaynak arızalanırsa devreye girecek son güvenlik katmanı.</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. KART: TV Kiosk Ekranı & Donanım Sinyalleri -->
+            <div class="settings-card">
+                <div class="card-header-custom">
+                    <span class="icon">📺</span>
+                    <div>
+                        <h2>TV Kiosk Cihazı & Sinyal Parametreleri</h2>
+                        <p>Sahadaki TV ekranlarının (Android Box, Smart TV vb.) sunucuyla iletişim kuralları.</p>
+                    </div>
+                </div>
+
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label>TV Veri Sorgulama & Ping Sıklığı</label>
+                        <select name="kiosk_poll_interval_sec" class="form-control">
+                            <option value="30" {% if ayar.kiosk_poll_interval_sec == 30 %}selected{% endif %}>30 Saniye (Çok Hızlı Tepki)</option>
+                            <option value="60" {% if ayar.kiosk_poll_interval_sec == 60 %}selected{% endif %}>60 Saniye (1 Dakika - Önerilen Standart)</option>
+                            <option value="120" {% if ayar.kiosk_poll_interval_sec == 120 %}selected{% endif %}>120 Saniye (2 Dakika)</option>
+                            <option value="300" {% if ayar.kiosk_poll_interval_sec == 300 %}selected{% endif %}>300 Saniye (5 Dakika)</option>
+                        </select>
+                        <small>TV ekranlarının sunucuya "Yeni nöbetçi listesi veya tanımlama sinyali var mı?" diye sorma periyodu.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Çevrimdışı Kalma Toleransı (Heartbeat)</label>
+                        <select name="heartbeat_tolerance_min" class="form-control">
+                            <option value="3" {% if ayar.heartbeat_tolerance_min == 3 %}selected{% endif %}>3 Dakika (Hızlı Uyarı)</option>
+                            <option value="5" {% if ayar.heartbeat_tolerance_min == 5 %}selected{% endif %}>5 Dakika (Önerilen)</option>
+                            <option value="10" {% if ayar.heartbeat_tolerance_min == 10 %}selected{% endif %}>10 Dakika</option>
+                            <option value="15" {% if ayar.heartbeat_tolerance_min == 15 %}selected{% endif %}>15 Dakika (Gecikmeli İnternet Hatları)</option>
+                        </select>
+                        <small>Bir TV ekranı bu süre boyunca sinyal göndermezse admin panelinde kırmızı çevrimdışı nokta gösterilir.</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. KART: Nöbet Saatleri & Harita Teması -->
+            <div class="settings-card">
+                <div class="card-header-custom">
+                    <span class="icon">🕒</span>
+                    <div>
+                        <h2>Nöbet Saatleri & Harita Görünüm Ayarları</h2>
+                        <p>TV ekranında yer alan nöbet bitiş saati geri sayımı ve canlı harita katmanı.</p>
+                    </div>
+                </div>
+
+                <div class="form-grid-3">
+                    <div class="form-group">
+                        <label>Nöbet Başlangıç Saati</label>
+                        <input type="text" name="duty_start_time" value="{{ ayar.duty_start_time }}" class="form-control" placeholder="19:00" pattern="^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$" required>
+                        <small>Örn: 19:00 veya 18:30 (24 saatlik format)</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Nöbet Bitiş Saati</label>
+                        <input type="text" name="duty_end_time" value="{{ ayar.duty_end_time }}" class="form-control" placeholder="09:00" pattern="^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$" required>
+                        <small>Örn: 09:00 veya 08:30 (Geri sayım buna göre çalışır)</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Harita Altlığı & Tema Stili</label>
+                        <select name="map_theme" class="form-control">
+                            <option value="cartodb_dark" {% if ayar.map_theme == 'cartodb_dark' %}selected{% endif %}>CartoDB Dark Matter (Koyu Modern - Önerilen)</option>
+                            <option value="osm_standard" {% if ayar.map_theme == 'osm_standard' %}selected{% endif %}>OpenStreetMap Standart</option>
+                            <option value="cartodb_light" {% if ayar.map_theme == 'cartodb_light' %}selected{% endif %}>CartoDB Positron (Açık Tema)</option>
+                        </select>
+                        <small>TV ekranındaki mini haritanın görsel stili.</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kaydet Butonu -->
+            <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1.5rem; margin-bottom: 3rem;">
+                <a href="/admin" class="btn btn-secondary">Vazgeç</a>
+                <button type="submit" class="btn btn-success" style="padding: 0.75rem 2rem; font-size: 1rem; font-weight: 700; box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);">
+                    💾 Tüm Ayarları Kaydet
+                </button>
+            </div>
+
+        </form>
+    </div>
+
+</body>
+</html>

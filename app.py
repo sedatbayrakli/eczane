@@ -18,14 +18,15 @@ from flask import (
 )
 import requests
 
-from models import db, AdminUser, Pharmacy, KioskDevice, lisans_anahtari_uret
+from models import db, AdminUser, Pharmacy, KioskDevice, SystemSetting, lisans_anahtari_uret
 from services.pharmacy_service import (
     nobetci_eczaneleri_getir,
     turkce_karakter_temizle,
     haversine_mesafe,
     rota_linki_olustur,
     qr_kod_url_olustur,
-    eczane_detay_bilgisi_ara
+    eczane_detay_bilgisi_ara,
+    onbellek_temizle
 )
 
 # Flask uygulamasının başlatılması
@@ -168,6 +169,12 @@ def init_db():
             db.session.add(demo_eczane)
             db.session.commit()
             print("[BİLGİ] Demo eczane oluşturuldu: Çakırlar Eczanesi (ECZ-CAKIRLAR-001)")
+
+        # Global sistem ayarlarını başlat (yoksa varsayılan kayıt oluşturur)
+        try:
+            SystemSetting.get_settings()
+        except Exception as e:
+            print(f"[UYARI] Sistem ayarları ilk başlatma hatası: {e}")
 
 
 # ==========================================
@@ -648,6 +655,64 @@ def admin_toggle_duty_test(eczane_id):
 
 
 # ==========================================
+# SİSTEM GENEL AYARLARI & ÖNBELLEK YÖNETİMİ
+# ==========================================
+
+@app.route("/admin/settings", methods=["GET", "POST"])
+@login_required
+def admin_settings():
+    """Tüm projenin genel sistem ayarlarını yönetir."""
+    ayar = SystemSetting.get_settings()
+
+    if request.method == "POST":
+        try:
+            cache_dur = request.form.get("cache_duration_minutes", 30, type=int)
+            primary_src = request.form.get("primary_source", "ieo_resmi").strip()
+            secondary_src = request.form.get("secondary_source", "eczaneler_gen_tr").strip()
+            tertiary_src = request.form.get("tertiary_source", "nobetcieczaneler_org").strip()
+            poll_interval = request.form.get("kiosk_poll_interval_sec", 60, type=int)
+            duty_start = request.form.get("duty_start_time", "19:00").strip()
+            duty_end = request.form.get("duty_end_time", "09:00").strip()
+            tolerance = request.form.get("heartbeat_tolerance_min", 5, type=int)
+            max_dist = request.form.get("max_search_distance_km", 15, type=int)
+            map_theme = request.form.get("map_theme", "cartodb_dark").strip()
+
+            ayar.cache_duration_minutes = max(5, cache_dur)
+            ayar.primary_source = primary_src
+            ayar.secondary_source = secondary_src
+            ayar.tertiary_source = tertiary_src
+            ayar.kiosk_poll_interval_sec = max(15, poll_interval)
+            ayar.duty_start_time = duty_start or "19:00"
+            ayar.duty_end_time = duty_end or "09:00"
+            ayar.heartbeat_tolerance_min = max(1, tolerance)
+            ayar.max_search_distance_km = max(1, max_dist)
+            ayar.map_theme = map_theme or "cartodb_dark"
+            ayar.updated_at = datetime.utcnow()
+
+            db.session.commit()
+            flash("Sistem genel ayarları başarıyla güncellendi!", "success")
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Ayarlar kaydedilirken hata oluştu: {str(e)}", "danger")
+
+        return redirect(url_for("admin_settings"))
+
+    return render_template("admin_settings.html", ayar=ayar)
+
+
+@app.route("/admin/cache/clear", methods=["POST"])
+@login_required
+def admin_cache_clear():
+    """Tüm önbelleğe alınmış nöbetçi eczane verilerini anında sıfırlar."""
+    onbellek_temizle()
+    flash("Tüm il ve ilçelerin nöbetçi eczane önbelleği başarıyla temizlendi! Sonraki sorgulamada taze veri çekilecektir.", "success")
+    ref = request.referrer
+    if ref and "/admin" in ref:
+        return redirect(ref)
+    return redirect(url_for("admin_settings"))
+
+
+# ==========================================
 # KIOSK EKRANI VE LİSANS DOĞRULAMA ROTALARI
 # ==========================================
 
@@ -788,10 +853,25 @@ def api_kiosk_data():
         eczane.last_ping = datetime.now()
         eczane.last_ip = client_ip
 
+    # Sistem global ayarlarını al (Önbellek süresi ve kaynak öncelikleri)
+    sistem_ayari = SystemSetting.get_settings()
+    kaynak_sirasi = [
+        sistem_ayari.primary_source,
+        sistem_ayari.secondary_source,
+        sistem_ayari.tertiary_source
+    ]
+
     # İlgili ilçenin nöbetçi eczanelerini Fallback Pipeline ile çek
     kendi_lat = eczane.latitude
     kendi_lon = eczane.longitude
-    veri = nobetci_eczaneleri_getir(eczane.city, eczane.district, kendi_lat, kendi_lon)
+    veri = nobetci_eczaneleri_getir(
+        eczane.city, 
+        eczane.district, 
+        kendi_lat, 
+        kendi_lon,
+        cache_suresi_dakika=sistem_ayari.cache_duration_minutes,
+        kaynak_siralamasi=kaynak_sirasi
+    )
 
     # Otomatik nöbetçi tespiti
     bu_gece_nobetci = False
@@ -858,7 +938,13 @@ def api_kiosk_data():
         "eczaneler": veri.get("eczaneler", []),
         "kaynak": veri.get("kaynak"),
         "veri_saglayici": veri.get("veri_saglayici"),
-        "onbellek_zamani": veri.get("onbellek_zamani")
+        "onbellek_zamani": veri.get("onbellek_zamani"),
+        "system_settings": {
+            "poll_interval_sec": sistem_ayari.kiosk_poll_interval_sec,
+            "duty_start_time": sistem_ayari.duty_start_time,
+            "duty_end_time": sistem_ayari.duty_end_time,
+            "map_theme": sistem_ayari.map_theme
+        }
     })
 
 

@@ -544,22 +544,29 @@ def yedek_veri_uret(il: str, ilce: str) -> List[Dict[str, Any]]:
 # ==========================================
 # ANA FALLBACK PIPELINE SERVİSİ
 # ==========================================
+def onbellek_temizle():
+    """Tüm il ve ilçelerin önbelleğini anında sıfırlar (Admin panelinden tetiklenir)."""
+    with onbellek_kilidi:
+        onbellek_deposu.clear()
+
+
 def nobetci_eczaneleri_getir(il: str, ilce: str,
                              kendi_enlem: Optional[float] = None,
-                             kendi_boylam: Optional[float] = None) -> Dict[str, Any]:
+                             kendi_boylam: Optional[float] = None,
+                             cache_suresi_dakika: Optional[int] = None,
+                             kaynak_siralamasi: Optional[List[str]] = None) -> Dict[str, Any]:
     """
-    Sıralı Fallback Pipeline:
-    1. İEO (Resmi) -> 2. eczaneler.gen.tr -> 3. nobetcieczaneler.org -> 4. Cache / Fallback
-    Mesafeleri, yürüme sürelerini ve rota linklerini otomatik hesaplayarak döndürür.
-    En az 45 dakika boyunca yerel bellekte saklar.
+    Sıralı Fallback Pipeline (Dinamik Öncelik ve Yapılandırılabilir Önbellek):
+    Kullanıcı tanımlı veya varsayılan kaynak önceliğine göre sırayla dener.
     """
     onbellek_anahtari = f"{turkce_karakter_temizle(il)}_{turkce_karakter_temizle(ilce)}"
     suan = time.time()
+    cache_ttl_saniye = (cache_suresi_dakika * 60) if (cache_suresi_dakika and cache_suresi_dakika > 0) else CACHE_SURESI_SANIYE
 
-    # 1. Aşama: Geçerli önbellek kontrolü (45 dakika)
+    # 1. Aşama: Geçerli önbellek kontrolü
     with onbellek_kilidi:
         kayit = onbellek_deposu.get(onbellek_anahtari)
-        if kayit and (suan - kayit["timestamp"] < CACHE_SURESI_SANIYE):
+        if kayit and (suan - kayit["timestamp"] < cache_ttl_saniye):
             eczaneler = _mesafe_ve_rotalari_zenginlestir(kayit["data"], kendi_enlem, kendi_boylam)
             return {
                 "success": True,
@@ -572,36 +579,32 @@ def nobetci_eczaneleri_getir(il: str, ilce: str,
                 "ilce": ilce.capitalize()
             }
 
-    # 2. Aşama: Sıralı Kaynak Denemeleri (Fallback Pipeline)
+    # 2. Aşama: Sıralı Kaynak Denemeleri (Dinamik Öncelikli Pipeline)
     basarili_eczaneler: List[Dict[str, Any]] = []
     kullanilan_kaynak = ""
     hata_raporu = []
 
-    # Kaynak 1: İEO (Resmi Oda)
-    eczaneler, hata1 = kaynak_ieo_cek(il, ilce)
-    if eczaneler:
-        basarili_eczaneler = eczaneler
-        kullanilan_kaynak = "ieo_resmi"
-    else:
-        hata_raporu.append(f"İEO: {hata1}")
+    # Kaynak motorları haritası
+    kaynak_haritasi = {
+        "ieo_resmi": ("İEO (İstanbul Eczacı Odası)", kaynak_ieo_cek),
+        "eczaneler_gen_tr": ("Eczaneler.gen.tr", kaynak_eczaneler_gen_tr_cek),
+        "nobetcieczaneler_org": ("Nobetcieczaneler.org", kaynak_nobetcieczaneler_org_cek)
+    }
 
-    # Kaynak 2: eczaneler.gen.tr (Eğer 1 başarısız olduysa)
-    if not basarili_eczaneler:
-        eczaneler, hata2 = kaynak_eczaneler_gen_tr_cek(il, ilce)
-        if eczaneler:
-            basarili_eczaneler = eczaneler
-            kullanilan_kaynak = "eczaneler_gen_tr"
-        else:
-            hata_raporu.append(f"eczaneler.gen.tr: {hata2}")
+    # Eğer özel kaynak sıralaması gelmediyse varsayılan sıra
+    if not kaynak_siralamasi:
+        kaynak_siralamasi = ["ieo_resmi", "eczaneler_gen_tr", "nobetcieczaneler_org"]
 
-    # Kaynak 3: nobetcieczaneler.org (Eğer 1 ve 2 başarısız olduysa)
-    if not basarili_eczaneler:
-        eczaneler, hata3 = kaynak_nobetcieczaneler_org_cek(il, ilce)
-        if eczaneler:
-            basarili_eczaneler = eczaneler
-            kullanilan_kaynak = "nobetcieczaneler_org"
-        else:
-            hata_raporu.append(f"nobetcieczaneler.org: {hata3}")
+    for kaynak_anahtari in kaynak_siralamasi:
+        if kaynak_anahtari in kaynak_haritasi:
+            kaynak_adi, kaynak_func = kaynak_haritasi[kaynak_anahtari]
+            eczaneler, hata = kaynak_func(il, ilce)
+            if eczaneler:
+                basarili_eczaneler = eczaneler
+                kullanilan_kaynak = kaynak_anahtari
+                break
+            else:
+                hata_raporu.append(f"{kaynak_adi}: {hata}")
 
     zaman_metni = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
 

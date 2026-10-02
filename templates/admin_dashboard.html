@@ -197,7 +197,8 @@
             animation: pulseGlowDot 2s infinite ease-in-out;
         }
         .dot-offline { 
-            background: #64748b; 
+            background: #ef4444; 
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.7);
         }
 
         @keyframes pulseGlowDot {
@@ -335,6 +336,9 @@
             </div>
         </div>
         <div class="nav-actions">
+            <a href="/admin/settings" class="btn btn-secondary" style="border-color: rgba(56, 189, 248, 0.4); color: #38bdf8;">
+                ⚙️ Genel Ayarlar
+            </a>
             <button class="btn btn-primary" onclick="yeniEczaneModalAc()">
                 ➕ Yeni Eczane Ekle
             </button>
@@ -520,7 +524,7 @@
 
                             <!-- Hızlı Nöbet Testi (1 Saat) -->
                             <form method="POST" action="/admin/pharmacy/{{ e.id }}/toggle-duty-test" style="display:inline;">
-                                <button type="submit" class="btn btn-sm {% if e.duty_test_aktif_mi() %}btn-warning{% else %}btn-purple{% endif %}" title="{% if e.duty_test_aktif_mi() %}1 Saatlik Test Nöbetini Kapat{% else %}1 Saatlik Hızlı Nöbet Testini Başlat{% endif %}">
+                                <button type="submit" class="btn btn-sm {% if e.duty_test_aktif_mi() %}btn-danger{% else %}btn-success{% endif %}" title="{% if e.duty_test_aktif_mi() %}1 Saatlik Test Nöbetini Kapat{% else %}1 Saatlik Hızlı Nöbet Testini Başlat{% endif %}">
                                     ⚡
                                 </button>
                             </form>
@@ -532,7 +536,7 @@
 
                             <!-- Lisans Aç/Kapat (Dondur/Aktif Et) -->
                             <form method="POST" action="/admin/pharmacy/{{ e.id }}/toggle" style="display:inline;">
-                                <button type="submit" class="btn btn-sm {% if e.is_active %}btn-warning{% else %}btn-success{% endif %}" title="{% if e.is_active %}Lisansı Duraklat (Dondur){% else %}Lisansı Aktif Et{% endif %}">
+                                <button type="submit" class="btn btn-sm {% if e.is_active %}btn-danger{% else %}btn-success{% endif %}" title="{% if e.is_active %}Lisansı Duraklat (Dondur){% else %}Lisansı Aktif Et{% endif %}">
                                     {% if e.is_active %}⏸️{% else %}▶️{% endif %}
                                 </button>
                             </form>

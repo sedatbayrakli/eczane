@@ -293,3 +293,52 @@ class Pharmacy(db.Model):
 
     def __repr__(self):
         return f"<Pharmacy {self.name} - {self.license_key}>"
+
+
+class SystemSetting(db.Model):
+    """
+    Tüm SaaS sisteminin global ayarlarını saklar (Singleton Model).
+    Veri çekme sıklığı, kaynak öncelikleri, TV yenileme süresi ve nöbet saatlerini yönetir.
+    """
+    __tablename__ = "system_settings"
+
+    id = db.Column(db.Integer, primary_key=True)
+    cache_duration_minutes = db.Column(db.Integer, default=30, nullable=False) # Veri çekme sıklığı (dk)
+    primary_source = db.Column(db.String(50), default="ieo_resmi", nullable=False) # 1. Öncelikli Kaynak
+    secondary_source = db.Column(db.String(50), default="eczaneler_gen_tr", nullable=False) # 2. Öncelikli Kaynak
+    tertiary_source = db.Column(db.String(50), default="nobetcieczaneler_org", nullable=False) # 3. Öncelikli Kaynak
+    kiosk_poll_interval_sec = db.Column(db.Integer, default=60, nullable=False) # TV Kiosk Sorgulama Sıklığı (sn)
+    duty_start_time = db.Column(db.String(10), default="19:00", nullable=False) # Nöbet Başlangıç Saati
+    duty_end_time = db.Column(db.String(10), default="09:00", nullable=False) # Nöbet Bitiş Saati
+    heartbeat_tolerance_min = db.Column(db.Integer, default=5, nullable=False) # Çevrimdışı Sinyal Toleransı (dk)
+    max_search_distance_km = db.Column(db.Integer, default=15, nullable=False) # Maksimum Nöbetçi Çemberi (km)
+    map_theme = db.Column(db.String(50), default="cartodb_dark", nullable=False) # Harita Sağlayıcı Stili
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    @classmethod
+    def get_settings(cls):
+        """Tekil sistem ayarları kaydını getirir veya yoksa varsayılanlarla oluşturur."""
+        ayar = cls.query.first()
+        if not ayar:
+            ayar = cls()
+            db.session.add(ayar)
+            try:
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+        return ayar
+
+    def to_dict(self) -> dict:
+        return {
+            "cache_duration_minutes": self.cache_duration_minutes,
+            "primary_source": self.primary_source,
+            "secondary_source": self.secondary_source,
+            "tertiary_source": self.tertiary_source,
+            "kiosk_poll_interval_sec": self.kiosk_poll_interval_sec,
+            "duty_start_time": self.duty_start_time,
+            "duty_end_time": self.duty_end_time,
+            "heartbeat_tolerance_min": self.heartbeat_tolerance_min,
+            "max_search_distance_km": self.max_search_distance_km,
+            "map_theme": self.map_theme,
+            "updated_at": self.updated_at.strftime("%d.%m.%Y %H:%M") if self.updated_at else None
+        }
