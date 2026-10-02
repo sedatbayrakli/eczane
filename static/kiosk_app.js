@@ -420,9 +420,12 @@ function devOdakKartiHtmlUret(eczane, siraNo, toplamAdet, modAdi = 'NAVİGASYON'
 
     const yolTarifiHtml = eczane.yol_tarifi 
         ? `
-        <div class="focus-landmark-box">
-            <span class="focus-landmark-icon">📍 Tarif:</span>
-            <span>${escapeHtml(eczane.yol_tarifi)}</span>
+        <div class="focus-landmark-card">
+            <div class="focus-landmark-header">
+                <span class="focus-landmark-icon">📍</span>
+                <span class="focus-section-label" style="color: #fde68a; margin-bottom: 0;">YOL TARİFİ / BİLİNEN YER</span>
+            </div>
+            <p class="focus-landmark-text">${escapeHtml(eczane.yol_tarifi)}</p>
         </div>` 
         : '';
 
@@ -464,8 +467,9 @@ function devOdakKartiHtmlUret(eczane, siraNo, toplamAdet, modAdi = 'NAVİGASYON'
                 <div class="focus-address-card">
                     <span class="focus-section-label">AÇIK ADRES</span>
                     <p class="focus-address-text">${escapeHtml(eczane.adres)}</p>
-                    ${yolTarifiHtml}
                 </div>
+
+                ${yolTarifiHtml}
 
                 <div class="focus-phone-card">
                     <div class="phone-icon-box" style="width: 32px; height: 32px; min-width: 32px;">
