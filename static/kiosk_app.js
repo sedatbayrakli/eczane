@@ -148,6 +148,117 @@ function saatVeTarihiGuncelle() {
     }
 
     geceHafizaTemizligiKontrolEt(simdi);
+    nobetGeriSayiminiGuncelle();
+}
+
+/**
+ * 3.1 Nöbet Saatleri ve Canlı Geri Sayım Hesaplayıcı
+ */
+function nobetZamaniniHesapla() {
+    const simdi = new Date();
+    const saat = simdi.getHours();
+
+    const pad = (n) => String(n).padStart(2, '0');
+
+    // Nöbet periyodu: 19:00 — 09:00
+    const isNobetSaatinde = (saat >= 19 || saat < 9);
+
+    let hedefZaman = new Date(simdi);
+    let etiket = 'Nöbet Bitimine';
+
+    if (isNobetSaatinde) {
+        // En yakın sabah 09:00 hedefi
+        hedefZaman.setHours(9, 0, 0, 0);
+        if (saat >= 19) {
+            hedefZaman.setDate(hedefZaman.getDate() + 1);
+        }
+        etiket = 'Nöbet Bitimine';
+    } else {
+        // Gündüz: Akşam 19:00 nöbet başlangıç hedefi
+        hedefZaman.setHours(19, 0, 0, 0);
+        etiket = 'Akşam Nöbetine';
+    }
+
+    const farkMs = Math.max(0, hedefZaman - simdi);
+    const toplamSaniye = Math.floor(farkMs / 1000);
+    const ksaat = Math.floor(toplamSaniye / 3600);
+    const kdakika = Math.floor((toplamSaniye % 3600) / 60);
+    const ksaniye = toplamSaniye % 60;
+
+    return {
+        isNobetSaatinde: isNobetSaatinde,
+        baslangicBitis: '19:00 — 09:00',
+        saatStr: pad(ksaat),
+        dakikaStr: pad(kdakika),
+        saniyeStr: pad(ksaniye),
+        etiket: etiket
+    };
+}
+
+function nobetGeriSayiminiGuncelle() {
+    const zaman = nobetZamaniniHesapla();
+    const sayaclar = document.querySelectorAll('.duty-live-countdown');
+    sayaclar.forEach(sayac => {
+        const saatEl = sayac.querySelector('.countdown-h');
+        const dakEl = sayac.querySelector('.countdown-m');
+        const sanEl = sayac.querySelector('.countdown-s');
+        const etiketEl = sayac.querySelector('.countdown-label');
+        if (saatEl) saatEl.textContent = zaman.saatStr;
+        if (dakEl) dakEl.textContent = zaman.dakikaStr;
+        if (sanEl) sanEl.textContent = zaman.saniyeStr;
+        if (etiketEl && etiketEl.textContent !== zaman.etiket) {
+            etiketEl.textContent = zaman.etiket;
+        }
+    });
+}
+
+function nobetBilgisiHtmlUret(stil = 'focus') {
+    const zaman = nobetZamaniniHesapla();
+
+    if (stil === 'focus') {
+        return `
+        <div class="focus-duty-time-card">
+            <div class="duty-time-badge">
+                <span class="duty-time-icon">⏰</span>
+                <div>
+                    <span class="focus-section-label">NÖBET SAATLERİ</span>
+                    <div class="duty-time-hours">19:00 — 09:00</div>
+                </div>
+            </div>
+            <div class="duty-live-countdown">
+                <div class="countdown-tag-row">
+                    <span class="pulse-indicator" style="background:#38bdf8;width:6px;height:6px;"></span>
+                    <span class="countdown-label">${zaman.etiket}</span>
+                </div>
+                <div class="countdown-clock">
+                    <span class="countdown-num countdown-h">${zaman.saatStr}</span><span class="countdown-unit">sa</span>
+                    <span class="countdown-sep">:</span>
+                    <span class="countdown-num countdown-m">${zaman.dakikaStr}</span><span class="countdown-unit">dk</span>
+                    <span class="countdown-sep">:</span>
+                    <span class="countdown-num countdown-s">${zaman.saniyeStr}</span><span class="countdown-unit">sn</span>
+                </div>
+            </div>
+        </div>
+        `;
+    } else {
+        return `
+        <div class="compact-duty-time-card">
+            <div class="compact-duty-left">
+                <span class="compact-duty-icon">⏰</span>
+                <span class="compact-duty-title">Nöbet:</span>
+                <strong class="compact-duty-hours">19:00 — 09:00</strong>
+            </div>
+            <div class="duty-live-countdown compact-countdown">
+                <span class="countdown-label">${zaman.etiket}:</span>
+                <div class="countdown-clock">
+                    <span class="countdown-num countdown-h">${zaman.saatStr}</span><span class="countdown-unit">sa</span>
+                    <span class="countdown-num countdown-m">${zaman.dakikaStr}</span><span class="countdown-unit">dk</span>
+                    <span class="countdown-num countdown-s">${zaman.saniyeStr}</span><span class="countdown-unit">sn</span>
+                </div>
+            </div>
+        </div>
+        `;
+    }
 }
 
 
@@ -423,6 +534,8 @@ function eczaneKartiHtmlUret(eczane, index) {
                 ${yolTarifiHtml}
             </div>
 
+            ${nobetBilgisiHtmlUret('compact')}
+
             <div class="card-phone-row">
                 <div class="phone-icon-box">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
@@ -500,12 +613,14 @@ function devOdakKartiHtmlUret(eczane, siraNo, toplamAdet, modAdi = 'NAVİGASYON'
                 </div>
             </div>
 
-            <!-- Sağ Sütun: Açık Adres ve Sabit Telefon (Yol Tarifi Haritanın Altındaki Geniş Banda Alındığı İçin Ferah) -->
+            <!-- Sağ Sütun: Açık Adres ve Sabit Telefon -->
             <div class="focus-details-col">
                 <div class="focus-address-card">
                     <span class="focus-section-label">AÇIK ADRES</span>
                     <p class="focus-address-text">${escapeHtml(eczane.adres)}</p>
                 </div>
+
+                ${nobetBilgisiHtmlUret('focus')}
 
                 <div class="focus-phone-card">
                     <div class="phone-icon-box" style="width: 32px; height: 32px; min-width: 32px;">
@@ -567,6 +682,8 @@ function ikiliEczaneKartiHtmlUret(eczane, siraNo) {
                 <p class="dual-card-address-text">${escapeHtml(eczane.adres)}</p>
                 ${yolTarifiHtml}
             </div>
+
+            ${nobetBilgisiHtmlUret('compact')}
 
             <div class="dual-card-phone-row">
                 <div class="phone-icon-box">
