@@ -1308,34 +1308,74 @@ body.scale-4k {
     overflow: hidden;
 }
 
-.focus-qr-distance-badge {
+/* YENİ: Tek Satır Kompakt Mesafe Rozeti (İkonun Yanında) */
+.focus-qr-distance-badge-compact {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
     background: rgba(56, 189, 248, 0.16);
-    border: 1.5px solid rgba(56, 189, 248, 0.4);
+    border: 1.5px solid rgba(56, 189, 248, 0.45);
     border-radius: var(--radius-md);
-    padding: 0.35rem 0.45rem;
-    text-align: center;
+    padding: 0.35rem 0.6rem;
     width: 100%;
     box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.1rem;
+    white-space: nowrap;
     flex-shrink: 0;
 }
 
-.qr-dist-label {
-    font-size: 0.66rem;
-    color: #94a3b8;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+.focus-qr-distance-badge-compact .qr-dist-icon {
+    font-size: 1.15rem;
+    line-height: 1;
 }
 
-.qr-dist-val {
+.focus-qr-distance-badge-compact .qr-dist-val {
     font-size: 1.05rem;
-    font-weight: 900;
+    font-weight: 800;
+    color: #ffffff;
+    line-height: 1;
+}
+
+.focus-qr-distance-badge-compact .qr-walk-val {
+    font-size: 0.78rem;
+    font-weight: 600;
     color: #38bdf8;
-    line-height: 1.15;
+    line-height: 1;
+}
+
+/* Harita Alt Bant: Yol Tarifi / Bilinen Yer (İki Bant Arasında Harita) */
+.map-landmark-bottom-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    background: linear-gradient(90deg, rgba(20, 24, 38, 0.96), rgba(15, 23, 42, 0.98));
+    border-top: 2px solid rgba(245, 158, 11, 0.5);
+    padding: 0.6rem 1rem;
+    flex-shrink: 0;
+    border-bottom-left-radius: var(--radius-lg);
+    border-bottom-right-radius: var(--radius-lg);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
+    min-height: 48px;
+    box-sizing: border-box;
+}
+
+.landmark-bar-icon {
+    font-size: 1.25rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.landmark-bar-text {
+    font-size: clamp(0.85rem, 1.05vw, 1rem);
+    font-weight: 700;
+    color: #fef08a;
+    line-height: 1.35;
+    letter-spacing: 0.01em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
 }
 
 .qr-dist-val strong {
