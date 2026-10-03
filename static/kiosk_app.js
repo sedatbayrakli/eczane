@@ -58,6 +58,7 @@ const elKioskLayout = document.getElementById('kiosk-layout');
 const elMapPanelTitle = document.getElementById('map-panel-title');
 const elProgressBarContainer = document.getElementById('route-progress-bar-container');
 const elProgressBar = document.getElementById('route-progress-bar');
+let isOfflineModAktif = false;
 
 
 /**
@@ -378,7 +379,234 @@ yerelIpTespitEt();
 
 
 /**
- * 5. Koyu Tema Leaflet.js Canlı Harita Motoru
+ * 4.5 ÇEVRİMDIŞI (OFFLINE) DAYANIKLILIK MOTORLARI: KAREKOD & HARİTA
+ */
+const KIOSK_TILE_CACHE_NAME = 'kiosk-map-tiles-v1';
+
+// Slippy Map Matematiksel Karo (Tile) Hesaplayıcıları
+function lon2tile(lon, zoom) {
+    return Math.floor((lon + 180) / 360 * Math.pow(2, zoom));
+}
+function lat2tile(lat, zoom) {
+    return Math.floor((1 - Math.log(Math.tan(lat * Math.PI / 180) + 1 / Math.cos(lat * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, zoom));
+}
+
+/**
+ * Yerel QR Kod Üretici (Sıfır Dış Ağ Bağımlılığı - Offline Uyumlu)
+ */
+function yerelQrKodUretDataUri(metin) {
+    if (!metin) return '';
+    try {
+        if (typeof QRCode !== 'undefined') {
+            const tempDiv = document.createElement('div');
+            tempDiv.style.display = 'none';
+            document.body.appendChild(tempDiv);
+
+            new QRCode(tempDiv, {
+                text: metin,
+                width: 200,
+                height: 200,
+                colorDark: '#000000',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.M
+            });
+
+            let dataUrl = '';
+            const canvas = tempDiv.querySelector('canvas');
+            if (canvas) {
+                dataUrl = canvas.toDataURL('image/png');
+            } else {
+                const img = tempDiv.querySelector('img');
+                if (img && img.src) dataUrl = img.src;
+            }
+
+            tempDiv.remove();
+            return dataUrl;
+        }
+    } catch (e) {
+        console.warn('[QR] Yerel QR üretilemedi:', e);
+    }
+    return '';
+}
+
+// Resim yüklenemezse veya çevrimdışıyken kırılırsa otomatik kurtarma
+window.yerelQrKodFallback = function(imgEl, hedefUrl) {
+    if (!imgEl || imgEl._fallbackUygulandi) return;
+    imgEl._fallbackUygulandi = true;
+    try {
+        const yerelData = yerelQrKodUretDataUri(hedefUrl);
+        if (yerelData) {
+            imgEl.src = yerelData;
+            imgEl.style.display = 'block';
+        }
+    } catch (e) {
+        console.warn('[QR Fallback Hatası]', e);
+    }
+};
+
+/**
+ * Harita Karolarını (Tile) Arka Planda Sessizce İndirip Cache Storage'a Saklar
+ * Böylece internet kesilse bile harita sokak sokak ekranda kalır!
+ */
+async function haritaTilelariniOnbellegeAl(kendiEczane, nobetciler) {
+    if (!('caches' in window) || !navigator.onLine) return;
+
+    try {
+        const cache = await caches.open(KIOSK_TILE_CACHE_NAME);
+        const tumNoktalar = [];
+
+        if (kendiEczane && kendiEczane.latitude && kendiEczane.longitude) {
+            tumNoktalar.push([parseFloat(kendiEczane.latitude), parseFloat(kendiEczane.longitude)]);
+        }
+
+        if (Array.isArray(nobetciler)) {
+            nobetciler.forEach(e => {
+                if (e.enlem && e.boylam) {
+                    tumNoktalar.push([parseFloat(e.enlem), parseFloat(e.boylam)]);
+                }
+            });
+        }
+
+        if (tumNoktalar.length === 0) return;
+
+        let minLat = 90, maxLat = -90, minLon = 180, maxLon = -180;
+        tumNoktalar.forEach(([lat, lon]) => {
+            if (lat < minLat) minLat = lat;
+            if (lat > maxLat) maxLat = lat;
+            if (lon < minLon) minLon = lon;
+            if (lon > maxLon) maxLon = lon;
+        });
+
+        // Kapsama alanını biraz genişlet (bölge sokaklarını da al)
+        const latPad = Math.max(0.015, (maxLat - minLat) * 0.35);
+        const lonPad = Math.max(0.015, (maxLon - minLon) * 0.35);
+        minLat -= latPad; maxLat += latPad;
+        minLon -= lonPad; maxLon += lonPad;
+
+        // Zoom 13, 14 ve 15 seviyelerini önbelleğe al
+        const zoomSeviyeleri = [13, 14, 15];
+        const tileUrls = [];
+
+        zoomSeviyeleri.forEach(z => {
+            const minX = lon2tile(minLon, z);
+            const maxX = lon2tile(maxLon, z);
+            const minY = lat2tile(maxLat, z);
+            const maxY = lat2tile(minLat, z);
+
+            const xBas = Math.min(minX, maxX);
+            const xBit = Math.max(minX, maxX);
+            const yBas = Math.min(minY, maxY);
+            const yBit = Math.max(minY, maxY);
+
+            // Sınır kontrolü (maksimum 40 karo/seviye)
+            if ((xBit - xBas + 1) * (yBit - yBas + 1) <= 30) {
+                for (let x = xBas; x <= xBit; x++) {
+                    for (let y = yBas; y <= yBit; y++) {
+                        tileUrls.push(`https://tile.openstreetmap.org/${z}/${x}/${y}.png`);
+                    }
+                }
+            }
+        });
+
+        // Arka planda sessizce indir ve cache'e yaz
+        let sayac = 0;
+        for (const url of tileUrls) {
+            if (sayac++ > 75) break; // Cihazı kasmamak için üst limit
+            const mevcut = await cache.match(url);
+            if (!mevcut) {
+                fetch(url, { mode: 'cors' }).then(res => {
+                    if (res && res.ok) {
+                        cache.put(url, res);
+                    }
+                }).catch(() => {});
+            }
+        }
+        console.log(`[Kiosk Harita] ${tileUrls.length} adet karo çevrimdışı önbelleğe alındı.`);
+    } catch (err) {
+        console.warn('[Kiosk Harita] Karo önbellekleme uyarısı:', err);
+    }
+}
+
+/**
+ * Özel Leaflet Çevrimdışı Karo Katmanı (Offline TileLayer)
+ * Öncelikli olarak tarayıcı yerel diskindeki Cache Storage'dan okur (Cache-First).
+ * İnternet kesilse bile harita sokak sokak görünmeye devam eder!
+ */
+let KioskOfflineTileLayer = null;
+if (typeof L !== 'undefined') {
+    KioskOfflineTileLayer = L.TileLayer.extend({
+        createTile: function(coords, done) {
+            const tile = document.createElement('img');
+            const url = this.getTileUrl(coords);
+            tile.setAttribute('role', 'presentation');
+
+            if ('caches' in window) {
+                caches.open(KIOSK_TILE_CACHE_NAME).then(cache => {
+                    cache.match(url).then(cachedResponse => {
+                        if (cachedResponse) {
+                            // 1. ÖNCELİK: YEREL CACHE'TEN GETİR (İnternet olmasa da anında yüklenir!)
+                            cachedResponse.blob().then(blob => {
+                                tile.src = URL.createObjectURL(blob);
+                                done(null, tile);
+                            }).catch(() => {
+                                this._indirVeSakla(url, tile, cache, done);
+                            });
+                        } else {
+                            // 2. Cache'te yoksa internetten indir ve cache'e sakla
+                            this._indirVeSakla(url, tile, cache, done);
+                        }
+                    }).catch(() => {
+                        this._indirVeSakla(url, tile, cache, done);
+                    });
+                }).catch(() => {
+                    this._dogrudanGoster(url, tile, done);
+                });
+            } else {
+                this._dogrudanGoster(url, tile, done);
+            }
+
+            return tile;
+        },
+
+        _indirVeSakla: function(url, tile, cache, done) {
+            tile.onload = () => done(null, tile);
+            tile.onerror = () => {
+                // Çevrimdışı ve karo bulunamazsa şık koyu grid deseni göster (asla gri/boş kalmaz)
+                tile.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256"><rect width="256" height="256" fill="%230b1120"/><path d="M0 64 H256 M0 128 H256 M0 192 H256 M64 0 V256 M128 0 V256 M192 0 V256" stroke="%231e293b" stroke-width="1" stroke-dasharray="2 4"/><circle cx="128" cy="128" r="48" fill="none" stroke="%23334155" stroke-width="1" stroke-dasharray="2 4"/></svg>';
+                done(null, tile);
+            };
+
+            if (cache && navigator.onLine) {
+                fetch(url, { mode: 'cors' }).then(res => {
+                    if (res && res.ok) {
+                        cache.put(url, res.clone()).catch(() => {});
+                        return res.blob();
+                    }
+                    throw new Error('Tile fetch failed');
+                }).then(blob => {
+                    tile.src = URL.createObjectURL(blob);
+                    done(null, tile);
+                }).catch(() => {
+                    tile.src = url;
+                });
+            } else {
+                tile.src = url;
+            }
+        },
+
+        _dogrudanGoster: function(url, tile, done) {
+            tile.onload = () => done(null, tile);
+            tile.onerror = () => {
+                tile.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256"><rect width="256" height="256" fill="%230b1120"/><path d="M0 64 H256 M0 128 H256 M0 192 H256 M64 0 V256 M128 0 V256 M192 0 V256" stroke="%231e293b" stroke-width="1" stroke-dasharray="2 4"/></svg>';
+                done(null, tile);
+            };
+            tile.src = url;
+        }
+    });
+}
+
+/**
+ * 5. Koyu Tema Leaflet.js Canlı Harita Motoru (Çevrimdışı Önbellek Korumalı)
  */
 function haritayiIlkKezOlustur() {
     const mapContainer = document.getElementById('kiosk-leaflet-map');
@@ -390,11 +618,18 @@ function haritayiIlkKezOlustur() {
             attributionControl: false
         });
 
-        // Koyu Tema Harita Katmanı (OpenStreetMap + CSS Koyu Gece Filtresi)
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '© OpenStreetMap'
-        }).addTo(kioskMap);
+        // Çevrimdışı Destekli Koyu Tema Harita Katmanı (Cache-First)
+        if (KioskOfflineTileLayer) {
+            new KioskOfflineTileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap'
+            }).addTo(kioskMap);
+        } else {
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap'
+            }).addTo(kioskMap);
+        }
 
         mapMarkersGroup = L.featureGroup().addTo(kioskMap);
         routeLineGroup = L.featureGroup().addTo(kioskMap);
@@ -621,7 +856,8 @@ function eczaneKartiHtmlUret(eczane, index) {
                 <img class="qr-image" 
                      src="${qrKodUrl}" 
                      alt="${escapeHtml(eczane.isim)} Rota QR Kodu"
-                     loading="lazy" />
+                     onerror="window.yerelQrKodFallback(this, '${escapeHtml(eczane.rota_linki || eczane.harita_linki || '')}');"
+                     loading="eager" />
             </div>
             <div class="qr-caption">
                 Kamerayla <span>Rota Başlat</span>
@@ -680,7 +916,9 @@ function devOdakKartiHtmlUret(eczane, siraNo, toplamAdet, modAdi = 'NAVİGASYON'
                 <div class="focus-qr-frame">
                     <img class="focus-qr-image" 
                          src="${qrKodUrl}" 
-                         alt="${escapeHtml(eczane.isim)} Harita QR" />
+                         alt="${escapeHtml(eczane.isim)} Harita QR"
+                         onerror="window.yerelQrKodFallback(this, '${escapeHtml(eczane.rota_linki || eczane.harita_linki || '')}');"
+                         loading="eager" />
                 </div>
                 <div class="focus-qr-text">
                     📲 Okutup <strong>anında rota başlatın</strong>
@@ -777,7 +1015,9 @@ function ikiliEczaneKartiHtmlUret(eczane, siraNo) {
             <div class="dual-qr-wrapper">
                 <img class="dual-qr-image" 
                      src="${qrKodUrl}" 
-                     alt="${escapeHtml(eczane.isim)} Rota QR" />
+                     alt="${escapeHtml(eczane.isim)} Rota QR"
+                     onerror="window.yerelQrKodFallback(this, '${escapeHtml(eczane.rota_linki || eczane.harita_linki || '')}');"
+                     loading="eager" />
             </div>
             <div class="qr-caption" style="font-size: 0.68rem; margin-top: 0.2rem;">
                 Kamerayla <span>Rota Başlat</span>
@@ -810,11 +1050,32 @@ function uyariDurumunuAyarla(gosterilsinMi, baslik = '', mesaj = '', rozet = 'Ö
  * 7. Çevrimdışı (Offline) Dayanıklılık Motoru
  */
 function yerelOnbellegeKaydet(veri) {
+    if (!veri) return;
+
     try {
+        // 1. QR Kodları LocalStorage İçin Base64 Data URI'ye Çevirip Gömme
+        if (Array.isArray(veri.eczaneler)) {
+            veri.eczaneler.forEach(e => {
+                if (!e.qr_kod_url || !e.qr_kod_url.startsWith('data:image/')) {
+                    const hedef = e.rota_linki || e.harita_linki || `https://maps.google.com/?q=${e.enlem},${e.boylam}`;
+                    const yerelData = yerelQrKodUretDataUri(hedef);
+                    if (yerelData) {
+                        e.qr_kod_url = yerelData;
+                    }
+                }
+            });
+        }
+
+        // 2. Veriyi ve Gömülü QR'ları LocalStorage'a Kaydet
         localStorage.setItem('kiosk_last_cached_data', JSON.stringify({
             savedAt: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
             data: veri
         }));
+
+        // 3. Bölge Harita Karolarını (Tile) Çevrimdışı Diske Sakla
+        if (veri.pharmacy && Array.isArray(veri.eczaneler)) {
+            haritaTilelariniOnbellegeAl(veri.pharmacy, veri.eczaneler);
+        }
     } catch (e) {
         console.warn('[Kiosk] Yerel önbelleğe yazılamadı:', e);
     }
@@ -824,7 +1085,18 @@ function yerelOnbellegiYukle() {
     try {
         const kayitStr = localStorage.getItem('kiosk_last_cached_data');
         if (kayitStr) {
-            return JSON.parse(kayitStr);
+            const parsed = JSON.parse(kayitStr);
+            // Güvenlik: QR kodları çevrimdışı doğrula (kırık resim olmasını önle)
+            if (parsed && parsed.data && Array.isArray(parsed.data.eczaneler)) {
+                parsed.data.eczaneler.forEach(e => {
+                    if (!e.qr_kod_url || !e.qr_kod_url.startsWith('data:image/')) {
+                        const hedef = e.rota_linki || e.harita_linki || `https://maps.google.com/?q=${e.enlem},${e.boylam}`;
+                        const yerelData = yerelQrKodUretDataUri(hedef);
+                        if (yerelData) e.qr_kod_url = yerelData;
+                    }
+                });
+            }
+            return parsed;
         }
     } catch (e) {
         console.warn('[Kiosk] Yerel önbellek okunamadı:', e);
@@ -871,7 +1143,8 @@ function slaytGoster() {
 
     if (gorunum === 'animated_route') {
         // Tema 2: Canlı Yol & Navigasyon Rota
-        if (elMapPanelTitle) elMapPanelTitle.textContent = `CANLI ROTA & NAVİGASYON (${seciliEczane.isim})`;
+        const rotaPrefix = isOfflineModAktif ? '💾 ÇEVRİMDIŞI ROTA & HARİTA' : 'CANLI ROTA & NAVİGASYON';
+        if (elMapPanelTitle) elMapPanelTitle.textContent = `${rotaPrefix} (${seciliEczane.isim})`;
         elPharmacyGrid.innerHTML = devOdakKartiHtmlUret(seciliEczane, slaytIndex, guncelEczaneler.length, 'CANLI ROTA');
         
         haritaPinleriniCiz(guncelKendiEczane, guncelEczaneler, slaytIndex);
@@ -986,6 +1259,7 @@ function temaIcerikGorunurlukleriniUygula(ts) {
  */
 function arayuzuGuncelle(veri, isOffline = false, savedTime = '') {
     sonGecerliVeri = veri;
+    isOfflineModAktif = Boolean(isOffline);
 
     // 1. Eczane Özel Bilgileri ve Tema Belirleme
     if (veri.pharmacy) {

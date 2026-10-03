@@ -118,9 +118,32 @@ def rota_linki_olustur(hedef_enlem: Optional[float], hedef_boylam: Optional[floa
 
 
 def qr_kod_url_olustur(hedef_url: str) -> str:
-    """QR Server API ile dinamik QR kod resim bağlantısı oluşturur."""
-    encoded_url = urllib.parse.quote(hedef_url)
-    return f"https://api.qrserver.com/v1/create-qr-code/?size=180x180&data={encoded_url}&margin=6"
+    """
+    Yerel olarak bağımsız, çevrimdışı uyumlu QR Kod (Base64 PNG Data URI) üretir.
+    İnternet kesildiğinde bile kiosk ekranında doğrudan yerel hafızadan (localStorage) gösterilir.
+    """
+    try:
+        import qrcode
+        import io
+        import base64
+
+        qr = qrcode.QRCode(
+            version=None,
+            error_correction=qrcode.constants.ERROR_CORRECT_M,
+            box_size=5,
+            border=2
+        )
+        qr.add_data(hedef_url)
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="black", back_color="white")
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        b64 = base64.b64encode(buf.getvalue()).decode("ascii")
+        return f"data:image/png;base64,{b64}"
+    except Exception:
+        # Fallback: Yerel kütüphane bulunamazsa dış URL
+        encoded_url = urllib.parse.quote(hedef_url)
+        return f"https://api.qrserver.com/v1/create-qr-code/?size=180x180&data={encoded_url}&margin=6"
 
 
 # ==========================================
