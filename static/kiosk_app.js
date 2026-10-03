@@ -19,7 +19,9 @@ const KIOSK_AYARLAR = {
     HATA_TEKRAR_DENE_MS: 60 * 1000,     // Ağ kesintisinde 60 saniyede bir tekrar deneme
     SAAT_ARALIGI_MS: 1000,              // Saniyede bir saat güncelleme
     GECE_RELOAD_SAATI: 5,               // Her gece 05:00'te bellek temizliği için yenileme
-    SLAYT_SURESI_MS: 10000              // Tema 2 ve Tema 3 için slayt süresi (10 saniye)
+    SLAYT_SURESI_MS: 10000,             // Tema 2 ve Tema 3 için slayt süresi (10 saniye)
+    ANTI_BURN_IN: true,                 // TV / OLED Ekran Yanık Koruması (Piksel Kaydırma)
+    TICKER_SPEED_PX: 55                 // Yaşlı vatandaşlar için ideal kayan yazı hızı (50-60 px/sn)
 };
 
 // Global Durum Değişkenleri
@@ -279,6 +281,70 @@ function nobetGeriSayiminiGuncelle() {
 function formatMesafeMetin(metin) {
     if (!metin) return '';
     return String(metin).replace(/(\d+)\s*m$/i, '$1 mt');
+}
+
+/**
+ * Pikselleri Koruma Modu (Anti-Burn-In Kontrolü):
+ * 7/24 kesintisiz çalışan Kiosk ve TV monitörlerinde statik nesnelerin (saat, çerçeveler)
+ * panelde yanık (burn-in / ghosting) oluşturmasını engellemek için her 60 saniyede bir
+ * insan gözünün hissetmeyeceği mikro (1-2px) yörüngesel piksel kaydırması uygular.
+ */
+let antiBurnInTimer = null;
+let antiBurnInAdim = 0;
+const PIXEL_SHIFT_YORUNGE = [
+    { x: 0, y: 0 },
+    { x: 1, y: 0 },
+    { x: 2, y: 1 },
+    { x: 1, y: 2 },
+    { x: 0, y: 1 },
+    { x: -1, y: 0 },
+    { x: -2, y: -1 },
+    { x: -1, y: -2 }
+];
+
+function antiBurnInModunuUygula(aktif = true) {
+    if (antiBurnInTimer) {
+        clearInterval(antiBurnInTimer);
+        antiBurnInTimer = null;
+    }
+
+    const wrapper = document.querySelector('.dashboard-wrapper');
+    if (!wrapper) return;
+
+    if (!aktif) {
+        wrapper.style.transform = 'none';
+        return;
+    }
+
+    wrapper.style.transition = 'transform 1.2s cubic-bezier(0.4, 0, 0.2, 1)';
+
+    antiBurnInTimer = setInterval(() => {
+        antiBurnInAdim = (antiBurnInAdim + 1) % PIXEL_SHIFT_YORUNGE.length;
+        const offset = PIXEL_SHIFT_YORUNGE[antiBurnInAdim];
+        wrapper.style.transform = `translate(${offset.x}px, ${offset.y}px)`;
+    }, 60000);
+}
+
+/**
+ * Yaşlı Vatandaşlar İçin İdeal Kayan Yazı Hızı (50-60 px/sn):
+ * Duyuru metninin uzunluğuna ve ekran genişliğine göre saniyede 55 piksel hızda akıcı animasyon süresi belirler.
+ */
+function tickerHiziniVePozisyonunuAyarla(hizPxSaniye = 55) {
+    if (!elTickerText) return;
+    const wrapper = elTickerText.parentElement;
+    if (!wrapper) return;
+
+    const wrapperW = wrapper.offsetWidth || window.innerWidth || 1200;
+    const textW = elTickerText.offsetWidth || elTickerText.scrollWidth || 800;
+
+    elTickerText.style.setProperty('--marquee-start', `${wrapperW}px`);
+    elTickerText.style.setProperty('--marquee-end', `-${textW + 30}px`);
+
+    const hiz = Math.max(35, Math.min(100, Number(hizPxSaniye) || 55));
+    const toplamMesafe = wrapperW + textW + 30;
+    const gerekenSure = (toplamMesafe / hiz).toFixed(1);
+
+    elTickerText.style.animationDuration = `${gerekenSure}s`;
 }
 
 function nobetBilgisiHtmlUret(stil = 'focus') {
@@ -863,11 +929,8 @@ function eczaneKartiHtmlUret(eczane, index) {
         ? `<span class="badge-semt">${escapeHtml(eczane.semt)}</span>` 
         : '';
 
-    const arabaMetin = eczane.araba_metin || (eczane.mesafe_metre ? `~${Math.max(1, Math.round(eczane.mesafe_metre / 500))} dk` : '');
-    const yurumeMetin = eczane.yurume_metin || (eczane.mesafe_metre ? `~${Math.max(1, Math.round(eczane.mesafe_metre / 75))} dk` : '');
-
     const mesafeHtml = eczane.mesafe_metin 
-        ? `<span class="badge-distance">${arabaMetin ? `🚗 <strong>${escapeHtml(arabaMetin)}</strong> • ` : ''}🚶 <strong>${escapeHtml(formatMesafeMetin(eczane.mesafe_metin))}</strong> (${escapeHtml(yurumeMetin)})</span>` 
+        ? `<span class="badge-distance" style="font-size: 0.92rem; font-weight: 800;">📍 ${escapeHtml(formatMesafeMetin(eczane.mesafe_metin))}</span>` 
         : '';
 
     const yolTarifiHtml = eczane.yol_tarifi 
@@ -924,7 +987,14 @@ function eczaneKartiHtmlUret(eczane, index) {
                      loading="eager" />
             </div>
             <div class="qr-caption">
-                Adres Tarifi <span>İçin Okutunuz</span>
+                <div class="qr-camera-icon-sm">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                        <circle cx="12" cy="13" r="4"></circle>
+                    </svg>
+                </div>
+                <span class="qr-text-top">Adres Tarifi İçin</span>
+                <strong class="qr-text-bottom">OKUTUNUZ</strong>
             </div>
         </div>
     </article>
@@ -967,14 +1037,6 @@ function devOdakKartiHtmlUret(eczane, siraNo, toplamAdet, modAdi = 'NAVİGASYON'
                             <span class="dist-pin-symbol">📍</span>
                             <strong class="dist-meter-text">${escapeHtml(formatMesafeMetin(eczane.mesafe_metin))}</strong>
                         </div>
-                        <div class="dist-row-car">
-                            <span class="dist-mode-icon">🚗</span>
-                            <span class="dist-mode-text">Araba ${escapeHtml((arabaMetin || '~1 dk').replace('~', ''))}</span>
-                        </div>
-                        <div class="dist-row-walk">
-                            <span class="dist-mode-icon">🚶</span>
-                            <span class="dist-mode-text">Yürüme ${escapeHtml((yurumeMetin || '~2 dk').replace('~', ''))}</span>
-                        </div>
                     </div>` : ''}
 
                 <div class="focus-qr-frame">
@@ -985,7 +1047,14 @@ function devOdakKartiHtmlUret(eczane, siraNo, toplamAdet, modAdi = 'NAVİGASYON'
                          loading="eager" />
                 </div>
                 <div class="focus-qr-text">
-                    Adres Tarifi için <strong>Okutunuz</strong>
+                    <div class="qr-camera-icon">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                            <circle cx="12" cy="13" r="4"></circle>
+                        </svg>
+                    </div>
+                    <span class="qr-text-top">Adres Tarifi İçin</span>
+                    <strong class="qr-text-bottom">OKUTUNUZ</strong>
                 </div>
             </div>
 
@@ -1047,8 +1116,8 @@ function ikiliEczaneKartiHtmlUret(eczane, siraNo) {
                         ${escapeHtml(eczane.nobet_durumu || 'Sabaha kadar açık')}
                     </span>
                     ${eczane.mesafe_metin ? `
-                        <span class="badge-distance">
-                            ${arabaMetin ? `🚗 <strong>${escapeHtml(arabaMetin)}</strong> • ` : ''}🚶 <strong>${escapeHtml(formatMesafeMetin(eczane.mesafe_metin))}</strong> (${escapeHtml(yurumeMetin)})
+                        <span class="badge-distance" style="font-size: 0.92rem; font-weight: 800;">
+                            📍 ${escapeHtml(formatMesafeMetin(eczane.mesafe_metin))}
                         </span>` : ''}
                 </div>
             </div>
@@ -1084,7 +1153,14 @@ function ikiliEczaneKartiHtmlUret(eczane, siraNo) {
                      loading="eager" />
             </div>
             <div class="qr-caption" style="font-size: 0.68rem; margin-top: 0.2rem;">
-                Adres Tarifi <span>İçin Okutunuz</span>
+                <div class="qr-camera-icon-sm">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                        <circle cx="12" cy="13" r="4"></circle>
+                    </svg>
+                </div>
+                <span class="qr-text-top">Adres Tarifi İçin</span>
+                <strong class="qr-text-bottom">OKUTUNUZ</strong>
             </div>
         </div>
     </article>
@@ -1360,8 +1436,18 @@ function arayuzuGuncelle(veri, isOffline = false, savedTime = '') {
             if (ts.map_zoom) {
                 KIOSK_AYARLAR.MAP_ZOOM = ts.map_zoom;
             }
+            if (ts.ticker_speed_px) {
+                KIOSK_AYARLAR.TICKER_SPEED_PX = ts.ticker_speed_px;
+            }
+            if (ts.anti_burn_in !== undefined) {
+                KIOSK_AYARLAR.ANTI_BURN_IN = ts.anti_burn_in;
+            }
             temaIcerikGorunurlukleriniUygula(ts);
         }
+
+        // Yaşlı Vatandaşlar İçin Ticker Hızı (50-60 px/sn) ve Anti-Burn-In Motorunu Başlat
+        tickerHiziniVePozisyonunuAyarla(KIOSK_AYARLAR.TICKER_SPEED_PX || 55);
+        antiBurnInModunuUygula(KIOSK_AYARLAR.ANTI_BURN_IN !== false);
     }
 
     // Cihaz Tanımlama (Identify / Ekranda Göster) Sinyali Kontrolü
@@ -1664,6 +1750,7 @@ function kioskBaslat() {
         if (kioskMap) {
             setTimeout(() => kioskMap.invalidateSize(), 200);
         }
+        tickerHiziniVePozisyonunuAyarla(KIOSK_AYARLAR.TICKER_SPEED_PX || 55);
     });
 }
 

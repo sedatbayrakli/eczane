@@ -1236,6 +1236,18 @@
                                 <small>Temaların otomatik yer değiştirme periyodu.</small>
                             </div>
                         </div>
+                        <div class="form-row" style="margin-top: 0.75rem;">
+                            <div class="form-group" style="margin-bottom: 0; width: 100%;">
+                                <label>📢 Kayan Yazı / Ticker Hızı (Akan Duyuru Bandı)</label>
+                                <select id="ts-ticker-speed" class="form-control">
+                                    <option value="40">40 px/sn — Çok Yavaş (Özel Okuma)</option>
+                                    <option value="55" selected>55 px/sn — İdeal & Akıcı (Yaşlı Vatandaşlar İçin Önerilen)</option>
+                                    <option value="70">70 px/sn — Standart Hız</option>
+                                    <option value="90">90 px/sn — Hızlı</option>
+                                </select>
+                                <small>Yaşlı ve uzaktaki vatandaşların rahatça okuyabilmesi için ideal hız 50-60 piksel/saniyedir.</small>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- 3. Harita & Görünüm Parametreleri -->
@@ -1279,6 +1291,10 @@
                             <label style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.84rem; color: #e2e8f0; cursor: pointer;">
                                 <input type="checkbox" id="ts-show-landmark" checked style="width: 18px; height: 18px; accent-color: #38bdf8;">
                                 <span>Önemli Nokta / Muhtarlık Bandı</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.84rem; color: #38bdf8; cursor: pointer; grid-column: span 2; background: rgba(56, 189, 248, 0.08); padding: 0.45rem 0.65rem; border-radius: 6px; border: 1px solid rgba(56, 189, 248, 0.25);">
+                                <input type="checkbox" id="ts-anti-burn-in" checked style="width: 18px; height: 18px; accent-color: #38bdf8;">
+                                <span>🛡️ <strong>Pikselleri Koruma Modu (Anti-Burn-In):</strong> TV ve OLED ekranlarda yanık izini önlemek için mikro seviyede (1-2px) periyodik piksel kaydırma yapar.</span>
                             </label>
                         </div>
                     </div>
@@ -2018,14 +2034,16 @@
             const ayar = mevcutAyarlar || {};
             document.getElementById('ts-carousel-interval').value = ayar.carousel_interval_sec || 10;
             document.getElementById('ts-autorotate-interval').value = ayar.auto_rotate_minutes || 60;
+            document.getElementById('ts-ticker-speed').value = ayar.ticker_speed_px || 55;
             document.getElementById('ts-map-zoom').value = ayar.map_zoom || 14;
 
-            // Görünürlük Checkbox'ları
+            // Görünürlük ve Koruma Kontrolleri
             document.getElementById('ts-show-countdown').checked = (ayar.show_countdown !== false);
             document.getElementById('ts-show-qr').checked = (ayar.show_qr !== false);
             document.getElementById('ts-show-travel-times').checked = (ayar.show_travel_times !== false);
             document.getElementById('ts-show-district-counter').checked = (ayar.show_district_counter !== false);
             document.getElementById('ts-show-landmark').checked = (ayar.show_landmark !== false);
+            document.getElementById('ts-anti-burn-in').checked = (ayar.anti_burn_in !== false);
 
             modalAc('modal-theme-settings');
         }
@@ -2038,12 +2056,14 @@
             const theme_settings = {
                 carousel_interval_sec: parseInt(document.getElementById('ts-carousel-interval').value, 10) || 10,
                 auto_rotate_minutes: parseInt(document.getElementById('ts-autorotate-interval').value, 10) || 60,
+                ticker_speed_px: parseInt(document.getElementById('ts-ticker-speed').value, 10) || 55,
                 map_zoom: parseInt(document.getElementById('ts-map-zoom').value, 10) || 14,
                 show_countdown: document.getElementById('ts-show-countdown').checked,
                 show_qr: document.getElementById('ts-show-qr').checked,
                 show_travel_times: document.getElementById('ts-show-travel-times').checked,
                 show_district_counter: document.getElementById('ts-show-district-counter').checked,
-                show_landmark: document.getElementById('ts-show-landmark').checked
+                show_landmark: document.getElementById('ts-show-landmark').checked,
+                anti_burn_in: document.getElementById('ts-anti-burn-in').checked
             };
 
             const btn = document.getElementById('btn-save-theme-settings');

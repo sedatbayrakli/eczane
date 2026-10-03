@@ -507,16 +507,37 @@ body,
 }
 
 .qr-caption {
-    font-size: 0.72rem;
-    color: var(--text-secondary);
-    font-weight: 700;
-    margin-top: 0.55rem;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin-top: 0.35rem;
+    gap: 0.08rem;
+    text-align: center;
 }
 
-.qr-caption span {
+.qr-caption .qr-camera-icon-sm {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     color: var(--color-accent);
+    margin-bottom: 0.05rem;
+}
+
+.qr-caption .qr-text-top {
+    font-size: 0.66rem;
+    color: #cbd5e1;
+    font-weight: 600;
+    line-height: 1.15;
+}
+
+.qr-caption .qr-text-bottom {
+    font-size: 0.88rem;
+    color: #38bdf8;
+    font-weight: 900;
+    letter-spacing: 0.05em;
+    line-height: 1.15;
+    text-transform: uppercase;
 }
 
 /* ===================================================================
@@ -606,12 +627,13 @@ body,
     font-size: 1.05rem;
     color: var(--text-secondary);
     font-weight: 500;
-    animation: marqueeTicker 35s linear infinite;
+    will-change: transform;
+    animation: marqueeTicker 55s linear infinite;
 }
 
 @keyframes marqueeTicker {
-    0% { transform: translateX(100%); }
-    100% { transform: translateX(-100%); }
+    0% { transform: translateX(var(--marquee-start, 100%)); }
+    100% { transform: translateX(var(--marquee-end, -100%)); }
 }
 
 .last-sync-badge {
@@ -1303,25 +1325,24 @@ body.scale-compact .focus-qr-col {
     overflow: hidden !important;
 }
 body.scale-compact .focus-qr-distance-badge-stacked {
-    padding: 0.2rem 0.35rem !important;
+    padding: 0.3rem 0.5rem !important;
     gap: 0.1rem !important;
     max-width: 100% !important;
     box-sizing: border-box !important;
     overflow: hidden !important;
 }
 body.scale-compact .dist-row-meter {
-    margin-bottom: 0.05rem !important;
+    margin-bottom: 0 !important;
+}
+body.scale-compact .dist-pin-symbol {
+    font-size: 1.05rem !important;
 }
 body.scale-compact .dist-meter-text {
-    font-size: 0.95rem !important;
+    font-size: 1.25rem !important;
 }
-body.scale-compact .dist-row-car {
-    font-size: 0.72rem !important;
-    white-space: nowrap !important;
-}
+body.scale-compact .dist-row-car,
 body.scale-compact .dist-row-walk {
-    font-size: 0.68rem !important;
-    white-space: nowrap !important;
+    display: none !important;
 }
 body.scale-compact .countdown-label {
     font-size: 0.58rem !important;
@@ -1339,8 +1360,18 @@ body.scale-compact .focus-qr-image {
     height: 84px !important;
 }
 body.scale-compact .focus-qr-text {
-    font-size: 0.68rem !important;
-    margin-top: 0.1rem !important;
+    margin-top: 0.15rem !important;
+    gap: 0.05rem !important;
+}
+body.scale-compact .focus-qr-text .qr-camera-icon svg {
+    width: 16px !important;
+    height: 16px !important;
+}
+body.scale-compact .focus-qr-text .qr-text-top {
+    font-size: 0.65rem !important;
+}
+body.scale-compact .focus-qr-text .qr-text-bottom {
+    font-size: 0.88rem !important;
 }
 body.scale-compact .dual-qr-wrapper {
     width: 92px !important;
@@ -1712,20 +1743,18 @@ body.scale-4k {
     overflow: hidden;
 }
 
-/* YENİ: 3 Satırlı Net Mesafe Rozeti (Mesafe / Araba / Yürüme) */
+/* Net Büyük Puntolu Mesafe Rozeti (Araba ve Yürüme Satırları Kaldırıldı) */
 .focus-qr-distance-badge-stacked {
-    background: linear-gradient(135deg, rgba(14, 165, 233, 0.16), rgba(2, 132, 199, 0.22));
-    border: 1.5px solid rgba(56, 189, 248, 0.45);
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.22), rgba(2, 132, 199, 0.32));
+    border: 1.5px solid rgba(56, 189, 248, 0.6);
     border-radius: var(--radius-md);
-    padding: 0.35rem 0.5rem;
+    padding: 0.45rem 0.75rem;
     width: 100%;
     box-sizing: border-box;
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 0.18rem;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
     flex-shrink: 0;
 }
 
@@ -1733,47 +1762,28 @@ body.scale-4k {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.25rem;
-    line-height: 1.15;
-    margin-bottom: 0.1rem;
+    gap: 0.35rem;
+    line-height: 1;
 }
 
 .dist-pin-symbol {
-    font-size: 0.9rem;
+    font-size: 1.25rem;
     line-height: 1;
 }
 
 .dist-meter-text {
-    font-size: 1.08rem;
-    font-weight: 800;
-    color: #ffffff;
-    font-family: var(--font-mono);
-    letter-spacing: 0.02em;
-    line-height: 1;
-}
-
-.dist-row-car {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.3rem;
-    font-size: 0.78rem;
-    font-weight: 700;
+    font-size: 1.55rem;
+    font-weight: 900;
     color: #38bdf8;
-    line-height: 1.2;
-    white-space: nowrap;
+    font-family: var(--font-mono);
+    letter-spacing: 0.04em;
+    line-height: 1;
+    text-shadow: 0 2px 12px rgba(56, 189, 248, 0.5);
 }
 
+.dist-row-car,
 .dist-row-walk {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.3rem;
-    font-size: 0.74rem;
-    font-weight: 600;
-    color: #cbd5e1;
-    line-height: 1.2;
-    white-space: nowrap;
+    display: none !important;
 }
 
 /* Harita Alt Bant: Yol Tarifi / Bilinen Yer (İki Bant Arasında Harita) */
@@ -1839,13 +1849,39 @@ body.scale-4k {
 }
 
 .focus-qr-text {
-    font-size: 0.78rem;
-    color: var(--text-secondary);
-    line-height: 1.35;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    margin-top: 0.35rem;
+    gap: 0.12rem;
 }
 
-.focus-qr-text strong {
+.focus-qr-text .qr-camera-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     color: var(--color-accent);
+    margin-bottom: 0.1rem;
+}
+
+.focus-qr-text .qr-text-top {
+    font-size: 0.78rem;
+    color: #cbd5e1;
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: 0.02em;
+}
+
+.focus-qr-text .qr-text-bottom {
+    font-size: 1.05rem;
+    color: #38bdf8;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    line-height: 1.15;
+    text-transform: uppercase;
+    text-shadow: 0 2px 10px rgba(56, 189, 248, 0.45);
 }
 
 /* Alt Sayfalama / Sekmeler */

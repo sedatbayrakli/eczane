@@ -320,9 +320,11 @@ class Pharmacy(db.Model):
             "map_zoom": 14,
             "show_countdown": True,
             "show_qr": True,
-            "show_travel_times": True,
+            "show_travel_times": False,
             "show_district_counter": True,
-            "show_landmark": True
+            "show_landmark": True,
+            "anti_burn_in": True,
+            "ticker_speed_px": 55
         }
         if not self.theme_settings:
             return varsayilan

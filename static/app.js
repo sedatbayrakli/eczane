@@ -121,7 +121,14 @@ function eczaneKartiHtmlUret(eczane) {
                      onerror="this.onerror=null; this.src='https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https%3A%2F%2Fmaps.google.com';" />
             </div>
             <div class="qr-caption">
-                Adres Tarifi <span>İçin Okutunuz</span>
+                <div class="qr-camera-icon-sm">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                        <circle cx="12" cy="13" r="4"></circle>
+                    </svg>
+                </div>
+                <span class="qr-text-top">Adres Tarifi İçin</span>
+                <strong class="qr-text-bottom">OKUTUNUZ</strong>
             </div>
         </div>
     </article>
