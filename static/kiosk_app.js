@@ -37,7 +37,8 @@
 })();
 
 const KIOSK_AYARLAR = {
-    POLLING_ARALIGI_MS: 15 * 60 * 1000, // 15 dakikada bir veri tazeleme ve heartbeat
+    POLLING_ARALIGI_MS: 15 * 60 * 1000, // 15 dakikada bir veri tazeleme
+    HEARTBEAT_ARALIGI_MS: 45 * 1000,    // 45 saniyede bir hafif canlılık sinyali (heartbeat)
     HATA_TEKRAR_DENE_MS: 60 * 1000,     // Ağ kesintisinde 60 saniyede bir tekrar deneme
     SAAT_ARALIGI_MS: 1000,              // Saniyede bir saat güncelleme
     GECE_RELOAD_SAATI: 5,               // Her gece 05:00'te bellek temizliği için yenileme
@@ -1779,6 +1780,29 @@ async function kioskVerileriniGetir() {
     }
 }
 
+/**
+ * TV Kiosk Ekranının Canlılık Sinyalini (Heartbeat) Gönderir (45 saniyede bir)
+ */
+async function kioskHeartbeatPing() {
+    try {
+        const deviceToken = getOrCreateDeviceToken();
+        const deviceMac = getOrCreateDeviceMac();
+        const localIp = localStorage.getItem('kiosk_local_ip') || kioskLocalIP || '';
+        const ekranCozunurluk = `${window.innerWidth}x${window.innerHeight}`;
+        const pingUrl = `/api/kiosk-ping?key=${encodeURIComponent(LISANS_KEY)}&device_token=${encodeURIComponent(deviceToken)}&mac=${encodeURIComponent(deviceMac)}&local_ip=${encodeURIComponent(localIp)}&res=${encodeURIComponent(ekranCozunurluk)}&_t=${Date.now()}`;
+
+        const resp = await fetch(pingUrl);
+        if (resp.ok) {
+            const data = await resp.json();
+            if (data && data.identify && data.identify.active) {
+                ekrandaCihazTanimlaParlat(data.identify);
+            }
+        }
+    } catch (e) {
+        // Sessizce yutulur
+    }
+}
+
 
 /**
  * 11. TV Kiosk Başlatıcı
@@ -1788,6 +1812,10 @@ function kioskBaslat() {
 
     saatVeTarihiGuncelle();
     setInterval(saatVeTarihiGuncelle, KIOSK_AYARLAR.SAAT_ARALIGI_MS);
+
+    // İlk canlılık pingini at ve her 45 saniyede bir tekrarla
+    kioskHeartbeatPing();
+    setInterval(kioskHeartbeatPing, KIOSK_AYARLAR.HEARTBEAT_ARALIGI_MS);
 
     kioskVerileriniGetir();
     setInterval(kioskVerileriniGetir, KIOSK_AYARLAR.POLLING_ARALIGI_MS);

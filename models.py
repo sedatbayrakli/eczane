@@ -66,6 +66,22 @@ class KioskDevice(db.Model):
             return False
         return (datetime.now() - self.last_ping) <= timedelta(minutes=tolerans_dakika)
 
+    def ekran_cevrimici_mi(self, tolerans_dakika: int = 5) -> bool:
+        """Cihazın canlılık durumunu kontrol eder (is_online alias)."""
+        return self.is_online(tolerans_dakika)
+
+    def son_sinyal_metni(self) -> str:
+        """Cihazın son ping sinyalinin ne kadar önce geldiğini döner."""
+        if not self.last_ping:
+            return "Sinyal yok"
+        toplam_sn = max(0, int((datetime.now() - self.last_ping).total_seconds()))
+        if toplam_sn < 60:
+            return f"{toplam_sn} sn önce"
+        elif toplam_sn < 3600:
+            return f"{toplam_sn // 60} dk önce"
+        else:
+            return f"{toplam_sn // 3600} sa önce"
+
     def cihazi_tanimla(self, saniye: int = 25):
         """Bu cihaza ekranda tanımlama sinyali gönderir."""
         self.identify_until = datetime.now() + timedelta(seconds=saniye)
@@ -90,6 +106,7 @@ class KioskDevice(db.Model):
             "identify_active": self.is_identify_active(),
             "is_online": self.is_online(),
             "last_ping": self.last_ping.strftime("%H:%M:%S") if self.last_ping else None,
+            "last_ping_ago": self.son_sinyal_metni(),
             "created_at": self.created_at.strftime("%d.%m.%Y") if self.created_at else None
         }
 
@@ -242,6 +259,44 @@ class Pharmacy(db.Model):
 
         return False, "Yeni cihaz sisteme eklendi ve onay bekliyor. Yönetim panelinden lisansı aktif ediniz.", yeni_cihaz
 
+    def cihaz_uyumlu_mu(self, token: str) -> bool:
+        """
+        Gelen cihaz belirtecinin (token) bu eczane lisansına erişip erişemeyeceğini kontrol eder.
+        Cihaz kilidi kapalıysa, token kayıtlıysa veya yeni cihaz limiti henüz dolmamışsa True döner.
+        """
+        if not self.device_lock_enabled:
+            return True
+        if not token:
+            return True
+        if self.registered_device_token and self.registered_device_token == token:
+            return True
+        cihaz = self.devices.filter_by(device_token=token).first()
+        if cihaz:
+            return True
+        # Henüz kayıtlı değilse, cihaz limitinde yer varsa izin ver (ekranda onay bekliyor uyarısı çıkabilsin)
+        if self.devices.count() < (self.max_devices or 1):
+            return True
+        return False
+
+    def son_sinyal_metni(self) -> str:
+        """Eczanenin son TV canlılık sinyalinin ne kadar önce geldiğini döner."""
+        # Cihazlardan en güncel olanı al
+        en_yeni_ping = self.last_ping
+        for dev in self.devices:
+            if dev.last_ping:
+                if not en_yeni_ping or dev.last_ping > en_yeni_ping:
+                    en_yeni_ping = dev.last_ping
+
+        if not en_yeni_ping:
+            return "Sinyal yok"
+        toplam_sn = max(0, int((datetime.now() - en_yeni_ping).total_seconds()))
+        if toplam_sn < 60:
+            return f"{toplam_sn} sn önce"
+        elif toplam_sn < 3600:
+            return f"{toplam_sn // 60} dk önce"
+        else:
+            return f"{toplam_sn // 3600} sa önce"
+
     def tum_cihazlari_sifirla(self):
         """Eczaneye bağlı tüm cihaz kayıtlarını sıfırlar."""
         KioskDevice.query.filter_by(pharmacy_id=self.id).delete()
@@ -300,6 +355,7 @@ class Pharmacy(db.Model):
             "kalan_gun": self.kalan_gun_sayisi(),
             "is_online": self.ekran_cevrimici_mi(),
             "last_ping": self.last_ping.strftime("%Y-%m-%d %H:%M:%S") if self.last_ping else None,
+            "last_ping_ago": self.son_sinyal_metni(),
             "last_ip": self.last_ip or "Bilinmiyor",
             "is_device_locked": bool(self.devices.count() > 0 or self.registered_device_token),
             "max_devices": self.max_devices or 1,

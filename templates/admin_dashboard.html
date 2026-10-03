@@ -558,17 +558,25 @@
             <tbody>
                 {% for e in eczaneler %}
                 <tr>
-                    <!-- Canlılık Heartbeat & IP -->
+                    <!-- Canlılık Heartbeat & IP (Kurum Bazlı Tekil Test Destekli) -->
                     <td>
-                        <div style="display: inline-flex; align-items: center; gap: 0.5rem;" title="{% if e.ekran_cevrimici_mi() %}Çevrimiçi (Son ping: {{ e.last_ping.strftime('%H:%M:%S') }}){% else %}Çevrimdışı (Sinyal yok){% endif %}">
+                        <div style="display: inline-flex; align-items: center; gap: 0.5rem;">
                             {% if e.ekran_cevrimici_mi() %}
-                                <span id="pharmacy-dot-{{ e.id }}" class="heartbeat-dot dot-online" style="width: 12px; height: 12px;"></span>
+                                <span id="pharmacy-dot-{{ e.id }}" class="heartbeat-dot dot-online" style="width: 12px; height: 12px;" title="Çevrimiçi"></span>
                             {% else %}
-                                <span id="pharmacy-dot-{{ e.id }}" class="heartbeat-dot dot-offline" style="width: 12px; height: 12px;"></span>
+                                <span id="pharmacy-dot-{{ e.id }}" class="heartbeat-dot dot-offline" style="width: 12px; height: 12px;" title="Çevrimdışı"></span>
                             {% endif %}
-                            <span style="font-size: 0.85rem; color: #f1f5f9; font-family: monospace; font-weight: 700;">
-                                {{ e.last_ip or '-' }}
-                            </span>
+                            <div style="display: flex; flex-direction: column; gap: 0.1rem;">
+                                <span id="pharmacy-ip-{{ e.id }}" style="font-size: 0.85rem; color: #f1f5f9; font-family: monospace; font-weight: 700;">
+                                    {{ e.last_ip or '-' }}
+                                </span>
+                                <span id="pharmacy-ping-{{ e.id }}" style="font-size: 0.72rem; color: #94a3b8; font-family: monospace;">
+                                    {{ e.son_sinyal_metni() }}
+                                </span>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-secondary" onclick="eczaneCanlilikKontrolEt({{ e.id }}, '{{ e.name }}')" id="btn-check-pharmacy-{{ e.id }}" style="padding: 0.2rem 0.45rem; font-size: 0.75rem; border-color: rgba(56,189,248,0.35); color: #38bdf8; margin-left: 0.2rem;" title="Bu Eczanenin TV Canlılığını Anlık Test Et">
+                                ⚡
+                            </button>
                         </div>
                     </td>
 
@@ -1522,7 +1530,17 @@
                                 </select>
                             </td>
                             <td>${approvalBadge}</td>
-                            <td style="text-align: center;">${onlineStatus}</td>
+                            <td style="text-align: center; white-space: nowrap;">
+                                <div style="display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;">
+                                    <span id="dev-dot-${d.id}">${onlineStatus}</span>
+                                    <span id="dev-ping-text-${d.id}" style="font-size: 0.72rem; color: #94a3b8; font-family: monospace;">
+                                        ${escapeHtml(d.last_ping_ago || '-')}
+                                    </span>
+                                    <button type="button" class="btn btn-sm btn-secondary" onclick="tekilCihazCanlilikKontrolEt(${eczane.id}, ${d.id}, '${escapeHtml(d.device_name || 'TV')}')" id="btn-ping-dev-${d.id}" style="padding: 0.2rem 0.45rem; font-size: 0.75rem; border-color: rgba(56,189,248,0.4); color: #38bdf8;" title="Bu TV Ekranının Canlılığını Test Et">
+                                        ⚡
+                                    </button>
+                                </div>
+                            </td>
                             <td>
                                 <div style="display: flex; gap: 0.35rem; align-items: center;">
                                     ${approveButtonHtml}
@@ -1743,6 +1761,137 @@
                         btn.disabled = false;
                     }, 1500);
                 }
+            }
+        }
+
+        // Şık ve Hızlı Admin Bildirim Sistemi (Toast)
+        function adminToastGoster(mesaj, tip = 'info') {
+            let container = document.getElementById('admin-toast-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'admin-toast-container';
+                container.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:999999;display:flex;flex-direction:column;gap:10px;pointer-events:none;max-width:400px;';
+                document.body.appendChild(container);
+            }
+
+            const toast = document.createElement('div');
+            const borderRenk = tip === 'success' ? '#10b981' : (tip === 'danger' ? '#ef4444' : '#38bdf8');
+            const bgRenk = tip === 'success' ? 'rgba(6, 78, 59, 0.95)' : (tip === 'danger' ? 'rgba(127, 29, 29, 0.95)' : 'rgba(15, 23, 42, 0.95)');
+
+            toast.style.cssText = `background:${bgRenk};border:1.5px solid ${borderRenk};color:#ffffff;padding:0.75rem 1.1rem;border-radius:12px;font-size:0.86rem;font-weight:600;box-shadow:0 10px 25px rgba(0,0,0,0.5);display:flex;align-items:center;gap:0.6rem;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);pointer-events:auto;transition:all 0.3s cubic-bezier(0.16, 1, 0.3, 1);transform:translateY(15px);opacity:0;`;
+            toast.innerHTML = mesaj;
+
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.transform = 'translateY(0)';
+                toast.style.opacity = '1';
+            }, 10);
+
+            setTimeout(() => {
+                toast.style.transform = 'translateY(15px)';
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 350);
+            }, 3800);
+        }
+
+        // Kurum (Eczane) Bazlı Tekil Canlılık Testi
+        async function eczaneCanlilikKontrolEt(eczaneId, eczaneAdi = 'Eczane') {
+            const btn = document.getElementById(`btn-check-pharmacy-${eczaneId}`);
+            const dot = document.getElementById(`pharmacy-dot-${eczaneId}`);
+            const ipSpan = document.getElementById(`pharmacy-ip-${eczaneId}`);
+            const pingSpan = document.getElementById(`pharmacy-ping-${eczaneId}`);
+
+            if (btn) {
+                btn.innerHTML = '🔄';
+                btn.disabled = true;
+            }
+
+            try {
+                const res = await fetch(`/admin/api/pharmacy/${eczaneId}/health-check?_t=${Date.now()}`);
+                const data = await res.json();
+                if (data.success && data.pharmacy) {
+                    const p = data.pharmacy;
+                    if (dot) {
+                        dot.className = p.is_online ? 'heartbeat-dot dot-online' : 'heartbeat-dot dot-offline';
+                        dot.title = p.is_online ? 'Çevrimiçi' : 'Çevrimdışı';
+                    }
+                    if (ipSpan && p.last_ip) {
+                        ipSpan.textContent = p.last_ip;
+                    }
+                    if (pingSpan) {
+                        pingSpan.textContent = p.last_ping_ago || (p.last_ping ? p.last_ping : 'Sinyal yok');
+                    }
+
+                    if (p.is_online) {
+                        adminToastGoster(`🟢 <strong>${escapeHtml(p.name)}</strong> TV Çevrimiçi!<br><small style="color:#cbd5e1;">Son Sinyal: ${p.last_ping_ago} (${p.last_ip || 'IP Yok'}) • ${p.online_device_count}/${p.device_count} TV Aktif</small>`, 'success');
+                    } else {
+                        adminToastGoster(`🔴 <strong>${escapeHtml(p.name)}</strong> TV Çevrimdışı!<br><small style="color:#fca5a5;">Son sinyal: ${p.last_ping_ago}. TV ekranını kontrol ediniz.</small>`, 'danger');
+                    }
+
+                    if (btn) btn.innerHTML = '✅';
+                } else {
+                    adminToastGoster(`⚠️ ${eczaneAdi} canlılık verisi alınamadı.`, 'danger');
+                    if (btn) btn.innerHTML = '❌';
+                }
+            } catch (e) {
+                adminToastGoster(`⚠️ Sunucu bağlantı hatası oluştu.`, 'danger');
+                if (btn) btn.innerHTML = '❌';
+            } finally {
+                setTimeout(() => {
+                    if (btn) {
+                        btn.innerHTML = '⚡';
+                        btn.disabled = false;
+                    }
+                }, 1800);
+            }
+        }
+
+        // Cihaz Bazlı Tekil Canlılık Testi (Modal İçi)
+        async function tekilCihazCanlilikKontrolEt(eczaneId, deviceId, cihazAdi = 'TV') {
+            const btn = document.getElementById(`btn-ping-dev-${deviceId}`);
+            const dotSpan = document.getElementById(`dev-dot-${deviceId}`);
+            const pingSpan = document.getElementById(`dev-ping-text-${deviceId}`);
+
+            if (btn) {
+                btn.innerHTML = '🔄';
+                btn.disabled = true;
+            }
+
+            try {
+                const res = await fetch(`/admin/api/pharmacy/${eczaneId}/device/${deviceId}/health-check?_t=${Date.now()}`);
+                const data = await res.json();
+                if (data.success && data.device) {
+                    const d = data.device;
+                    if (dotSpan) {
+                        dotSpan.innerHTML = d.is_online 
+                            ? '<span class="heartbeat-dot dot-online" style="display:inline-block; width:13px; height:13px;" title="Cihaz Çevrimiçi"></span>' 
+                            : '<span class="heartbeat-dot dot-offline" style="display:inline-block; width:13px; height:13px;" title="Cihaz Çevrimdışı"></span>';
+                    }
+                    if (pingSpan) {
+                        pingSpan.textContent = d.last_ping_ago || '-';
+                    }
+
+                    if (d.is_online) {
+                        adminToastGoster(`🟢 <strong>${escapeHtml(d.name)}</strong> Çevrimiçi!<br><small style="color:#cbd5e1;">Son Sinyal: ${d.last_ping_ago} (Yerel: ${d.local_ip || '-'}, IP: ${d.ip || '-'})</small>`, 'success');
+                    } else {
+                        adminToastGoster(`🔴 <strong>${escapeHtml(d.name)}</strong> Çevrimdışı!<br><small style="color:#fca5a5;">Sinyal yok (${d.last_ping_ago}).</small>`, 'danger');
+                    }
+
+                    if (btn) btn.innerHTML = '✅';
+                } else {
+                    adminToastGoster(`⚠️ Cihaz canlılık verisi alınamadı.`, 'danger');
+                    if (btn) btn.innerHTML = '❌';
+                }
+            } catch (e) {
+                adminToastGoster(`⚠️ Sunucu bağlantı hatası oluştu.`, 'danger');
+                if (btn) btn.innerHTML = '❌';
+            } finally {
+                setTimeout(() => {
+                    if (btn) {
+                        btn.innerHTML = '⚡';
+                        btn.disabled = false;
+                    }
+                }, 1800);
             }
         }
 

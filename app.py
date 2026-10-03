@@ -740,6 +740,78 @@ def admin_api_health_check_devices():
     })
 
 
+@app.route("/admin/api/pharmacy/<int:eczane_id>/health-check")
+@login_required
+def admin_api_pharmacy_health_check(eczane_id):
+    """Tek bir eczanenin anlık canlılık (heartbeat) ve bağlı cihaz durumlarını döner."""
+    eczane = Pharmacy.query.get_or_404(eczane_id)
+    sistem_ayari = SystemSetting.get_settings()
+    tolerans = sistem_ayari.heartbeat_tolerance_min or 5
+
+    is_online = eczane.ekran_cevrimici_mi(tolerans_dakika=tolerans)
+
+    dev_list = []
+    for d in eczane.devices:
+        dev_list.append({
+            "id": d.id,
+            "name": d.device_name,
+            "is_online": d.is_online(tolerans_dakika=tolerans),
+            "is_approved": d.is_approved,
+            "last_ping": d.last_ping.strftime("%H:%M:%S") if d.last_ping else None,
+            "last_ping_ago": d.son_sinyal_metni(),
+            "local_ip": d.local_ip,
+            "ip": d.ip_address,
+            "mac": d.mac_address,
+            "resolution": d.screen_resolution,
+            "scale": d.screen_scale
+        })
+
+    return jsonify({
+        "success": True,
+        "pharmacy": {
+            "id": eczane.id,
+            "name": eczane.name,
+            "is_online": is_online,
+            "last_ip": eczane.last_ip,
+            "last_ping": eczane.last_ping.strftime("%H:%M:%S") if eczane.last_ping else None,
+            "last_ping_ago": eczane.son_sinyal_metni(),
+            "devices": dev_list,
+            "device_count": len(dev_list),
+            "online_device_count": sum(1 for d in dev_list if d["is_online"])
+        },
+        "checked_at": datetime.now().strftime("%H:%M:%S")
+    })
+
+
+@app.route("/admin/api/pharmacy/<int:eczane_id>/device/<int:device_id>/health-check")
+@login_required
+def admin_api_device_health_check(eczane_id, device_id):
+    """Eczaneye bağlı tek bir TV cihazının anlık canlılık durumunu döner."""
+    eczane = Pharmacy.query.get_or_404(eczane_id)
+    cihaz = KioskDevice.query.filter_by(id=device_id, pharmacy_id=eczane.id).first_or_404()
+    sistem_ayari = SystemSetting.get_settings()
+    tolerans = sistem_ayari.heartbeat_tolerance_min or 5
+
+    return jsonify({
+        "success": True,
+        "pharmacy_name": eczane.name,
+        "device": {
+            "id": cihaz.id,
+            "name": cihaz.device_name,
+            "is_online": cihaz.is_online(tolerans_dakika=tolerans),
+            "is_approved": cihaz.is_approved,
+            "last_ping": cihaz.last_ping.strftime("%H:%M:%S") if cihaz.last_ping else None,
+            "last_ping_ago": cihaz.son_sinyal_metni(),
+            "local_ip": cihaz.local_ip,
+            "ip": cihaz.ip_address,
+            "mac": cihaz.mac_address,
+            "resolution": cihaz.screen_resolution,
+            "scale": cihaz.screen_scale
+        },
+        "checked_at": datetime.now().strftime("%H:%M:%S")
+    })
+
+
 @app.route("/admin/help")
 @login_required
 def admin_help():
@@ -1197,16 +1269,86 @@ def api_kiosk_data():
     })
 
 
+@app.route("/api/kiosk-ping")
+def api_kiosk_ping():
+    """
+    TV Kiosk ekranının arka planda her 45 saniyede bir attığı hafif heartbeat uç noktası.
+    Veritabanına anlık 'last_ping' yazar, ekranın sürekli canlı kalmasını sağlar.
+    Ağır nöbetçi sorgulaması yapmaz, sadece canlılık ve identify kontrolü döner.
+    """
+    key = request.args.get("key", "").strip().upper()
+    if not key:
+        key = request.cookies.get("kiosk_license_key", "").strip().upper()
+    if not key:
+        return jsonify({"success": False, "error": "missing_key"}), 400
+
+    eczane = Pharmacy.query.filter(db.func.upper(Pharmacy.license_key) == key).first()
+    if not eczane or not eczane.lisans_gecerli_mi():
+        return jsonify({"success": False, "error": "invalid_or_expired"}), 403
+
+    device_token = request.args.get("device_token", "").strip() or request.cookies.get("kiosk_device_token", "").strip()
+    mac_addr = request.args.get("mac", "").strip()
+    local_ip = request.args.get("local_ip", "").strip()
+    client_ip = istemci_ip_al()
+    resolution = request.args.get("res", "").strip()
+
+    aktif_cihaz = None
+    if device_token or mac_addr:
+        if mac_addr:
+            aktif_cihaz = eczane.devices.filter_by(mac_address=mac_addr).first()
+        if not aktif_cihaz and device_token:
+            aktif_cihaz = eczane.devices.filter_by(device_token=device_token).first()
+        if not aktif_cihaz and local_ip and not local_ip.startswith("127.") and local_ip != "-":
+            aktif_cihaz = eczane.devices.filter(
+                KioskDevice.local_ip == local_ip,
+                KioskDevice.is_approved == True
+            ).first()
+
+        if aktif_cihaz:
+            aktif_cihaz.last_ping = datetime.now()
+            if client_ip: aktif_cihaz.ip_address = client_ip
+            if local_ip: aktif_cihaz.local_ip = local_ip
+            if resolution: aktif_cihaz.screen_resolution = resolution
+
+    eczane.last_ping = datetime.now()
+    if client_ip: eczane.last_ip = client_ip
+    db.session.commit()
+
+    identify_bilgisi = None
+    if aktif_cihaz and aktif_cihaz.is_identify_active():
+        identify_bilgisi = {
+            "active": True,
+            "device_id": aktif_cihaz.id,
+            "device_name": aktif_cihaz.device_name,
+            "code": f"CİHAZ #{aktif_cihaz.id}"
+        }
+
+    return jsonify({
+        "success": True,
+        "online": True,
+        "pharmacy_id": eczane.id,
+        "device_id": aktif_cihaz.id if aktif_cihaz else None,
+        "identify": identify_bilgisi,
+        "server_time": datetime.now().strftime("%H:%M:%S")
+    })
+
+
 # ==========================================
 # GÜVENLİ KÖK ROTA VE LİSANS PORTALI
 # ==========================================
 
 @app.route("/")
 def index():
-    """Kök dizin rotası. Key varsa kiosk'a yönlendirir, yoksa portalı açar."""
-    key = request.args.get("key", "").strip()
+    """Kök dizin rotası. Key parametresi veya çerezde geçerli lisans varsa kiosk'a yönlendirir, yoksa portalı açar."""
+    key = request.args.get("key", "").strip().upper()
+    if not key:
+        key = request.cookies.get("kiosk_license_key", "").strip().upper()
+
     if key:
-        return redirect(url_for("kiosk", key=key))
+        eczane = Pharmacy.query.filter(db.func.upper(Pharmacy.license_key) == key).first()
+        if eczane and eczane.lisans_gecerli_mi():
+            return redirect(url_for("kiosk", key=key))
+
     return render_template("portal.html")
 
 

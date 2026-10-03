@@ -193,5 +193,28 @@
         </div>
     </div>
 
+    <script>
+        // Önceden girilmiş lisansı hatırlama
+        document.addEventListener('DOMContentLoaded', () => {
+            const keyInput = document.getElementById('key');
+            const kayitliLisans = localStorage.getItem('kiosk_license_key');
+            if (kayitliLisans && keyInput && !keyInput.value) {
+                keyInput.value = kayitliLisans;
+            }
+
+            const form = document.querySelector('.portal-form');
+            if (form) {
+                form.addEventListener('submit', (e) => {
+                    if (keyInput) {
+                        const val = keyInput.value.trim().toUpperCase();
+                        keyInput.value = val;
+                        if (val) {
+                            localStorage.setItem('kiosk_license_key', val);
+                        }
+                    }
+                });
+            }
+        });
+    </script>
 </body>
 </html>
