@@ -251,10 +251,14 @@ class Pharmacy(db.Model):
         # C) Akıllı Cihaz & Yerel IP Eşleştirmesi:
         # TV Bro veya tarayıcı önbelleği silinse bile aynı TV kutusunun yerel IP'si (örn: 192.168.1.10)
         # zaten onaylı bir cihaza aitse, mükerrer cihaz kaydı açmak yerine o onaylı cihazı koru ve güncelle.
+        # GÜVENLİK: Yalnızca son 10 dakikadır sinyal göndermeyen (pasif) bir cihaz devralınabilir.
+        # Aksi halde DHCP ile aynı IP'yi alan başka bir TV, çalışan bir cihazın kaydını ele geçirebilirdi.
         if not kayitli_cihaz and local_ip and not local_ip.startswith("127.") and local_ip != "-":
+            pasiflik_siniri = datetime.now() - timedelta(minutes=10)
             ayni_ip_onayli_cihaz = self.devices.filter(
                 KioskDevice.local_ip == local_ip,
-                KioskDevice.is_approved == True
+                KioskDevice.is_approved == True,
+                db.or_(KioskDevice.last_ping == None, KioskDevice.last_ping < pasiflik_siniri)
             ).first()
             if ayni_ip_onayli_cihaz:
                 kayitli_cihaz = ayni_ip_onayli_cihaz
@@ -311,19 +315,21 @@ class Pharmacy(db.Model):
 
         return False, "Yeni cihaz sisteme eklendi ve onay bekliyor. Yönetim panelinden lisansı aktif ediniz.", yeni_cihaz
 
-    def cihaz_uyumlu_mu(self, token: str) -> bool:
+    def cihaz_uyumlu_mu(self, token: str, mac: str = None) -> bool:
         """
-        Gelen cihaz belirtecinin (token) bu eczane lisansına erişip erişemeyeceğini kontrol eder.
-        Cihaz kilidi kapalıysa, token kayıtlıysa veya yeni cihaz limiti henüz dolmamışsa True döner.
+        Gelen cihazın (token veya MAC) bu lisansa erişip erişemeyeceğini kontrol eder.
+        Cihaz kilidi kapalıysa, cihaz token/MAC ile kayıtlıysa veya limitte yer varsa True döner.
         """
         if not self.device_lock_enabled:
             return True
-        if not token:
+        if not token and not mac:
             return True
-        if self.registered_device_token and self.registered_device_token == token:
+        if token and self.registered_device_token and self.registered_device_token == token:
             return True
-        cihaz = self.devices.filter_by(device_token=token).first()
-        if cihaz:
+        if token and self.devices.filter_by(device_token=token).first():
+            return True
+        # Token değişmiş olsa bile aynı MAC ile kayıtlı cihaz engellenmemeli
+        if mac and self.devices.filter_by(mac_address=mac).first():
             return True
         # Henüz kayıtlı değilse, cihaz limitinde yer varsa izin ver (ekranda onay bekliyor uyarısı çıkabilsin)
         if self.devices.count() < (self.max_devices or 1):
@@ -369,7 +375,15 @@ class Pharmacy(db.Model):
         if not self.expires_at:
             return 0
         fark = self.expires_at - datetime.now()
-        return max(0, fark.days)
+        toplam_saniye = fark.total_seconds()
+        if toplam_saniye <= 0:
+            return 0
+        import math
+        return max(1, math.ceil(toplam_saniye / 86400))
+
+    def onay_bekleyen_cihaz_sayisi(self) -> int:
+        """Bu eczaneye bağlı yönetici onayı bekleyen yeni cihaz sayısını döndürür."""
+        return self.devices.filter_by(is_approved=False).count()
 
     def ekran_cevrimici_mi(self, tolerans_dakika: int = 5) -> bool:
         """Herhangi bir TV ekranının son 5 dakikada ping atıp atmadığını kontrol eder."""

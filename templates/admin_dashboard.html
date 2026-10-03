@@ -95,7 +95,7 @@
         /* İstatistik Kartları */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 1.2rem;
             margin-bottom: 1.8rem;
         }
@@ -652,6 +652,16 @@
             </div>
             <div class="stat-badge orange">📺</div>
         </div>
+
+        {% if bekleyen_onay_sayisi and bekleyen_onay_sayisi > 0 %}
+        <div class="stat-card" style="border-color: rgba(245, 158, 11, 0.6); background: rgba(245, 158, 11, 0.08); box-shadow: 0 0 20px rgba(245, 158, 11, 0.15);">
+            <div class="stat-info">
+                <h3 style="color: #fbbf24;">Onay Bekleyen TV</h3>
+                <div class="stat-number" style="color: #fbbf24;">{{ bekleyen_onay_sayisi }}</div>
+            </div>
+            <div class="stat-badge orange" style="background: rgba(245, 158, 11, 0.2); border: 1px solid rgba(245, 158, 11, 0.4); animation: pulse 2s infinite;">🔔</div>
+        </div>
+        {% endif %}
     </section>
 
     <!-- Eczane & Lisans Tablosu -->
@@ -738,12 +748,22 @@
                     <td>
                         <div style="display: flex; flex-direction: column; align-items: center; gap: 0.35rem;">
                             {% set dev_sayisi = e.devices.count() %}
-                            <span class="badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35); font-weight: 700; font-size: 0.75rem; white-space: nowrap;">
-                                📺 {{ dev_sayisi }} / {{ e.max_devices or 1 }} TV
-                            </span>
-                            <button type="button" class="btn btn-sm btn-secondary" onclick="cihazYonetimModalAc({{ e.id }})" style="padding: 0.2rem 0.45rem; font-size: 0.72rem; width: 100%; max-width: 95px; text-align: center;" title="Bağlı Cihazları Yönet / Sıfırla">
-                                ⚙️ Cihazlar
-                            </button>
+                            {% set bekleyen_sayisi = e.onay_bekleyen_cihaz_sayisi() %}
+                            {% if bekleyen_sayisi > 0 %}
+                                <span class="badge" style="background: rgba(245, 158, 11, 0.25); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.6); font-weight: 800; font-size: 0.72rem; white-space: nowrap; animation: pulse 1.8s infinite;" title="{{ bekleyen_sayisi }} TV lisans onayı bekliyor">
+                                    🔔 {{ bekleyen_sayisi }} Onay Bekliyor
+                                </span>
+                                <button type="button" class="btn btn-sm btn-warning" onclick="cihazYonetimModalAc({{ e.id }})" style="padding: 0.2rem 0.45rem; font-size: 0.72rem; width: 100%; max-width: 95px; text-align: center; font-weight: 700; box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);" title="Onay Bekleyen TV'yi Onaylamak İçin Tıklayın">
+                                    ⚡ Onayla
+                                </button>
+                            {% else %}
+                                <span class="badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35); font-weight: 700; font-size: 0.75rem; white-space: nowrap;">
+                                    📺 {{ dev_sayisi }} / {{ e.max_devices or 1 }} TV
+                                </span>
+                                <button type="button" class="btn btn-sm btn-secondary" onclick="cihazYonetimModalAc({{ e.id }})" style="padding: 0.2rem 0.45rem; font-size: 0.72rem; width: 100%; max-width: 95px; text-align: center;" title="Bağlı Cihazları Yönet / Sıfırla">
+                                    ⚙️ Cihazlar
+                                </button>
+                            {% endif %}
                         </div>
                     </td>
 
@@ -1716,7 +1736,8 @@
         async function cihazOnayla(eczaneId, deviceId) {
             try {
                 const res = await fetch(`/admin/pharmacy/${eczaneId}/device/${deviceId}/approve`, {
-                    method: 'POST'
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
                 });
                 if (res.ok) {
                     alert('✅ Cihaz lisansı başarıyla aktif edildi! TV ekranı otomatik yayına başlayacaktır.');
@@ -1748,6 +1769,7 @@
             try {
                 const res = await fetch(`/admin/pharmacy/${eczaneId}/device/${deviceId}/edit`, {
                     method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
                     body: formData
                 });
                 if (res.ok) {
@@ -1765,7 +1787,8 @@
         async function cihaziEkrandaGoster(eczaneId, deviceId) {
             try {
                 const res = await fetch(`/admin/pharmacy/${eczaneId}/device/${deviceId}/identify`, {
-                    method: 'POST'
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
                 });
                 if (res.ok) {
                     alert(`📡 Tanımlama sinyali hedef TV ekranına gönderildi!\nEkran 25 saniye boyunca parlayacak ve cihaz bilgilerini gösterecektir.`);

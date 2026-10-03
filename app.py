@@ -243,12 +243,13 @@ def admin_logout():
 @app.route("/admin")
 @login_required
 def admin_dashboard():
-    """Yönetim paneli ana kontrol ekranı (Eczane listesi, istatistikler ve heartbeat)."""
+    """Yönetim paneli ana kontrol ekranı (Eczane listesi, istatistikler, cihaz onayları ve heartbeat)."""
     eczaneler = Pharmacy.query.order_by(Pharmacy.id.desc()).all()
     
     toplam_sayi = len(eczaneler)
     aktif_sayi = sum(1 for e in eczaneler if e.lisans_gecerli_mi())
     cevrimici_sayi = sum(1 for e in eczaneler if e.ekran_cevrimici_mi())
+    bekleyen_onay_sayisi = KioskDevice.query.filter_by(is_approved=False).count()
 
     # Host ve protokol bilgisi (kiosk URL kopyalama ve önizleme için HTTPS duyarlı)
     proto = request.headers.get("X-Forwarded-Proto", request.scheme)
@@ -261,6 +262,7 @@ def admin_dashboard():
         toplam_sayi=toplam_sayi,
         aktif_sayi=aktif_sayi,
         cevrimici_sayi=cevrimici_sayi,
+        bekleyen_onay_sayisi=bekleyen_onay_sayisi,
         base_url=base_url
     )
 
@@ -911,6 +913,13 @@ def admin_approve_single_device(eczane_id, device_id):
     cihaz.approved_at = datetime.now()
     db.session.commit()
 
+    if request.is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest" or "application/json" in request.headers.get("Accept", ""):
+        return jsonify({
+            "success": True,
+            "message": f"'{cihaz.device_name}' cihazının lisansı başarıyla aktif edildi! Ekran otomatik yayına başlayacaktır.",
+            "device": cihaz.to_dict()
+        })
+
     flash(f"'{cihaz.device_name}' cihazının lisansı başarıyla aktif edildi! Ekran otomatik yayına başlayacaktır.", "success")
     return redirect(url_for("admin_dashboard"))
 
@@ -1002,6 +1011,12 @@ def admin_identify_single_device(eczane_id, device_id):
 
     cihaz.cihazi_tanimla(25)
     db.session.commit()
+
+    if request.is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest" or "application/json" in request.headers.get("Accept", ""):
+        return jsonify({
+            "success": True,
+            "message": f"'{cihaz.device_name}' cihazına ekranda göster sinyali gönderildi! TV ekranında 25 saniye boyunca parlayacak."
+        })
 
     flash(f"'{cihaz.device_name}' cihazına ekranda göster sinyali gönderildi! TV ekranında 25 saniye boyunca parlayacak.", "info")
     return redirect(url_for("admin_dashboard"))
@@ -1130,11 +1145,12 @@ def kiosk():
             lisans_kodu=key
         )
 
-    if device_token and not eczane.cihaz_uyumlu_mu(device_token):
+    cihaz_mac = request.cookies.get("kiosk_device_mac", "").strip()
+    if (device_token or cihaz_mac) and not eczane.cihaz_uyumlu_mu(device_token, cihaz_mac):
         return render_template(
             "kiosk_error.html",
-            hata_baslik="Cihaz Kilidi Engeli",
-            hata_mesaj="Bu lisans anahtarı başka bir TV cihazına kilitlenmiştir. Sistem güvenliği gereği aynı lisans birden fazla cihazda açılamaz.",
+            hata_baslik="Cihaz Limiti Dolu",
+            hata_mesaj="Bu lisans için tanımlı TV ekranı sınırına ulaşıldı. Yönetim panelinden cihaz limitini artırın veya kullanılmayan bir cihazı silin.",
             lisans_kodu=key
         )
 
@@ -1240,6 +1256,7 @@ def api_kiosk_data():
     else:
         eczane.last_ping = datetime.now()
         eczane.last_ip = client_ip
+        db.session.commit()
 
     # Sistem global ayarlarını al (Önbellek süresi ve kaynak öncelikleri)
     sistem_ayari = SystemSetting.get_settings()
@@ -1277,8 +1294,9 @@ def api_kiosk_data():
                 break
 
     # Cihaza özel ekran ölçeği & Ekranda Tanımlama Sinyali Kontrolü
-    aktif_cihaz = None
-    if device_token:
+    # Not: aktif_cihaz yukarıda token/MAC/yerel IP ile doğrulandı; sıfırlanmamalı.
+    # (Önceden yalnızca token ile yeniden arandığı için MAC ile eşleşen cihazın teması uygulanmıyordu.)
+    if not aktif_cihaz and device_token:
         aktif_cihaz = eczane.devices.filter_by(device_token=device_token).first()
 
     # Cihaza özel ekran ölçeği, tema ve parametre kontrolü
@@ -1300,6 +1318,9 @@ def api_kiosk_data():
                 "screen_scale": cihaz_ekran_olcegi,
                 "code": f"CİHAZ #{aktif_cihaz.id}"
             }
+            # Sinyal TV ekranına teslim edildi, tek seferlik olarak tüketilir
+            aktif_cihaz.identify_until = None
+            db.session.commit()
 
     # Manuel test veya otomatik tespit kontrolü
     nihai_nobet_durumu = eczane.nobetci_mi()
@@ -1372,9 +1393,11 @@ def api_kiosk_ping():
         if not aktif_cihaz and device_token:
             aktif_cihaz = eczane.devices.filter_by(device_token=device_token).first()
         if not aktif_cihaz and local_ip and not local_ip.startswith("127.") and local_ip != "-":
+            pasiflik_siniri = datetime.now() - timedelta(minutes=10)
             aktif_cihaz = eczane.devices.filter(
                 KioskDevice.local_ip == local_ip,
-                KioskDevice.is_approved == True
+                KioskDevice.is_approved == True,
+                db.or_(KioskDevice.last_ping == None, KioskDevice.last_ping < pasiflik_siniri)
             ).first()
 
         if aktif_cihaz:
@@ -1393,8 +1416,12 @@ def api_kiosk_ping():
             "active": True,
             "device_id": aktif_cihaz.id,
             "device_name": aktif_cihaz.device_name,
+            "screen_scale": aktif_cihaz.screen_scale or eczane.screen_scale or "auto",
             "code": f"CİHAZ #{aktif_cihaz.id}"
         }
+        # Sinyal TV ekranına teslim edildi, tek seferlik olarak tüketilir
+        aktif_cihaz.identify_until = None
+        db.session.commit()
 
     return jsonify({
         "success": True,
