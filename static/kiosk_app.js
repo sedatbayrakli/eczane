@@ -308,20 +308,24 @@ function antiBurnInModunuUygula(aktif = true) {
         antiBurnInTimer = null;
     }
 
-    const wrapper = document.querySelector('.dashboard-wrapper');
-    if (!wrapper) return;
+    const grid = document.querySelector('.pharmacy-grid-container');
+    const header = document.querySelector('.top-header');
+    if (!grid) return;
 
     if (!aktif) {
-        wrapper.style.transform = 'none';
+        grid.style.transform = 'none';
+        if (header) header.style.transform = 'none';
         return;
     }
 
-    wrapper.style.transition = 'transform 1.2s cubic-bezier(0.4, 0, 0.2, 1)';
+    grid.style.transition = 'transform 1.2s cubic-bezier(0.4, 0, 0.2, 1)';
+    if (header) header.style.transition = 'transform 1.2s cubic-bezier(0.4, 0, 0.2, 1)';
 
     antiBurnInTimer = setInterval(() => {
         antiBurnInAdim = (antiBurnInAdim + 1) % PIXEL_SHIFT_YORUNGE.length;
         const offset = PIXEL_SHIFT_YORUNGE[antiBurnInAdim];
-        wrapper.style.transform = `translate(${offset.x}px, ${offset.y}px)`;
+        grid.style.transform = `translate3d(${offset.x}px, ${offset.y}px, 0)`;
+        if (header) header.style.transform = `translate3d(${offset.x}px, 0, 0)`;
     }, 60000);
 }
 
@@ -337,12 +341,10 @@ function tickerHiziniVePozisyonunuAyarla(hizPxSaniye = 55) {
     const wrapperW = wrapper.offsetWidth || window.innerWidth || 1200;
     const textW = elTickerText.offsetWidth || elTickerText.scrollWidth || 800;
 
-    elTickerText.style.setProperty('--marquee-start', `${wrapperW}px`);
-    elTickerText.style.setProperty('--marquee-end', `-${textW + 30}px`);
-
+    // Hız: 50-60 px/sn ideal, varsayılan 55 px/sn
     const hiz = Math.max(35, Math.min(100, Number(hizPxSaniye) || 55));
-    const toplamMesafe = wrapperW + textW + 30;
-    const gerekenSure = (toplamMesafe / hiz).toFixed(1);
+    const toplamMesafe = wrapperW + textW;
+    const gerekenSure = Math.max(15, Math.round(toplamMesafe / hiz));
 
     elTickerText.style.animationDuration = `${gerekenSure}s`;
 }
@@ -676,8 +678,16 @@ if (typeof L !== 'undefined') {
                         if (cachedResponse) {
                             // 1. ÖNCELİK: YEREL CACHE'TEN GETİR (İnternet olmasa da anında yüklenir!)
                             cachedResponse.blob().then(blob => {
-                                tile.src = URL.createObjectURL(blob);
-                                done(null, tile);
+                                const objUrl = URL.createObjectURL(blob);
+                                tile.onload = () => {
+                                    URL.revokeObjectURL(objUrl);
+                                    done(null, tile);
+                                };
+                                tile.onerror = () => {
+                                    URL.revokeObjectURL(objUrl);
+                                    done(null, tile);
+                                };
+                                tile.src = objUrl;
                             }).catch(() => {
                                 this._indirVeSakla(url, tile, cache, done);
                             });
@@ -714,8 +724,16 @@ if (typeof L !== 'undefined') {
                     }
                     throw new Error('Tile fetch failed');
                 }).then(blob => {
-                    tile.src = URL.createObjectURL(blob);
-                    done(null, tile);
+                    const objUrl = URL.createObjectURL(blob);
+                    tile.onload = () => {
+                        URL.revokeObjectURL(objUrl);
+                        done(null, tile);
+                    };
+                    tile.onerror = () => {
+                        URL.revokeObjectURL(objUrl);
+                        done(null, tile);
+                    };
+                    tile.src = objUrl;
                 }).catch(() => {
                     tile.src = url;
                 });
