@@ -1587,6 +1587,17 @@ body.scale-4k {
     border-bottom-color: rgba(239, 68, 68, 0.9) !important;
 }
 
+/* Genel Nöbetçi Eczane Harita Etiketi (1. Versiyon Izgara ve Çoklu Gösterim İçin) */
+.leaflet-tooltip.duty-tooltip {
+    background: rgba(15, 23, 42, 0.95) !important;
+    border: 1.5px solid rgba(248, 113, 113, 0.75) !important;
+    color: #ffffff !important;
+}
+
+.leaflet-tooltip.duty-tooltip::before {
+    border-bottom-color: rgba(248, 113, 113, 0.75) !important;
+}
+
 
 /* Nöbet Saatleri ve Canlı Geri Sayım Kartı - İki Çerçeveli Kutu */
 .focus-duty-time-card {
@@ -2122,4 +2133,51 @@ body.scale-4k {
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     padding-top: 1rem;
 }
+
+/* 4. Versiyon İkili Kart Sayfalama Çubuğu & İndikatörleri */
+.dual-pagination-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.35rem 0.75rem;
+    background: rgba(15, 23, 42, 0.75);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    border-radius: var(--radius-md);
+    flex-shrink: 0;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.dual-page-badge {
+    font-size: 0.82rem;
+    font-weight: 800;
+    color: #38bdf8;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    letter-spacing: 0.03em;
+}
+
+.dual-pills-row {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.dual-page-pill {
+    width: 24px;
+    height: 6px;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.2);
+    cursor: pointer;
+    transition: all 0.35s ease;
+}
+
+.dual-page-pill.active {
+    width: 48px;
+    background: linear-gradient(90deg, #0284c7, #38bdf8);
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.8);
+}
+
 

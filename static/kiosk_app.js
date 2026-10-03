@@ -59,6 +59,7 @@ let sonGecerliVeri = null;
 let guncelEczaneler = [];
 let guncelKendiEczane = null;
 let slaytIndex = 0;
+let dualSayfaIndex = 0;
 let slaytTimer = null;
 let progressTimer = null;
 let progressStartTime = 0;
@@ -815,7 +816,7 @@ function haritayiIlkKezOlustur() {
 /**
  * Haritadaki Pinleri Çizer
  */
-function haritaPinleriniCiz(kendiEczane, nobetciler, seciliIndex = null) {
+function haritaPinleriniCiz(kendiEczane, nobetciler, seciliIndex = null, tumIsimleriGoster = false) {
     haritayiIlkKezOlustur();
     if (!kioskMap || !mapMarkersGroup) return;
 
@@ -843,6 +844,10 @@ function haritaPinleriniCiz(kendiEczane, nobetciler, seciliIndex = null) {
         koordinatNoktalari.push([kendiEczane.latitude, kendiEczane.longitude]);
     }
 
+    const aktifGorunumModu = aktifGorunumuBelirle();
+    // 1. Versiyon Izgara ve 4. Versiyon İkili Kart modlarında ekrandaki tüm nöbetçilerin isimleri haritada kalıcı görünür
+    const hepsiGosterilsin = tumIsimleriGoster || (aktifGorunumModu === 'classic_grid') || (aktifGorunumModu === 'dual_card');
+
     // Nöbetçi Eczaneler Pinleri
     if (Array.isArray(nobetciler)) {
         nobetciler.forEach((e, idx) => {
@@ -852,11 +857,11 @@ function haritaPinleriniCiz(kendiEczane, nobetciler, seciliIndex = null) {
 
                 const dutyIcon = L.divIcon({
                     className: 'custom-leaflet-marker',
-                    html: `<div class="pulse-ring-pin ${isSelected ? 'active-focused-pin' : ''}" title="${escapeHtml(e.isim)}">
-                             ${isSelected ? '<span class="pin-selected-star">📍</span>' : ''}
+                    html: `<div class="pulse-ring-pin ${isTarget ? 'active-focused-pin' : ''}" title="${escapeHtml(e.isim)}">
+                             ${isTarget ? '<span class="pin-selected-star">📍</span>' : ''}
                            </div>`,
-                    iconSize: isSelected ? [36, 36] : [28, 28],
-                    iconAnchor: isSelected ? [18, 18] : [14, 14]
+                    iconSize: isTarget ? [36, 36] : [28, 28],
+                    iconAnchor: isTarget ? [18, 18] : [14, 14]
                 });
 
                 const popupHtml = `
@@ -869,12 +874,13 @@ function haritaPinleriniCiz(kendiEczane, nobetciler, seciliIndex = null) {
 
                 const marker = L.marker([e.enlem, e.boylam], { icon: dutyIcon }).bindPopup(popupHtml);
 
-                // Hedef veya Seçili Eczane İsmini Harita Üzerinde Kalıcı Olarak Göster
-                if (isTarget) {
+                // 1. Versiyon Izgara ve İkili Kartta tüm nöbetçi isimlerini haritada kalıcı göster
+                if (hepsiGosterilsin || isTarget) {
+                    const tooltipClass = isTarget ? 'kiosk-map-tooltip target-tooltip' : 'kiosk-map-tooltip duty-tooltip';
                     marker.bindTooltip(`📍 ${escapeHtml(e.isim)}`, {
                         permanent: true,
                         direction: 'bottom',
-                        className: 'kiosk-map-tooltip target-tooltip',
+                        className: tooltipClass,
                         offset: [0, 16]
                     });
                 }
@@ -1414,6 +1420,89 @@ function manuelSlaytaGit(index) {
     }
 }
 
+/**
+ * Tema 4: İkili Dev Kart Sayfa Gösterimi (2'şerli Nöbetçi Gösterimi ve Otomatik Sayfalama)
+ */
+function dualSayfaGoster() {
+    if (!guncelEczaneler || guncelEczaneler.length === 0) return;
+
+    if (routeLineGroup) routeLineGroup.clearLayers();
+
+    const toplamDualSayfa = Math.ceil(guncelEczaneler.length / 2);
+    if (dualSayfaIndex >= toplamDualSayfa) {
+        dualSayfaIndex = 0;
+    }
+
+    const baslangic = dualSayfaIndex * 2;
+    const buSayfaEczaneler = guncelEczaneler.slice(baslangic, baslangic + 2);
+
+    if (elMapPanelTitle) {
+        if (toplamDualSayfa > 1) {
+            elMapPanelTitle.textContent = `CANLI HARİTA (SAYFA ${dualSayfaIndex + 1} / ${toplamDualSayfa})`;
+        } else {
+            elMapPanelTitle.textContent = `CANLI HARİTA (EN YAKIN 2 NÖBETÇİ)`;
+        }
+    }
+
+    let paginationHtml = '';
+    if (toplamDualSayfa > 1) {
+        const pills = Array.from({ length: toplamDualSayfa }).map((_, pIdx) => `
+            <span class="dual-page-pill ${pIdx === dualSayfaIndex ? 'active' : ''}" onclick="manuelDualSayfayaGit(${pIdx})" title="Sayfa ${pIdx + 1}"></span>
+        `).join('');
+
+        paginationHtml = `
+            <div class="dual-pagination-bar">
+                <span class="dual-page-badge">📄 Nöbetçiler: Sayfa ${dualSayfaIndex + 1} / ${toplamDualSayfa}</span>
+                <div class="dual-pills-row">${pills}</div>
+            </div>
+        `;
+    }
+
+    elPharmacyGrid.className = 'pharmacy-grid-container';
+    elPharmacyGrid.innerHTML = `
+        <div class="dual-pharmacy-cards-container">
+            ${buSayfaEczaneler.map((e, idx) => ikiliEczaneKartiHtmlUret(e, baslangic + idx)).join('')}
+            ${paginationHtml}
+        </div>
+    `;
+
+    // Harita: Lisanslı eczanemiz + ekranda o an gösterilen bu 2 eczane
+    const noktalar = haritaPinleriniCiz(guncelKendiEczane, buSayfaEczaneler, null, true);
+    if (noktalar && noktalar.length > 0 && kioskMap) {
+        setTimeout(() => {
+            kioskMap.invalidateSize();
+            try {
+                kioskMap.flyToBounds(noktalar, { padding: [35, 35], maxZoom: 15, duration: 1.0 });
+            } catch (e) {
+                kioskMap.fitBounds(noktalar, { padding: [35, 35], maxZoom: 15 });
+            }
+        }, 100);
+    }
+
+    // Eğer birden fazla sayfa varsa ilerleme animasyonunu başlat
+    if (toplamDualSayfa > 1) {
+        slaytIlerlemeAnimasyonunuBaslat();
+    } else {
+        if (elProgressBarContainer) elProgressBarContainer.style.display = 'none';
+    }
+
+    temaIcerikGorunurlukleriniUygula();
+}
+
+function manuelDualSayfayaGit(index) {
+    dualSayfaIndex = index;
+    dualSayfaGoster();
+
+    const toplamDualSayfa = Math.ceil(guncelEczaneler.length / 2);
+    if (toplamDualSayfa > 1) {
+        if (slaytTimer) clearInterval(slaytTimer);
+        slaytTimer = setInterval(() => {
+            dualSayfaIndex = (dualSayfaIndex + 1) % toplamDualSayfa;
+            dualSayfaGoster();
+        }, KIOSK_AYARLAR.SLAYT_SURESI_MS);
+    }
+}
+
 
 /**
  * Kiosk Ekran Teması Parametrik Görünürlük Ayarlarını DOM'a Uygular
@@ -1570,26 +1659,16 @@ function arayuzuGuncelle(veri, isOffline = false, savedTime = '') {
             }, KIOSK_AYARLAR.SLAYT_SURESI_MS);
 
         } else if (gorunum === 'dual_card') {
-            // Tema 4: İkili Dev Kart (Sadece en yakın 2 nöbetçi devasa gösterilir)
+            // Tema 4: İkili Dev Kart (2'şerli nöbetçi gösterimi & otomatik sayfalama)
             slaytDongusunuDurdur();
-            if (routeLineGroup) routeLineGroup.clearLayers();
-            if (elMapPanelTitle) elMapPanelTitle.textContent = `CANLI HARİTA (EN YAKIN 2 NÖBETÇİ)`;
+            dualSayfaGoster();
 
-            const ilk2 = guncelEczaneler.slice(0, 2);
-            elPharmacyGrid.className = 'pharmacy-grid-container';
-            elPharmacyGrid.innerHTML = `
-                <div class="dual-pharmacy-cards-container">
-                    ${ilk2.map((e, idx) => ikiliEczaneKartiHtmlUret(e, idx)).join('')}
-                </div>
-            `;
-
-            // Harita: Lisanslı eczane ve ilk 2 eczaneyi göster
-            const noktalar = haritaPinleriniCiz(veri.pharmacy, ilk2);
-            if (noktalar && noktalar.length > 0 && kioskMap) {
-                setTimeout(() => {
-                    kioskMap.invalidateSize();
-                    kioskMap.fitBounds(noktalar, { padding: [35, 35], maxZoom: 15 });
-                }, 100);
+            const toplamDualSayfa = Math.ceil(guncelEczaneler.length / 2);
+            if (toplamDualSayfa > 1) {
+                slaytTimer = setInterval(() => {
+                    dualSayfaIndex = (dualSayfaIndex + 1) % toplamDualSayfa;
+                    dualSayfaGoster();
+                }, KIOSK_AYARLAR.SLAYT_SURESI_MS);
             }
 
         } else {
@@ -1605,7 +1684,8 @@ function arayuzuGuncelle(veri, isOffline = false, savedTime = '') {
 
             elPharmacyGrid.innerHTML = veri.eczaneler.map((e, idx) => eczaneKartiHtmlUret(e, idx)).join('');
 
-            const noktalar = haritaPinleriniCiz(veri.pharmacy, veri.eczaneler);
+            // 1. versiyon ızgarada tüm nöbetçi eczanelerin isimleri harita üzerinde kalıcı görünür
+            const noktalar = haritaPinleriniCiz(veri.pharmacy, veri.eczaneler, null, true);
             if (noktalar && noktalar.length > 0 && kioskMap) {
                 setTimeout(() => {
                     kioskMap.invalidateSize();
