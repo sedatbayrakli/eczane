@@ -924,7 +924,7 @@ function eczaneKartiHtmlUret(eczane, index) {
                      loading="eager" />
             </div>
             <div class="qr-caption">
-                Kamerayla <span>Rota Başlat</span>
+                Adres Tarifi <span>İçin Okutunuz</span>
             </div>
         </div>
     </article>
@@ -985,7 +985,7 @@ function devOdakKartiHtmlUret(eczane, siraNo, toplamAdet, modAdi = 'NAVİGASYON'
                          loading="eager" />
                 </div>
                 <div class="focus-qr-text">
-                    📲 Okutup <strong>anında rota başlatın</strong>
+                    Adres Tarifi için <strong>Okutunuz</strong>
                 </div>
             </div>
 
@@ -1084,7 +1084,7 @@ function ikiliEczaneKartiHtmlUret(eczane, siraNo) {
                      loading="eager" />
             </div>
             <div class="qr-caption" style="font-size: 0.68rem; margin-top: 0.2rem;">
-                Kamerayla <span>Rota Başlat</span>
+                Adres Tarifi <span>İçin Okutunuz</span>
             </div>
         </div>
     </article>
@@ -1207,9 +1207,9 @@ function slaytGoster() {
 
     if (gorunum === 'animated_route') {
         // Tema 2: Canlı Yol & Navigasyon Rota
-        const rotaPrefix = isOfflineModAktif ? '💾 ÇEVRİMDIŞI ROTA & HARİTA' : 'CANLI ROTA & NAVİGASYON';
+        const rotaPrefix = isOfflineModAktif ? '💾 ÇEVRİMDIŞI HARİTA & KONUM' : 'CANLI HARİTA & YOL TARİFİ';
         if (elMapPanelTitle) elMapPanelTitle.textContent = `${rotaPrefix} (${seciliEczane.isim})`;
-        elPharmacyGrid.innerHTML = devOdakKartiHtmlUret(seciliEczane, slaytIndex, guncelEczaneler.length, 'CANLI ROTA');
+        elPharmacyGrid.innerHTML = devOdakKartiHtmlUret(seciliEczane, slaytIndex, guncelEczaneler.length, 'YOL TARİFİ');
         
         haritaPinleriniCiz(guncelKendiEczane, guncelEczaneler, slaytIndex);
         haritadaRotaGoster(guncelKendiEczane, seciliEczane);

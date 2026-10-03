@@ -121,7 +121,7 @@ function eczaneKartiHtmlUret(eczane) {
                      onerror="this.onerror=null; this.src='https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https%3A%2F%2Fmaps.google.com';" />
             </div>
             <div class="qr-caption">
-                Kamerayla <span>Konuma Git</span>
+                Adres Tarifi <span>İçin Okutunuz</span>
             </div>
         </div>
     </article>
