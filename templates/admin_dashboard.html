@@ -263,8 +263,9 @@
             overflow: hidden;
         }
         .modal-box-large {
-            max-width: 1100px;
-            height: 88vh;
+            max-width: 960px;
+            width: 95%;
+            max-height: 90vh;
         }
         .modal-header {
             display: flex;
@@ -509,6 +510,81 @@
         .live-status-pill:hover .live-refresh-icon {
             opacity: 1;
             transform: scale(1.1);
+        }
+
+        /* Cihaz Yönetim Kartları (Device Cards) - Sağa Kaydırmayı Engelleyen Duyarlı Yerleşim */
+        .devices-card-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .device-card-item {
+            background: rgba(15, 23, 42, 0.65);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 14px;
+            padding: 1.1rem 1.3rem;
+            transition: all 0.25s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            box-sizing: border-box;
+            width: 100%;
+        }
+        .device-card-item:hover {
+            border-color: rgba(56, 189, 248, 0.35);
+            background: rgba(15, 23, 42, 0.85);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+        }
+        .device-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            padding-bottom: 0.85rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            margin-bottom: 0.85rem;
+        }
+        .device-card-title-group {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            flex-wrap: wrap;
+        }
+        .device-card-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+        }
+        .device-card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 0.85rem;
+            align-items: stretch;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .device-info-box {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 10px;
+            padding: 0.75rem 0.9rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            box-sizing: border-box;
+        }
+        .device-field-label {
+            font-size: 0.74rem;
+            font-weight: 700;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 0.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
         }
     </style>
 </head>
@@ -1124,11 +1200,11 @@
                     <button class="modal-close" onclick="modalKapat('modal-devices')">&times;</button>
                 </div>
             </div>
-            <div id="devmodal-body" style="margin-top: 1rem;">
+            <div id="devmodal-body" style="padding: 1.2rem; overflow-y: auto; overflow-x: hidden; flex: 1;">
                 <!-- JS ile dinamik cihaz listesi yüklenecek -->
             </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
-                <form id="devmodal-reset-all-form" method="POST" action="" onsubmit="return confirm('Bu eczanenin TÜM TV cihaz bağlantılarını sıfırlamak istediğinize emin misiniz?');">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.4rem; border-top: 1px solid var(--border-color); background: rgba(0,0,0,0.2); flex-shrink: 0;">
+                <form id="devmodal-reset-all-form" method="POST" action="" onsubmit="return confirm('Bu kurumun TÜM TV cihaz bağlantılarını sıfırlamak istediğinize emin misiniz?');">
                     <button type="submit" class="btn btn-sm btn-danger">🗑️ Tüm TV Kilitlerini Sıfırla</button>
                 </form>
                 <button type="button" class="btn btn-secondary" onclick="modalKapat('modal-devices')">Kapat</button>
@@ -1517,121 +1593,111 @@
                             </div>
                         </div>
                     `;
-                } else {
                     let rowsHtml = '';
                     devices.forEach((d, idx) => {
                         const onlineStatus = d.is_online 
-                            ? '<span class="heartbeat-dot dot-online" style="display:inline-block; width:13px; height:13px;" title="Cihaz Çevrimiçi"></span>' 
-                            : '<span class="heartbeat-dot dot-offline" style="display:inline-block; width:13px; height:13px;" title="Cihaz Çevrimdışı"></span>';
+                            ? '<span class="heartbeat-dot dot-online" style="display:inline-block; width:11px; height:11px;" title="Cihaz Çevrimiçi"></span>' 
+                            : '<span class="heartbeat-dot dot-offline" style="display:inline-block; width:11px; height:11px;" title="Cihaz Çevrimdışı"></span>';
 
                         const scaleVal = d.screen_scale || 'auto';
                         const devTheme = d.theme || eczane.theme || 'classic_grid';
 
                         const approvalBadge = d.is_approved
-                            ? `<span class="badge" style="background: rgba(16,185,129,0.2); color: #34d399; border: 1px solid rgba(16,185,129,0.4); font-weight: 700; font-size: 0.74rem;">🟢 Aktif</span>`
-                            : `<span class="badge" style="background: rgba(245,158,11,0.25); color: #fbbf24; border: 1px solid rgba(245,158,11,0.5); font-weight: 800; font-size: 0.74rem; animation: pulseGlow 2s infinite;">⏳ Onay Bekliyor</span>`;
+                            ? `<span class="badge" style="background: rgba(16,185,129,0.18); color: #34d399; border: 1px solid rgba(16,185,129,0.35); font-weight: 700; font-size: 0.74rem;">🟢 Aktif</span>`
+                            : `<span class="badge" style="background: rgba(245,158,11,0.22); color: #fbbf24; border: 1px solid rgba(245,158,11,0.45); font-weight: 800; font-size: 0.74rem; animation: pulseGlow 2s infinite;">⏳ Onay Bekliyor</span>`;
 
                         const approveButtonHtml = !d.is_approved
-                            ? `<button type="button" class="btn btn-sm btn-success" onclick="cihazOnayla(${eczane.id}, ${d.id})" style="padding: 0.3rem 0.55rem; font-size: 0.85rem; font-weight: 800; background: #059669; border-color: #10b981;" title="Bu TV Ekranının Lisansını Aktif Et">
-                                 ✅
+                            ? `<button type="button" class="btn btn-sm btn-success" onclick="cihazOnayla(${eczane.id}, ${d.id})" style="padding: 0.32rem 0.65rem; font-size: 0.78rem; font-weight: 700; background: #059669; border-color: #10b981;" title="Bu TV Ekranının Lisansını Aktif Et">
+                                 ✅ Onayla
                                </button>`
                             : '';
 
                         rowsHtml += `
-                        <tr id="device-row-${d.id}" style="${!d.is_approved ? 'background: rgba(245, 158, 11, 0.06);' : ''}">
-                            <td style="min-width: 140px;">
-                                <input type="text" id="dev-name-${d.id}" value="${escapeHtml(d.device_name || 'TV ' + (idx + 1))}" 
-                                    class="form-control" style="font-size: 0.82rem; padding: 0.35rem 0.55rem; background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.15);" 
-                                    placeholder="Örn: Vitrin TV">
-                            </td>
-                            <td>
-                                <code style="font-family: monospace; font-size: 0.85rem; color: #38bdf8; font-weight: 700; background: rgba(0,0,0,0.4); padding: 0.2rem 0.45rem; border-radius: 4px; border: 1px solid rgba(56,189,248,0.2);">
-                                    ${d.mac_address || '-'}
-                                </code>
-                            </td>
-                            <td>
-                                <div style="display: flex; flex-direction: column; gap: 0.25rem;">
-                                    <div style="display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.82rem; font-weight: 700; color: #f1f5f9; font-family: monospace;">
-                                        <span>🏠</span> <span>${escapeHtml(d.local_ip || '-')}</span>
-                                    </div>
-                                    <div style="display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.76rem; color: #94a3b8; font-family: monospace;">
-                                        <span>🌐</span> <span>${escapeHtml(d.ip_address || '-')}</span>
+                        <div class="device-card-item" id="device-row-${d.id}" style="${!d.is_approved ? 'border-color: rgba(245, 158, 11, 0.45); background: rgba(245, 158, 11, 0.05);' : ''}">
+                            <!-- Üst Bar: Başlık, Canlılık ve Hızlı İşlemler -->
+                            <div class="device-card-header">
+                                <div class="device-card-title-group">
+                                    <span style="font-size: 1.2rem;">📺</span>
+                                    <input type="text" id="dev-name-${d.id}" value="${escapeHtml(d.device_name || 'TV ' + (idx + 1))}" 
+                                        class="form-control" style="width: 175px; font-size: 0.88rem; font-weight: 700; height: 34px; min-height: 34px; line-height: 32px; padding: 0 0.65rem; background: rgba(0,0,0,0.45); border-color: rgba(255,255,255,0.18);" 
+                                        placeholder="Cihaz İsmi (Örn: Vitrin TV)">
+                                    ${approvalBadge}
+                                    <div class="live-status-pill" style="padding: 0.22rem 0.6rem; background: rgba(0,0,0,0.35); border-radius: 20px; border: 1px solid rgba(255,255,255,0.08); gap: 0.4rem; cursor: pointer;" onclick="tekilCihazCanlilikKontrolEt(${eczane.id}, ${d.id}, '${escapeHtml(d.device_name || 'TV')}')" title="Canlılığı test etmek için tıklayın">
+                                        <span id="dev-dot-${d.id}">${onlineStatus}</span>
+                                        <span id="dev-ping-text-${d.id}" style="font-size: 0.73rem; color: #94a3b8; font-family: monospace;">
+                                            ${escapeHtml(d.last_ping_ago || '-')}
+                                        </span>
+                                        <span id="btn-ping-dev-${d.id}" style="font-size: 0.75rem; color: #38bdf8;" title="Canlılığı Test Et">⚡</span>
                                     </div>
                                 </div>
-                            </td>
-                            <td style="min-width: 180px;">
-                                <div style="display: flex; flex-direction: column; gap: 0.35rem;">
-                                    <select id="dev-theme-${d.id}" class="form-control" style="font-size: 0.8rem; padding: 0.35rem 0.5rem; background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.15); font-weight: 600;">
-                                        <option value="classic_grid" ${devTheme === 'classic_grid' ? 'selected' : ''}>1. Versiyon (Izgara)</option>
-                                        <option value="animated_route" ${devTheme === 'animated_route' ? 'selected' : ''}>2. Versiyon (Canlı Yol)</option>
-                                        <option value="focus_carousel" ${devTheme === 'focus_carousel' ? 'selected' : ''}>3. Versiyon (Carousel)</option>
-                                        <option value="dual_card" ${devTheme === 'dual_card' ? 'selected' : ''}>4. Versiyon (İkili Dev Kart)</option>
-                                        <option value="auto_rotate" ${devTheme === 'auto_rotate' ? 'selected' : ''}>5. Versiyon (Karma Mod)</option>
-                                    </select>
-                                    <button type="button" class="btn btn-sm btn-secondary" onclick="cihazTemaAyarlariModalAc(${eczane.id}, ${d.id})" style="padding: 0.25rem 0.5rem; font-size: 0.73rem; display: flex; align-items: center; justify-content: center; gap: 0.3rem; border-color: rgba(56,189,248,0.4); color: #38bdf8;">
-                                        ⚙️ Ekran Parametreleri
-                                    </button>
-                                </div>
-                            </td>
-                            <td style="min-width: 140px;">
-                                <select id="dev-scale-${d.id}" class="form-control" style="font-size: 0.8rem; padding: 0.35rem 0.5rem; background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.15);">
-                                    <option value="auto" ${scaleVal === 'auto' ? 'selected' : ''}>🖥️ Otomatik TV</option>
-                                    <option value="compact" ${scaleVal === 'compact' ? 'selected' : ''}>📺 Mi Box (%80)</option>
-                                    <option value="720p" ${scaleVal === '720p' ? 'selected' : ''}>📺 720p HD (%85)</option>
-                                    <option value="1080p" ${scaleVal === '1080p' ? 'selected' : ''}>📺 1080p FHD (%100)</option>
-                                    <option value="4k" ${scaleVal === '4k' ? 'selected' : ''}>🌟 4K Vitrin (%130)</option>
-                                </select>
-                            </td>
-                            <td>${approvalBadge}</td>
-                            <td style="text-align: center; white-space: nowrap;">
-                                <div style="display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;">
-                                    <span id="dev-dot-${d.id}">${onlineStatus}</span>
-                                    <span id="dev-ping-text-${d.id}" style="font-size: 0.72rem; color: #94a3b8; font-family: monospace;">
-                                        ${escapeHtml(d.last_ping_ago || '-')}
-                                    </span>
-                                    <button type="button" class="btn btn-sm btn-secondary" onclick="tekilCihazCanlilikKontrolEt(${eczane.id}, ${d.id}, '${escapeHtml(d.device_name || 'TV')}')" id="btn-ping-dev-${d.id}" style="padding: 0.2rem 0.45rem; font-size: 0.75rem; border-color: rgba(56,189,248,0.4); color: #38bdf8;" title="Bu TV Ekranının Canlılığını Test Et">
-                                        ⚡
-                                    </button>
-                                </div>
-                            </td>
-                            <td>
-                                <div style="display: flex; gap: 0.35rem; align-items: center;">
+                                <div class="device-card-actions">
                                     ${approveButtonHtml}
-                                    <button type="button" class="btn btn-sm btn-primary" onclick="cihazAyarlariniKaydet(${eczane.id}, ${d.id})" style="padding: 0.3rem 0.55rem; font-size: 0.85rem;" title="Cihaz İsmi, Teması ve TV Ölçeğini Kaydet">
-                                        💾
+                                    <button type="button" class="btn btn-sm btn-primary" onclick="cihazAyarlariniKaydet(${eczane.id}, ${d.id})" style="padding: 0.32rem 0.75rem; font-size: 0.78rem; font-weight: 600;" title="İsim, Tema ve TV Ölçeğini Kaydet">
+                                        💾 Kaydet
                                     </button>
-                                    <button type="button" class="btn btn-sm btn-warning" onclick="cihaziEkrandaGoster(${eczane.id}, ${d.id})" style="padding: 0.3rem 0.55rem; font-size: 0.85rem;" title="Hedef TV Ekranında 25 Saniye Tanımlama Sinyali Göster">
-                                        🔔
+                                    <button type="button" class="btn btn-sm btn-secondary" onclick="cihaziEkrandaGoster(${eczane.id}, ${d.id})" style="padding: 0.32rem 0.65rem; font-size: 0.78rem; border-color: rgba(245, 158, 11, 0.4); color: #fbbf24;" title="Hedef TV Ekranında 25 Saniye Tanımlama Sinyali Göster">
+                                        🔔 TV'de Göster
                                     </button>
-                                    <button type="button" class="btn btn-sm btn-danger" onclick="cihazSil(${eczane.id}, ${d.id}, '${escapeHtml(d.device_name || 'Bu TV')}')" style="padding: 0.3rem 0.55rem; font-size: 0.85rem;" title="Bu TV Ekranının Bağlantısını Kes / Sil (Ekran Kapanmaz)">
+                                    <button type="button" class="btn btn-sm btn-danger" onclick="cihazSil(${eczane.id}, ${d.id}, '${escapeHtml(d.device_name || 'Bu TV')}')" style="padding: 0.32rem 0.55rem; font-size: 0.78rem;" title="Bu TV Ekranının Bağlantısını Kes / Sil">
                                         🗑️
                                     </button>
                                 </div>
-                            </td>
-                        </tr>
+                            </div>
+
+                            <!-- Alt Grid: Ağ Bilgileri, Tema ve TV Ölçeği -->
+                            <div class="device-card-grid">
+                                <!-- 1. Ağ & Donanım -->
+                                <div class="device-info-box">
+                                    <div class="device-field-label">🔌 Donanım & IP</div>
+                                    <div style="font-family: monospace; font-size: 0.78rem; color: #38bdf8; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="MAC Adresi">
+                                        MAC: ${escapeHtml(d.mac_address || '-')}
+                                    </div>
+                                    <div style="font-family: monospace; font-size: 0.74rem; color: #cbd5e1; display: flex; align-items: center; gap: 0.35rem; margin-top: 0.15rem;">
+                                        <span>🏠 Yerel:</span> <strong>${escapeHtml(d.local_ip || '-')}</strong>
+                                    </div>
+                                    <div style="font-family: monospace; font-size: 0.72rem; color: #94a3b8; display: flex; align-items: center; gap: 0.35rem;">
+                                        <span>🌐 Dış:</span> <span>${escapeHtml(d.ip_address || '-')}</span>
+                                    </div>
+                                </div>
+
+                                <!-- 2. Ekran Teması & Parametreler -->
+                                <div class="device-info-box">
+                                    <div class="device-field-label">🎨 Ekran Teması</div>
+                                    <select id="dev-theme-${d.id}" class="form-control" style="font-size: 0.8rem; height: 34px; min-height: 34px; line-height: 32px; padding: 0 0.5rem; background: rgba(0,0,0,0.4); border-color: rgba(255,255,255,0.15); font-weight: 600;">
+                                        <option value="classic_grid" ${devTheme === 'classic_grid' ? 'selected' : ''}>1. Klasik Izgara</option>
+                                        <option value="animated_route" ${devTheme === 'animated_route' ? 'selected' : ''}>2. Canlı Yol</option>
+                                        <option value="focus_carousel" ${devTheme === 'focus_carousel' ? 'selected' : ''}>3. Vitrin Carousel</option>
+                                        <option value="dual_card" ${devTheme === 'dual_card' ? 'selected' : ''}>4. İkili Dev Kart</option>
+                                        <option value="auto_rotate" ${devTheme === 'auto_rotate' ? 'selected' : ''}>5. Karma Mod (Saatlik)</option>
+                                    </select>
+                                    <button type="button" class="btn btn-sm btn-secondary" onclick="cihazTemaAyarlariModalAc(${eczane.id}, ${d.id})" style="margin-top: 0.35rem; padding: 0.28rem 0.5rem; font-size: 0.74rem; display: flex; align-items: center; justify-content: center; gap: 0.3rem; border-color: rgba(56,189,248,0.4); color: #38bdf8;">
+                                        ⚙️ Ekran Parametreleri
+                                    </button>
+                                </div>
+
+                                <!-- 3. TV Ölçeği / Çözünürlük -->
+                                <div class="device-info-box">
+                                    <div class="device-field-label">📺 TV Ölçeği / Çözünürlük</div>
+                                    <select id="dev-scale-${d.id}" class="form-control" style="font-size: 0.8rem; height: 34px; min-height: 34px; line-height: 32px; padding: 0 0.5rem; background: rgba(0,0,0,0.4); border-color: rgba(255,255,255,0.15);">
+                                        <option value="auto" ${scaleVal === 'auto' ? 'selected' : ''}>🖥️ Otomatik TV</option>
+                                        <option value="compact" ${scaleVal === 'compact' ? 'selected' : ''}>📺 Mi Box (%80)</option>
+                                        <option value="720p" ${scaleVal === '720p' ? 'selected' : ''}>📺 720p HD (%85)</option>
+                                        <option value="1080p" ${scaleVal === '1080p' ? 'selected' : ''}>📺 1080p FHD (%100)</option>
+                                        <option value="4k" ${scaleVal === '4k' ? 'selected' : ''}>🌟 4K Vitrin (%130)</option>
+                                    </select>
+                                    <span style="font-size: 0.72rem; color: #64748b; margin-top: 0.25rem; display: block; line-height: 1.3;">
+                                        TV tarayıcısındaki taşmaları önleyen ölçek oranı.
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
                         `;
                     });
 
                     body.innerHTML = `
-                    <div style="overflow-x: auto;">
-                        <table class="table" style="margin: 0; font-size: 0.85rem;">
-                            <thead>
-                                <tr>
-                                    <th>Cihaz İsmi</th>
-                                    <th>MAC Adresi</th>
-                                    <th>Yerel / Dış IP</th>
-                                    <th>Ekran Teması & Parametreler</th>
-                                    <th>TV Ölçeği</th>
-                                    <th>Lisans Durumu</th>
-                                    <th>Canlılık</th>
-                                    <th>İşlemler</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${rowsHtml}
-                            </tbody>
-                        </table>
-                    </div>
+                        <div class="devices-card-container">
+                            ${rowsHtml}
+                        </div>
                     `;
                 }
             } catch (err) {
@@ -1734,8 +1800,8 @@
                             if (subTitle && data.remaining_count !== undefined) {
                                 subTitle.textContent = `Kalan Cihaz Sayısı: ${data.remaining_count} TV`;
                             }
-                            const tbody = document.querySelector('#modal-devices tbody');
-                            if (!tbody || tbody.children.length === 0) {
+                            const devContainer = document.querySelector('#modal-devices .devices-card-container');
+                            if (!devContainer || devContainer.children.length === 0) {
                                 cihazYonetimModalAc(eczaneId);
                             }
                         }, 350);
