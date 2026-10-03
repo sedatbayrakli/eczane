@@ -831,7 +831,13 @@ function haritaPinleriniCiz(kendiEczane, nobetciler, seciliIndex = null) {
         });
 
         const originMarker = L.marker([kendiEczane.latitude, kendiEczane.longitude], { icon: originIcon })
-            .bindPopup(`<b>⭐ ${escapeHtml(kendiEczane.name)}</b><br><small>Buradasınız</small>`);
+            .bindPopup(`<b>⭐ ${escapeHtml(kendiEczane.name)}</b><br><small>Buradasınız</small>`)
+            .bindTooltip(`⭐ ${escapeHtml(kendiEczane.name)} (Buradasınız)`, {
+                permanent: true,
+                direction: 'top',
+                className: 'kiosk-map-tooltip origin-tooltip',
+                offset: [0, -16]
+            });
         mapMarkersGroup.addLayer(originMarker);
         koordinatNoktalari.push([kendiEczane.latitude, kendiEczane.longitude]);
     }
@@ -841,6 +847,8 @@ function haritaPinleriniCiz(kendiEczane, nobetciler, seciliIndex = null) {
         nobetciler.forEach((e, idx) => {
             if (e.enlem && e.boylam) {
                 const isSelected = (seciliIndex !== null && idx === seciliIndex);
+                const isTarget = isSelected || (seciliIndex === null && idx === 0);
+
                 const dutyIcon = L.divIcon({
                     className: 'custom-leaflet-marker',
                     html: `<div class="pulse-ring-pin ${isSelected ? 'active-focused-pin' : ''}" title="${escapeHtml(e.isim)}">
@@ -859,6 +867,17 @@ function haritaPinleriniCiz(kendiEczane, nobetciler, seciliIndex = null) {
                 `;
 
                 const marker = L.marker([e.enlem, e.boylam], { icon: dutyIcon }).bindPopup(popupHtml);
+
+                // Hedef veya Seçili Eczane İsmini Harita Üzerinde Kalıcı Olarak Göster
+                if (isTarget) {
+                    marker.bindTooltip(`📍 ${escapeHtml(e.isim)}`, {
+                        permanent: true,
+                        direction: 'bottom',
+                        className: 'kiosk-map-tooltip target-tooltip',
+                        offset: [0, 16]
+                    });
+                }
+
                 mapMarkersGroup.addLayer(marker);
                 koordinatNoktalari.push([e.enlem, e.boylam]);
             }
