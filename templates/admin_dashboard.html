@@ -628,14 +628,9 @@
                         </div>
                     </td>
 
-                    <!-- Kurum Adı & Detayı (Kayan Yazı Kaldırıldı, Sade Görünüm) -->
+                    <!-- Kurum Adı & Detayı (Sade ve Rahat Görünüm) -->
                     <td>
-                        <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.15rem;">
-                            <strong style="color: #fff; font-size: 0.95rem;">{{ e.name }}</strong>
-                            <span class="badge" style="background: rgba(148, 163, 184, 0.15); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.3); font-size: 0.7rem; padding: 0.12rem 0.35rem;">
-                                {{ e.get_institution_type_label() }}
-                            </span>
-                        </div>
+                        <strong style="color: #fff; font-size: 0.95rem;">{{ e.name }}</strong>
                         {% if e.pharmacist_name %}
                             <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.15rem;">
                                 {% if e.institution_type == 'pharmacy' %}Ecz. {% else %}Yetkili: {% endif %}{{ e.pharmacist_name }}
@@ -692,8 +687,8 @@
                     <td>
                         <div style="display: flex; flex-direction: column; align-items: center; gap: 0.3rem;">
                             <form method="POST" action="/admin/pharmacy/{{ e.id }}/toggle" style="display:inline; margin: 0;">
-                                <button type="submit" class="btn btn-sm {% if e.is_active %}btn-danger{% else %}btn-success{% endif %}" style="padding: 0.2rem 0.55rem; font-size: 0.75rem; line-height: 1;" title="{% if e.is_active %}Lisansı Duraklat (Dondur){% else %}Lisansı Aktif Et{% endif %}">
-                                    {% if e.is_active %}⏸️ Duraklat{% else %}▶️ Başlat{% endif %}
+                                <button type="submit" class="btn btn-sm {% if e.is_active %}btn-danger{% else %}btn-success{% endif %}" style="padding: 0.2rem 0.5rem; font-size: 0.75rem; line-height: 1;" title="{% if e.is_active %}Lisansı Duraklat (Dondur){% else %}Lisansı Aktif Et{% endif %}">
+                                    {% if e.is_active %}⏸️{% else %}▶️{% endif %}
                                 </button>
                             </form>
                             {% if e.lisans_gecerli_mi() %}
