@@ -282,7 +282,7 @@
                     🏥 Nöbetçi Eczaneler
                 </a>
                 <a href="/admin" class="btn btn-secondary">
-                    ⬅️ Eczaneler Paneline Dön
+                    ⬅️ Panele Dön
                 </a>
                 <a href="/admin/settings" class="btn btn-secondary">
                     ⚙️ Genel Ayarlar
@@ -311,7 +311,7 @@
                 <div class="step-box">
                     <div class="step-number">3</div>
                     <h3>Admin Panelinden Onaylayın</h3>
-                    <p>TV ilk açıldığında onay bekler. Admin panelinde <strong>⚙️ Cihazlar</strong> menüsünü açıp <strong>✅ Onayla</strong> butonuna basın. Ekran anında açılır!</p>
+                    <p>TV ilk açıldığında onay bekler. Admin panelinde <strong>Kiosk</strong> sütunundaki <strong>⚙️ Cihazlar</strong> butonuna basıp <strong>✅ Onayla</strong> butonuna tıklayın. Ekran anında açılır!</p>
                 </div>
             </div>
 
@@ -377,47 +377,74 @@
             </ul>
         </section>
 
-        <!-- 4. BÖLÜM: Kiosk Ekran Temaları -->
+        <!-- 4. BÖLÜM: Kiosk Ekran Temaları & Gelişmiş Parametreler -->
         <section class="guide-card">
-            <h2>🎨 Kiosk Ekran Temaları</h2>
-            <p>Eczanenizin konumuna ve vitrin tasarımınıza göre 5 farklı görsel moddan birini seçebilirsiniz:</p>
+            <h2>🎨 Kiosk Ekran Temaları & Cihaz Bazlı Parametreler</h2>
+            <p>Sistemde temalar artık <strong>cihaz (ekran) bazında</strong> seçilebilir. Her TV cihazınız için vitrin veya iç mekan gereksinimlerine göre bağımsız tema ve parametre belirleyebilirsiniz:</p>
 
             <table class="themes-table">
                 <thead>
                     <tr>
                         <th>Tema Adı</th>
-                        <th>Görsel Yapı</th>
+                        <th>Görsel Yapı & Yenilikler</th>
                         <th>En Uygun Kullanım</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
                         <td><strong>1. Klasik 4'lü Izgara</strong></td>
-                        <td>Sol tarafta nöbetçi kartları, sağ tarafta harita ve yön okları.</td>
-                        <td>Aynı anda çok sayıda nöbetçiyi tek ekranda görmek isteyen eczaneler.</td>
+                        <td>Sol tarafta nöbetçi kartları, sağ tarafta harita. <strong>Harita üzerinde bölgedeki tüm nöbetçi eczanelerin isimleri kalıcı etiketlerle</strong> gösterilir.</td>
+                        <td>Aynı anda çok sayıda nöbetçiyi tek ekranda ve haritada eksiksiz görmek isteyen eczaneler.</td>
                     </tr>
                     <tr>
                         <td><strong>2. Canlı Yol & Navigasyon</strong></td>
-                        <td>Nöbetçi eczanelere doğru adım adım hareket eden canlı rota animasyonu.</td>
+                        <td>Canlı rota animasyonu ve modern alt sayfalama bandı (<code>📄 Nöbetçi Eczane 1 / 4</code>). Nöbetçiler arası otomatik yumuşak geçiş.</td>
                         <td>Cadde vitrinlerinde yayaların dikkatini çeken dinamik navigasyon ekranı.</td>
                     </tr>
                     <tr>
                         <td><strong>3. Vitrin Carousel</strong></td>
-                        <td>Büyük puntolu dev nöbetçi kartı, 15 saniyede bir otomatik nöbetçiler arası geçiş.</td>
+                        <td>Büyük puntolu dev nöbetçi kartı, alt sayfalama bandı ve harita odaklama animasyonu.</td>
                         <td>Uzaktan veya araçtan geçenlerin kolayca okuyabilmesi için dev yazılar.</td>
                     </tr>
                     <tr>
                         <td><strong>4. İkili Dev Kart</strong></td>
-                        <td>Sadece en yakın 2 nöbetçi eczaneyi dev kartlar halinde haritayla sunar.</td>
-                        <td>Sade, kalabalıktan uzak ve hızlı yönlendirme isteyen vitrinler.</td>
+                        <td>2'den fazla nöbetçi olduğunda <strong>otomatik 2'şerli sayfalama</strong> (1. ve 2. nöbetçi, ardından 3. ve 4. nöbetçi). Harita o an ekranda görünen nöbetçilere odaklanır ve isimlerini gösterir.</td>
+                        <td>Sade, kalabalıktan uzak ve devasa puntolarla hızlı yönlendirme isteyen vitrinler.</td>
                     </tr>
                     <tr>
                         <td><strong>5. Karma Mod (Saatlik)</strong></td>
-                        <td>Her saat başı ekran temasını otomatik olarak bir sonrakine dönüştürür.</td>
+                        <td>Zaman ayarlı otomatik dönüşüm (1 &rarr; 2 &rarr; 3 &rarr; 4). Her periyotta temayı otomatik yeniler.</td>
                         <td>Vitrin ekranında sürekli hareketlilik ve modern görünüm sağlar.</td>
                     </tr>
                 </tbody>
             </table>
+
+            <div style="margin-top: 1.5rem; padding-top: 1.2rem; border-top: 1px solid var(--border-color);">
+                <h3 style="font-size: 1.05rem; color: var(--color-accent); margin-bottom: 0.5rem;">⚙️ Ekran Parametreleri & Pikselleri Koruma Modu (Anti-Burn-In)</h3>
+                <p style="font-size: 0.88rem; color: #cbd5e1; line-height: 1.6; margin-bottom: 0.8rem;">
+                    Admin panelinde <strong>Kiosk &rarr; ⚙️ Cihazlar &rarr; ⚙️ Ekran Parametreleri</strong> butonuna basarak her ekran için bağımsız ayarlar yapabilirsiniz:
+                </p>
+                <ul class="feature-list" style="margin-top: 0.5rem;">
+                    <li>
+                        <span class="icon">🛡️</span>
+                        <div>
+                            <strong>Pikselleri Koruma Modu (Anti-Burn-In):</strong> TV ve OLED ekranlarda uzun süre sabit yayından kaynaklanan piksel yanması ve iz kalmasını önlemek için mikro seviyede (1-2px) periyodik piksel kaydırma yapar.
+                        </div>
+                    </li>
+                    <li>
+                        <span class="icon">📢</span>
+                        <div>
+                            <strong>Kayan Yazı Hızı (Ticker Speed):</strong> Yaşlı vatandaşların cadde/kaldırımdan rahatça okuyabilmesi için ideal hız <strong>50-60 px/sn</strong> olarak ayarlanabilir.
+                        </div>
+                    </li>
+                    <li>
+                        <span class="icon">⏱️</span>
+                        <div>
+                            <strong>Slayt & Geçiş Zamanlaması:</strong> Nöbetçi kartlarının ekranda kalma süresi (5 sn - 30 sn) ve karma mod saat periyodu tek tıkla özelleştirilebilir.
+                        </div>
+                    </li>
+                </ul>
+            </div>
         </section>
 
         <!-- 5. BÖLÜM: 1 Saatlik Test Nöbeti ve Mesafe Bilgisi -->
@@ -450,7 +477,7 @@
         <!-- Alt Gezinme -->
         <div style="text-align: center; margin: 2rem 0 3rem 0;">
             <a href="/admin" class="btn btn-secondary" style="padding: 0.75rem 2rem; font-size: 1rem;">
-                ⬅️ Eczaneler Paneline Geri Dön
+                ⬅️ Panele Dön
             </a>
         </div>
     </div>

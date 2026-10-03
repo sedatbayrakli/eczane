@@ -599,7 +599,7 @@
                     <th>Eczane Bilgisi</th>
                     <th>Konum</th>
                     <th>Lisans Kodu</th>
-                    <th>Cihazlar & Temalar</th>
+                    <th>Kiosk</th>
                     <th>Kalan Süre</th>
                     <th>Durum</th>
                     <th>İşlemler</th>
@@ -681,13 +681,20 @@
                         {% endif %}
                     </td>
 
-                    <!-- Durum Rozeti -->
+                    <!-- Durum Rozeti & Duraklatma Butonu -->
                     <td>
-                        {% if e.lisans_gecerli_mi() %}
-                            <span class="badge badge-active">Aktif</span>
-                        {% else %}
-                            <span class="badge badge-expired">Pasif</span>
-                        {% endif %}
+                        <div style="display: inline-flex; align-items: center; gap: 0.35rem;">
+                            {% if e.lisans_gecerli_mi() %}
+                                <span class="badge badge-active">Aktif</span>
+                            {% else %}
+                                <span class="badge badge-expired">Pasif</span>
+                            {% endif %}
+                            <form method="POST" action="/admin/pharmacy/{{ e.id }}/toggle" style="display:inline; margin: 0;">
+                                <button type="submit" class="btn btn-sm {% if e.is_active %}btn-danger{% else %}btn-success{% endif %}" style="padding: 0.18rem 0.42rem; font-size: 0.72rem; line-height: 1;" title="{% if e.is_active %}Lisansı Duraklat (Dondur){% else %}Lisansı Aktif Et{% endif %}">
+                                    {% if e.is_active %}⏸️{% else %}▶️{% endif %}
+                                </button>
+                            </form>
+                        </div>
                     </td>
 
                     <!-- İşlemler -->
@@ -709,19 +716,6 @@
                             <button class="btn btn-secondary btn-sm" onclick="kioskLinkKopyala('{{ base_url }}/kiosk?key={{ e.license_key }}')" title="TV Kurulum Linkini Kopyala">
                                 📋
                             </button>
-
-                            <!-- Lisans Aç/Kapat (Dondur/Aktif Et) -->
-                            <form method="POST" action="/admin/pharmacy/{{ e.id }}/toggle" style="display:inline;">
-                                <button type="submit" class="btn btn-sm {% if e.is_active %}btn-danger{% else %}btn-success{% endif %}" title="{% if e.is_active %}Lisansı Duraklat (Dondur){% else %}Lisansı Aktif Et{% endif %}">
-                                    {% if e.is_active %}⏸️{% else %}▶️{% endif %}
-                                </button>
-                            </form>
-
-                            <!-- +30 Gün -->
-                            <form method="POST" action="/admin/pharmacy/{{ e.id }}/extend" style="display:inline;">
-                                <input type="hidden" name="days" value="30">
-                                <button type="submit" class="btn btn-sm btn-secondary" title="Lisans Süresine +30 Gün Ekle">➕30G</button>
-                            </form>
 
                             <!-- Kayan Yazı Duyuru Düzenle -->
                             <button class="btn btn-sm btn-secondary btn-ticker-trigger" id="btn-ticker-{{ e.id }}" data-id="{{ e.id }}" data-name="{{ e.name }}" data-ticker="{{ e.ticker_text or '' }}" onclick="duyuruModalAcFromEl(this)" title="Kayan Yazı Duyurusunu Düzenle">
