@@ -154,31 +154,86 @@ function saatVeTarihiGuncelle() {
 }
 
 /**
- * 3.1 Nöbet Saatleri ve Canlı Geri Sayım Hesaplayıcı
+ * 3.1 Nöbet Saatleri ve Canlı Geri Sayım Hesaplayıcı (Pazar & Resmi Tatil 24 Saat Desteği)
  */
+function isBugunTatilVeyaPazar(tarihObj) {
+    // 0: Pazar günü
+    if (tarihObj.getDay() === 0) return true;
+
+    // Sabit Resmi Tatiller (Ay-Gün)
+    const m = tarihObj.getMonth() + 1;
+    const d = tarihObj.getDate();
+    const resmiTatiller = [
+        '1-1',   // Yılbaşı
+        '4-23',  // 23 Nisan Ulusal Egemenlik ve Çocuk Bayramı
+        '5-1',   // 1 Mayıs Emek ve Dayanışma Günü
+        '5-19',  // 19 Mayıs Atatürk'ü Anma, Gençlik ve Spor Bayramı
+        '7-15',  // 15 Temmuz Demokrasi ve Milli Birlik Günü
+        '8-30',  // 30 Ağustos Zafer Bayramı
+        '10-29'  // 29 Ekim Cumhuriyet Bayramı
+    ];
+    return resmiTatiller.includes(`${m}-${d}`);
+}
+
 function nobetZamaniniHesapla() {
     const simdi = new Date();
     const saat = simdi.getHours();
-
     const pad = (n) => String(n).padStart(2, '0');
 
-    // Nöbet periyodu: 19:00 — 09:00
-    const isNobetSaatinde = (saat >= 19 || saat < 9);
+    const bugunTatil = isBugunTatilVeyaPazar(simdi);
+    
+    // Dün tatil miydi? (Örn: Pazar sabahı saat 00:00-09:00 arası Cumartesi nöbetidir, Pazartesi sabah 00:00-09:00 arası Pazar nöbetidir)
+    const dun = new Date(simdi);
+    dun.setDate(dun.getDate() - 1);
+    const dunTatil = isBugunTatilVeyaPazar(dun);
 
-    let hedefZaman = new Date(simdi);
+    let isNobetSaatinde = false;
+    let baslangicBitis = '19:00 — 09:00';
+    let baslikMetni = 'NÖBET SAATLERİ';
     let etiket = 'Nöbet Bitimine';
+    let hedefZaman = new Date(simdi);
 
-    if (isNobetSaatinde) {
-        // En yakın sabah 09:00 hedefi
-        hedefZaman.setHours(9, 0, 0, 0);
-        if (saat >= 19) {
+    if (bugunTatil) {
+        // PAZAR VEYA RESMİ TATİL GÜNÜ
+        baslangicBitis = '09:00 — 09:00 (24 Sa)';
+        baslikMetni = 'PAZAR NÖBETİ (24 SA)';
+
+        if (saat < 9) {
+            // Sabah 09:00'a kadar: Dünkü nöbetin son saatleri
+            isNobetSaatinde = true;
+            hedefZaman.setHours(9, 0, 0, 0);
+            etiket = 'Nöbet Devrine';
+            baslangicBitis = dunTatil ? '09:00 — 09:00' : '19:00 — 09:00';
+            baslikMetni = 'NÖBET SAATLERİ';
+        } else {
+            // Sabah 09:00'dan sonra: Pazar nöbeti başlamıştır, ertesi sabah (Pazartesi) 09:00'a kadar 24 saat kesintisiz açıktır!
+            isNobetSaatinde = true;
             hedefZaman.setDate(hedefZaman.getDate() + 1);
+            hedefZaman.setHours(9, 0, 0, 0);
+            etiket = 'Nöbet Bitimine';
         }
-        etiket = 'Nöbet Bitimine';
     } else {
-        // Gündüz: Akşam 19:00 nöbet başlangıç hedefi
-        hedefZaman.setHours(19, 0, 0, 0);
-        etiket = 'Akşam Nöbetine';
+        // HAFTA İÇİ VEYA CUMARTESİ
+        if (saat < 9) {
+            // Sabah 09:00'a kadar dün akşamdan devralınan nöbet
+            isNobetSaatinde = true;
+            hedefZaman.setHours(9, 0, 0, 0);
+            etiket = 'Nöbet Bitimine';
+            baslangicBitis = dunTatil ? '09:00 — 09:00 (Pazar)' : '19:00 — 09:00';
+        } else if (saat >= 19) {
+            // Akşam 19:00'dan sonra gece nöbeti
+            isNobetSaatinde = true;
+            hedefZaman.setDate(hedefZaman.getDate() + 1);
+            hedefZaman.setHours(9, 0, 0, 0);
+            etiket = 'Nöbet Bitimine';
+            baslangicBitis = '19:00 — 09:00';
+        } else {
+            // Gündüz normal mesai: Akşam 19:00 nöbet başlangıç hedefi
+            isNobetSaatinde = false;
+            hedefZaman.setHours(19, 0, 0, 0);
+            etiket = 'Akşam Nöbetine';
+            baslangicBitis = '19:00 — 09:00';
+        }
     }
 
     const farkMs = Math.max(0, hedefZaman - simdi);
@@ -189,7 +244,8 @@ function nobetZamaniniHesapla() {
 
     return {
         isNobetSaatinde: isNobetSaatinde,
-        baslangicBitis: '19:00 — 09:00',
+        baslangicBitis: baslangicBitis,
+        baslikMetni: baslikMetni,
         saatStr: pad(ksaat),
         dakikaStr: pad(kdakika),
         saniyeStr: pad(ksaniye),
@@ -210,6 +266,14 @@ function nobetGeriSayiminiGuncelle() {
             etiketEl.textContent = zaman.etiket;
         }
     });
+
+    // Nöbet saatleri çerçeve değerlerini de güncelle
+    document.querySelectorAll('.duty-hours-val').forEach(el => {
+        if (el.textContent !== zaman.baslangicBitis) el.textContent = zaman.baslangicBitis;
+    });
+    document.querySelectorAll('.compact-duty-hours').forEach(el => {
+        if (el.textContent !== zaman.baslangicBitis) el.textContent = zaman.baslangicBitis;
+    });
 }
 
 function formatMesafeMetin(metin) {
@@ -225,8 +289,8 @@ function nobetBilgisiHtmlUret(stil = 'focus') {
         <div class="focus-duty-time-card">
             <!-- 1. Kutu: Nöbet Saatleri Çerçevesi (2 Satır) -->
             <div class="duty-framed-box duty-hours-frame">
-                <span class="duty-frame-label">NÖBET SAATLERİ</span>
-                <span class="duty-hours-val">19:00 — 09:00</span>
+                <span class="duty-frame-label">${zaman.baslikMetni}</span>
+                <span class="duty-hours-val">${zaman.baslangicBitis}</span>
             </div>
 
             <!-- 2. Kutu: Nöbet Bitimine Geri Sayım Çerçevesi (2 Satır) -->
@@ -246,8 +310,8 @@ function nobetBilgisiHtmlUret(stil = 'focus') {
         return `
         <div class="compact-duty-time-card">
             <div class="duty-framed-box compact-frame" style="padding: 0.2rem 0.5rem;">
-                <span class="compact-duty-title" style="font-size: 0.72rem; color: #94a3b8;">Nöbet Saatleri</span>
-                <strong class="compact-duty-hours" style="font-size: 0.88rem; color: #fff;">19:00 — 09:00</strong>
+                <span class="compact-duty-title" style="font-size: 0.72rem; color: #94a3b8;">${zaman.baslikMetni}</span>
+                <strong class="compact-duty-hours" style="font-size: 0.88rem; color: #fff;">${zaman.baslangicBitis}</strong>
             </div>
             <div class="duty-framed-box compact-frame duty-live-countdown compact-countdown" style="padding: 0.2rem 0.5rem;">
                 <span class="countdown-label" style="font-size: 0.62rem;">${zaman.etiket}</span>
