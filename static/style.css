@@ -1140,7 +1140,7 @@ body,
 /* Gövde Grid Düzeni (Sol: Mesafe & QR, Sağ: Açık Adres & Nöbet & Telefon) */
 .focus-body-grid {
     display: grid;
-    grid-template-columns: 175px 1fr;
+    grid-template-columns: 185px 1fr;
     gap: 0.9rem;
     align-items: stretch;
     flex: 1;
@@ -1354,12 +1354,12 @@ body.scale-compact .duty-live-countdown {
     padding: 0.2rem 0.45rem !important;
 }
 body.scale-compact .focus-qr-frame {
-    width: 92px !important;
-    height: 92px !important;
+    width: 104px !important;
+    height: 104px !important;
 }
 body.scale-compact .focus-qr-image {
-    width: 84px !important;
-    height: 84px !important;
+    width: 96px !important;
+    height: 96px !important;
 }
 body.scale-compact .focus-qr-text {
     margin-top: 0.15rem !important;
@@ -1834,10 +1834,10 @@ body.scale-4k {
 }
 
 .focus-qr-frame {
-    width: 125px;
-    height: 125px;
+    width: 150px;
+    height: 150px;
     background: #ffffff;
-    padding: 5px;
+    padding: 6px;
     border-radius: var(--radius-md);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
     flex-shrink: 0;

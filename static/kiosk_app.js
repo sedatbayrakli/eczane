@@ -14,6 +14,28 @@
  * 5. Dinamik Mesafe Sıralaması, OSRM Gerçek Yürüyüş Rotası & Adım Adım Navigasyon QR Kodu
  */
 
+// Güvenlik & Gizlilik: Adres çubuğundaki lisans anahtarını gizle (Tam ekrandan çıkıldığında görünmez)
+(function adresCubugundakiLisansiGizle() {
+    try {
+        if (window.history && window.history.replaceState) {
+            const url = new URL(window.location.href);
+            if (url.searchParams.has('key')) {
+                const lisansKey = url.searchParams.get('key');
+                if (lisansKey) {
+                    try {
+                        localStorage.setItem('kiosk_license_key', lisansKey);
+                    } catch(e) {}
+                }
+                url.searchParams.delete('key');
+                const temizUrl = url.pathname + (url.search ? url.search : '') + url.hash;
+                window.history.replaceState({}, document.title, temizUrl);
+            }
+        }
+    } catch (err) {
+        console.warn('URL lisans gizleme hatası:', err);
+    }
+})();
+
 const KIOSK_AYARLAR = {
     POLLING_ARALIGI_MS: 15 * 60 * 1000, // 15 dakikada bir veri tazeleme ve heartbeat
     HATA_TEKRAR_DENE_MS: 60 * 1000,     // Ağ kesintisinde 60 saniyede bir tekrar deneme
@@ -984,8 +1006,6 @@ function eczaneKartiHtmlUret(eczane, index) {
                 ${yolTarifiHtml}
             </div>
 
-            ${nobetBilgisiHtmlUret('compact')}
-
             <div class="card-phone-row">
                 <div class="phone-icon-box">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
@@ -994,6 +1014,8 @@ function eczaneKartiHtmlUret(eczane, index) {
                 </div>
                 <span class="phone-number-display">${escapeHtml(eczane.telefon || 'Belirtilmedi')}</span>
             </div>
+
+            ${nobetBilgisiHtmlUret('compact')}
         </div>
 
         <div class="card-right-qr">
@@ -1021,7 +1043,7 @@ function eczaneKartiHtmlUret(eczane, index) {
 
 // Şablon B: Dev Odak Kartı (Tema 2 & Tema 3 İçin - Asla Taşmaz)
 function devOdakKartiHtmlUret(eczane, siraNo, toplamAdet, modAdi = 'NAVİGASYON') {
-    const qrKodUrl = eczane.qr_kod_url || `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(eczane.rota_linki || eczane.harita_linki)}`;
+    const qrKodUrl = eczane.qr_kod_url || `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(eczane.rota_linki || eczane.harita_linki)}`;
 
     const arabaMetin = eczane.araba_metin || (eczane.mesafe_metre ? `~${Math.max(1, Math.round(eczane.mesafe_metre / 500))} dk` : '');
     const yurumeMetin = eczane.yurume_metin || (eczane.mesafe_metre ? `~${Math.max(1, Math.round(eczane.mesafe_metre / 75))} dk` : '');
@@ -1086,8 +1108,6 @@ function devOdakKartiHtmlUret(eczane, siraNo, toplamAdet, modAdi = 'NAVİGASYON'
                     <p class="focus-address-text">${escapeHtml(eczane.adres)}</p>
                 </div>
 
-                ${nobetBilgisiHtmlUret('focus')}
-
                 <div class="focus-phone-card">
                     <div class="phone-icon-box" style="width: 30px; height: 30px; min-width: 30px;">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
@@ -1096,6 +1116,8 @@ function devOdakKartiHtmlUret(eczane, siraNo, toplamAdet, modAdi = 'NAVİGASYON'
                     </div>
                     <div class="focus-phone-number">${escapeHtml(eczane.telefon || 'Belirtilmedi')}</div>
                 </div>
+
+                ${nobetBilgisiHtmlUret('focus')}
             </div>
         </div>
 
@@ -1150,8 +1172,6 @@ function ikiliEczaneKartiHtmlUret(eczane, siraNo) {
                 ${yolTarifiHtml}
             </div>
 
-            ${nobetBilgisiHtmlUret('compact')}
-
             <div class="dual-card-phone-row">
                 <div class="phone-icon-box">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
@@ -1160,6 +1180,8 @@ function ikiliEczaneKartiHtmlUret(eczane, siraNo) {
                 </div>
                 <span class="dual-phone-number">${escapeHtml(eczane.telefon || 'Belirtilmedi')}</span>
             </div>
+
+            ${nobetBilgisiHtmlUret('compact')}
         </div>
 
         <div class="dual-card-right-qr">

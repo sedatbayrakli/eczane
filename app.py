@@ -14,7 +14,7 @@ from typing import Tuple, List, Dict, Any
 
 from flask import (
     Flask, render_template, jsonify, request, 
-    redirect, url_for, session, flash
+    redirect, url_for, session, flash, make_response
 )
 import requests
 
@@ -954,10 +954,15 @@ def admin_cache_clear():
 def kiosk():
     """
     Lisans anahtarlı TV Kiosk ekranı.
-    /kiosk?key=ECZ-XXXX-XXXX
+    /kiosk?key=ECZ-XXXX-XXXX veya çerezde kayıtlı lisans anahtarı
     """
     key = request.args.get("key", "").strip().upper()
+    if not key:
+        key = request.cookies.get("kiosk_license_key", "").strip().upper()
+
     device_token = request.args.get("device_token", "").strip()
+    if not device_token:
+        device_token = request.cookies.get("kiosk_device_token", "").strip()
 
     if not key:
         return render_template(
@@ -993,13 +998,17 @@ def kiosk():
             lisans_kodu=key
         )
 
-    return render_template(
+    resp = make_response(render_template(
         "kiosk.html",
         eczane=eczane,
         secili_il=eczane.city,
         secili_ilce=eczane.district,
         lisans_anahtari=eczane.license_key
-    )
+    ))
+    resp.set_cookie("kiosk_license_key", eczane.license_key, max_age=365*24*3600, samesite="Lax")
+    if device_token:
+        resp.set_cookie("kiosk_device_token", device_token, max_age=365*24*3600, samesite="Lax")
+    return resp
 
 
 @app.route("/api/kiosk-data")
@@ -1009,7 +1018,12 @@ def api_kiosk_data():
     dinamik mesafe/rota hesaplamaları yaptığı ana API uç noktası.
     """
     key = request.args.get("key", "").strip().upper()
+    if not key:
+        key = request.cookies.get("kiosk_license_key", "").strip().upper()
+
     device_token = request.args.get("device_token", "").strip()
+    if not device_token:
+        device_token = request.cookies.get("kiosk_device_token", "").strip()
 
     if not key:
         return jsonify({
