@@ -1074,13 +1074,17 @@ function devOdakKartiHtmlUret(eczane, siraNo, toplamAdet, modAdi = 'NAVİGASYON'
     const arabaMetin = eczane.araba_metin || (eczane.mesafe_metre ? `~${Math.max(1, Math.round(eczane.mesafe_metre / 500))} dk` : '');
     const yurumeMetin = eczane.yurume_metin || (eczane.mesafe_metre ? `~${Math.max(1, Math.round(eczane.mesafe_metre / 75))} dk` : '');
 
-    let paginationPills = '';
-    for (let i = 0; i < toplamAdet; i++) {
-        const isCurrent = (i === siraNo);
-        paginationPills += `
-            <button class="focus-page-btn ${isCurrent ? 'active' : ''}" onclick="manuelSlaytaGit(${i})">
-                ${i + 1}. Nöbetçi
-            </button>
+    let paginationHtml = '';
+    if (toplamAdet > 1) {
+        const pills = Array.from({ length: toplamAdet }).map((_, pIdx) => `
+            <span class="dual-page-pill ${pIdx === siraNo ? 'active' : ''}" onclick="manuelSlaytaGit(${pIdx})" title="${pIdx + 1}. Nöbetçi"></span>
+        `).join('');
+
+        paginationHtml = `
+            <div class="dual-pagination-bar" style="margin-top: 0.5rem;">
+                <span class="dual-page-badge">📄 Nöbetçi Eczane: ${siraNo + 1} / ${toplamAdet}</span>
+                <div class="dual-pills-row">${pills}</div>
+            </div>
         `;
     }
 
@@ -1147,9 +1151,7 @@ function devOdakKartiHtmlUret(eczane, siraNo, toplamAdet, modAdi = 'NAVİGASYON'
             </div>
         </div>
 
-        <div class="focus-pagination-bar">
-            ${paginationPills}
-        </div>
+        ${paginationHtml}
     </div>
     `;
 }
