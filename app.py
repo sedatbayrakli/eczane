@@ -775,7 +775,7 @@ def admin_api_duty_pharmacies():
     force_refresh = request.args.get("refresh", "0") in ("1", "true", "True")
 
     # Özel kaynak seçimi yapılmışsa öncelik listesini ona göre ayarla
-    kaynak_siralamasi = [kaynak] if kaynak and kaynak != "hepsi" else None
+    kaynak_siralamasi = [kaynak] if (kaynak and kaynak not in ("hepsi", "auto", "tum")) else None
     cache_suresi = 0 if force_refresh else None
 
     try:

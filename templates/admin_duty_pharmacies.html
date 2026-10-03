@@ -231,29 +231,66 @@
             padding: 4px;
         }
 
-        /* Hızlı Tarih Butonları */
+        /* Hızlı Tarih ve Bilgi Çubuğu */
+        .filter-footer-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 0.8rem;
+            margin-top: 1.2rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .quick-date-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .quick-date-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
         .quick-date-row {
             display: flex;
             gap: 0.4rem;
-            margin-top: 0.4rem;
         }
 
         .quick-date-btn {
             background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: #94a3b8;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #cbd5e1;
             border-radius: 6px;
-            padding: 0.2rem 0.5rem;
-            font-size: 0.72rem;
+            padding: 0.35rem 0.75rem;
+            font-size: 0.78rem;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.15s;
+            transition: all 0.2s ease;
         }
 
-        .quick-date-btn:hover, .quick-date-btn.active {
+        .quick-date-btn:hover {
             background: rgba(56, 189, 248, 0.15);
-            border-color: rgba(56, 189, 248, 0.35);
+            border-color: rgba(56, 189, 248, 0.4);
             color: #38bdf8;
+        }
+
+        .quick-date-btn.active {
+            background: rgba(16, 185, 129, 0.2);
+            border-color: rgba(16, 185, 129, 0.5);
+            color: #34d399;
+            font-weight: 700;
+        }
+
+        .filter-hint {
+            font-size: 0.78rem;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
         }
 
         /* İstatistik & Bilgi Çubuğu */
@@ -622,20 +659,15 @@
                     <!-- Tarih -->
                     <div class="form-group">
                         <label>Nöbet Tarihi</label>
-                        <input type="date" id="filter-date" class="form-control" required>
-                        <div class="quick-date-row">
-                            <button type="button" class="quick-date-btn" onclick="tarihAyarla(-1)">⏪ Dün</button>
-                            <button type="button" class="quick-date-btn active" id="btn-today" onclick="tarihAyarla(0)">📍 Bugün</button>
-                            <button type="button" class="quick-date-btn" onclick="tarihAyarla(1)">⏩ Yarın</button>
-                        </div>
+                        <input type="date" id="filter-date" class="form-control" required onchange="tarihDegistiManual()">
                     </div>
 
                     <!-- Veri Kaynağı -->
                     <div class="form-group">
                         <label>Veri Kaynağı</label>
                         <select id="filter-source" class="form-control">
-                            <option value="auto" selected>🔄 Otomatik (Fallback Pipeline)</option>
-                            <option value="ieo_resmi">İEO (İstanbul Eczacı Odası)</option>
+                            <option value="hepsi" selected>🔄 Akıllı Öncelik (İEO Resmi + Fallback)</option>
+                            <option value="ieo_resmi">İEO (İstanbul Eczacı Odası Resmi)</option>
                             <option value="nobetcieczaneler_org">Nobetcieczaneler.org</option>
                             <option value="eczaneler_gen_tr">Eczaneler.gen.tr</option>
                         </select>
@@ -649,8 +681,32 @@
                     </div>
 
                 </div>
+
+                <!-- Hızlı Tarih Seçimi ve Resmi Oda Bilgilendirmesi -->
+                <div class="filter-footer-bar">
+                    <div class="quick-date-group">
+                        <span class="quick-date-label">⚡ Hızlı Seçim:</span>
+                        <div class="quick-date-row">
+                            <button type="button" class="quick-date-btn" id="btn-yesterday" onclick="tarihAyarla(-1)">⏪ Dün</button>
+                            <button type="button" class="quick-date-btn active" id="btn-today" onclick="tarihAyarla(0)">📍 Bugün</button>
+                            <button type="button" class="quick-date-btn" id="btn-tomorrow" onclick="tarihAyarla(1)">⏩ Yarın</button>
+                        </div>
+                    </div>
+                    <div class="filter-hint">
+                        <span>ℹ️ Eczacı Odası nöbet çizelgeleri 24 saatlik canlı devirle yayınlanır.</span>
+                    </div>
+                </div>
             </form>
         </section>
+
+        <!-- Tarih Bilgilendirme Uyarısı (Geçmiş veya Gelecek Seçildiğinde) -->
+        <div id="date-notice-banner" style="display: none; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 12px; padding: 0.9rem 1.2rem; margin-bottom: 1.5rem; font-size: 0.86rem; color: #bae6fd; display: none; align-items: center; gap: 0.8rem;">
+            <span style="font-size: 1.3rem;">ℹ️</span>
+            <div>
+                <strong>Tarih Bilgilendirmesi:</strong> 
+                <span id="date-notice-text">Resmi Eczacı Odaları, nöbet takasları ve ani değişimler nedeniyle halka açık sorgularda 24 saatlik güncel nöbetçi çizelgesini yayınlamaktadır.</span>
+            </div>
+        </div>
 
         <!-- İstatistik ve Durum Çubuğu -->
         <section class="stats-bar" id="stats-bar" style="display: none;">
@@ -807,12 +863,57 @@
             const yil = d.getFullYear();
             const ay = String(d.getMonth() + 1).padStart(2, '0');
             const gun = String(d.getDate()).padStart(2, '0');
-            document.getElementById('filter-date').value = `${yil}-${ay}-${gun}`;
+            const secilenStr = `${yil}-${ay}-${gun}`;
+            document.getElementById('filter-date').value = secilenStr;
 
             document.querySelectorAll('.quick-date-btn').forEach(b => b.classList.remove('active'));
-            if (offsetDays === 0) document.getElementById('btn-today').classList.add('active');
+            if (offsetDays === -1) document.getElementById('btn-yesterday').classList.add('active');
+            else if (offsetDays === 0) document.getElementById('btn-today').classList.add('active');
+            else if (offsetDays === 1) document.getElementById('btn-tomorrow').classList.add('active');
 
+            tarihUyariKontrolEt(secilenStr);
             nobetcileriSorgulaAjax();
+        }
+
+        // Kullanıcı takvimden elle tarih seçtiğinde
+        function tarihDegistiManual() {
+            const secilenTarih = document.getElementById('filter-date').value;
+            const bugunStr = bugunTarihStr();
+
+            document.querySelectorAll('.quick-date-btn').forEach(b => b.classList.remove('active'));
+            if (secilenTarih === bugunStr) {
+                document.getElementById('btn-today').classList.add('active');
+            }
+
+            tarihUyariKontrolEt(secilenTarih);
+        }
+
+        // Bugünün YYYY-MM-DD formatında string'i
+        function bugunTarihStr() {
+            const now = new Date();
+            const y = now.getFullYear();
+            const m = String(now.getMonth() + 1).padStart(2, '0');
+            const d = String(now.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        // Tarih Bilgilendirme Uyarısını Yönet
+        function tarihUyariKontrolEt(tarihStr) {
+            const banner = document.getElementById('date-notice-banner');
+            const textEl = document.getElementById('date-notice-text');
+            if (!banner || !textEl) return;
+
+            const bugunStr = bugunTarihStr();
+            if (tarihStr === bugunStr) {
+                banner.style.display = 'none';
+            } else {
+                banner.style.display = 'flex';
+                if (tarihStr > bugunStr) {
+                    textEl.textContent = `Resmi Eczacı Odaları (İEO), son dakika nöbet takasları nedeniyle halka açık sorgularda yalnızca 24 saatlik GÜNCEL nöbet listesini yayınlamaktadır. Seçtiğiniz ileri tarih (${tarihStr}) için resmi odanın yayındaki en son teyit edilmiş nöbet çizelgesi listelenmektedir.`;
+                } else {
+                    textEl.textContent = `Resmi Eczacı Odaları, halka açık servislerde arşiv kayıtlarını kapalı tutmakta olup güncel 24 saatlik nöbet çizelgesini yayınlamaktadır. Seçtiğiniz geçmiş tarih (${tarihStr}) için odanın resmi güncel listesi sunulmaktadır.`;
+                }
+            }
         }
 
         // AJAX ile Nöbetçi Eczaneleri Sorgula
@@ -823,6 +924,8 @@
             const ilce = document.getElementById('filter-district').value.trim();
             const tarih = document.getElementById('filter-date').value.trim();
             const kaynak = document.getElementById('filter-source').value.trim();
+
+            tarihUyariKontrolEt(tarih);
 
             const loadingBox = document.getElementById('loading-box');
             const emptyBox = document.getElementById('empty-box');

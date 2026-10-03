@@ -548,6 +548,36 @@ def yedek_veri_uret(il: str, ilce: str) -> List[Dict[str, Any]]:
             "enlem": 40.995927,
             "boylam": 28.863768,
             "kaynak": "fallback_offline"
+        },
+        {
+            "id": 3,
+            "isim": "Örnek Yaşam Eczanesi",
+            "il": il.capitalize(),
+            "ilce": ilce.capitalize(),
+            "semt": "Şirinevler",
+            "adres": f"Şirinevler Mahallesi, Mareşal Fevzi Çakmak Caddesi No: 18/A {ilce.capitalize()} / {il.capitalize()}",
+            "telefon": "0212 654 32 10",
+            "telefon_link": "tel:02126543210",
+            "yol_tarifi": "Şirinevler Meydanı Yakını",
+            "nobet_durumu": "Sabaha kadar açık",
+            "enlem": 40.998120,
+            "boylam": 28.845620,
+            "kaynak": "fallback_offline"
+        },
+        {
+            "id": 4,
+            "isim": "Örnek Hilal Eczanesi",
+            "il": il.capitalize(),
+            "ilce": ilce.capitalize(),
+            "semt": "Yenibosna",
+            "adres": f"Yenibosna Merkez Mahallesi, Yıldırım Beyazıt Caddesi No: 45 {ilce.capitalize()} / {il.capitalize()}",
+            "telefon": "0212 551 90 20",
+            "telefon_link": "tel:02125519020",
+            "yol_tarifi": "Yenibosna Polis Merkezi Karşısı",
+            "nobet_durumu": "Sabaha kadar açık",
+            "enlem": 40.999540,
+            "boylam": 28.829870,
+            "kaynak": "fallback_offline"
         }
     ]
 
