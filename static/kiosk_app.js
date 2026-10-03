@@ -38,7 +38,7 @@
 
 const KIOSK_AYARLAR = {
     POLLING_ARALIGI_MS: 15 * 60 * 1000, // 15 dakikada bir veri tazeleme
-    HEARTBEAT_ARALIGI_MS: 45 * 1000,    // 45 saniyede bir hafif canlılık sinyali (heartbeat)
+    HEARTBEAT_ARALIGI_MS: 5 * 1000,     // 5 saniyede bir hafif canlılık ve komut dinleme sinyali
     HATA_TEKRAR_DENE_MS: 60 * 1000,     // Ağ kesintisinde 60 saniyede bir tekrar deneme
     SAAT_ARALIGI_MS: 1000,              // Saniyede bir saat güncelleme
     GECE_RELOAD_SAATI: 5,               // Her gece 05:00'te bellek temizliği için yenileme
@@ -1863,7 +1863,8 @@ async function kioskVerileriniGetir() {
 }
 
 /**
- * TV Kiosk Ekranının Canlılık Sinyalini (Heartbeat) Gönderir (45 saniyede bir)
+ * TV Kiosk Ekranının Canlılık Sinyalini (Heartbeat) Gönderir (5 saniyede bir)
+ * Sunucudan gelen komutları (Cihaz Tanımlama / Identify) anında yakalar.
  */
 async function kioskHeartbeatPing() {
     try {
@@ -1877,7 +1878,9 @@ async function kioskHeartbeatPing() {
         if (resp.ok) {
             const data = await resp.json();
             if (data && data.identify && data.identify.active) {
-                ekrandaCihazTanimlaParlat(data.identify);
+                cihazTanimlamaGoster(data.identify);
+            } else {
+                cihazTanimlamaGizle();
             }
         }
     } catch (e) {
@@ -1895,7 +1898,7 @@ function kioskBaslat() {
     saatVeTarihiGuncelle();
     setInterval(saatVeTarihiGuncelle, KIOSK_AYARLAR.SAAT_ARALIGI_MS);
 
-    // İlk canlılık pingini at ve her 45 saniyede bir tekrarla
+    // İlk canlılık pingini at ve her 5 saniyede bir tekrarla (komut dinleme)
     kioskHeartbeatPing();
     setInterval(kioskHeartbeatPing, KIOSK_AYARLAR.HEARTBEAT_ARALIGI_MS);
 
@@ -1953,13 +1956,20 @@ function ekranOlceginiUygula(scaleAyar = 'auto') {
 
 /**
  * 12. Cihaz Tanımlama & Ekranda Göster Sinyali (Identify Overlay)
+ * Geri sayım sayacı içerir ve 25 saniye sonunda otomatik olarak kapanır.
  */
+let identifyTimer = null;
+let identifyCountdownInterval = null;
+let identifyKalanSaniye = 25;
+
 function cihazTanimlamaGoster(identifyData) {
     let overlay = document.getElementById('device-identify-overlay');
     if (!overlay) {
         overlay = document.createElement('div');
         overlay.id = 'device-identify-overlay';
         overlay.className = 'device-identify-overlay';
+        // Tıklamayla da erkenden kapatılabilmesi için
+        overlay.onclick = function() { cihazTanimlamaGizle(); };
         document.body.appendChild(overlay);
     }
 
@@ -1972,34 +1982,68 @@ function cihazTanimlamaGoster(identifyData) {
     };
     const scaleMetin = scaleLabels[identifyData.screen_scale] || identifyData.screen_scale || 'Otomatik';
 
-    overlay.innerHTML = `
-        <div class="device-identify-box animate-pulse-glow">
-            <div class="identify-radar-icon">📡</div>
-            <div class="identify-header-tag">CİHAZ TANIMLAMA SİNYALİ</div>
-            <h1 class="identify-device-title">${escapeHtml(identifyData.device_name || 'TV EKRANI')}</h1>
-            <div class="identify-details-row">
-                <span class="badge" style="background: rgba(56,189,248,0.25); color: #38bdf8; font-size: 1.1rem; padding: 0.5rem 1.1rem; border: 1px solid rgba(56,189,248,0.5);">
-                    📺 Ölçek: ${scaleMetin}
-                </span>
-                <span class="badge" style="background: rgba(255,255,255,0.12); color: #f1f5f9; font-size: 1rem; padding: 0.5rem 1.1rem; border: 1px solid rgba(255,255,255,0.2);">
-                    🔑 Cihaz No: #${identifyData.device_id || '1'}
-                </span>
+    // Eğer zaten açıksa sadece saniyeyi güncellemek yerine baştan kurma
+    if (overlay.style.display !== 'flex') {
+        overlay.innerHTML = `
+            <div class="device-identify-box animate-pulse-glow" onclick="event.stopPropagation()">
+                <div class="identify-radar-icon">📡</div>
+                <div class="identify-header-tag">CİHAZ TANIMLAMA SİNYALİ</div>
+                <h1 class="identify-device-title">${escapeHtml(identifyData.device_name || 'TV EKRANI')}</h1>
+                <div class="identify-details-row">
+                    <span class="badge" style="background: rgba(56,189,248,0.25); color: #38bdf8; font-size: 1.1rem; padding: 0.5rem 1.1rem; border: 1px solid rgba(56,189,248,0.5);">
+                        📺 Ölçek: ${scaleMetin}
+                    </span>
+                    <span class="badge" style="background: rgba(255,255,255,0.12); color: #f1f5f9; font-size: 1rem; padding: 0.5rem 1.1rem; border: 1px solid rgba(255,255,255,0.2);">
+                        🔑 Cihaz No: #${identifyData.device_id || '1'}
+                    </span>
+                </div>
+                <div class="identify-device-token">
+                    Cihaz Kodu: <code>${escapeHtml(identifyData.code || '---')}</code>
+                </div>
+                <div class="identify-footer-note">
+                    ✨ Bu ekran yönetim panelinden başarıyla tanımlandı (<span id="identify-countdown-num" style="color: #38bdf8; font-weight: 800; font-size: 1.1rem;">25</span> sn sonra kapanacak).
+                </div>
             </div>
-            <div class="identify-device-token">
-                Cihaz Kodu: <code>${escapeHtml(identifyData.code || '---')}</code>
-            </div>
-            <div class="identify-footer-note">
-                ✨ Bu ekran yönetim panelinden başarıyla tanımlandı (25 saniye sonra kapanacak).
-            </div>
-        </div>
-    `;
-    overlay.style.display = 'flex';
+        `;
+        overlay.style.display = 'flex';
+        overlay.style.opacity = '1';
+
+        // Timer'ları başlat
+        if (identifyTimer) clearTimeout(identifyTimer);
+        if (identifyCountdownInterval) clearInterval(identifyCountdownInterval);
+
+        identifyKalanSaniye = 25;
+        identifyCountdownInterval = setInterval(() => {
+            identifyKalanSaniye--;
+            const countEl = document.getElementById('identify-countdown-num');
+            if (countEl) countEl.textContent = Math.max(0, identifyKalanSaniye);
+            if (identifyKalanSaniye <= 0) {
+                cihazTanimlamaGizle();
+            }
+        }, 1000);
+
+        identifyTimer = setTimeout(() => {
+            cihazTanimlamaGizle();
+        }, 25000);
+    }
 }
 
 function cihazTanimlamaGizle() {
+    if (identifyTimer) {
+        clearTimeout(identifyTimer);
+        identifyTimer = null;
+    }
+    if (identifyCountdownInterval) {
+        clearInterval(identifyCountdownInterval);
+        identifyCountdownInterval = null;
+    }
     const overlay = document.getElementById('device-identify-overlay');
-    if (overlay) {
-        overlay.style.display = 'none';
+    if (overlay && overlay.style.display === 'flex') {
+        overlay.style.transition = 'opacity 0.4s ease';
+        overlay.style.opacity = '0';
+        setTimeout(() => {
+            overlay.style.display = 'none';
+        }, 400);
     }
 }
 
