@@ -120,6 +120,10 @@ def init_db():
                         conn.execute(text("ALTER TABLE pharmacies ADD COLUMN screen_scale VARCHAR(20) DEFAULT 'auto'"))
                     if "theme_settings" not in mevcut_kolonlar:
                         conn.execute(text("ALTER TABLE pharmacies ADD COLUMN theme_settings TEXT DEFAULT '{}'"))
+                    if "institution_type" not in mevcut_kolonlar:
+                        conn.execute(text("ALTER TABLE pharmacies ADD COLUMN institution_type VARCHAR(50) DEFAULT 'pharmacy'"))
+                    if "institution_settings" not in mevcut_kolonlar:
+                        conn.execute(text("ALTER TABLE pharmacies ADD COLUMN institution_settings TEXT DEFAULT '{}'"))
                     conn.commit()
 
             if "kiosk_devices" in tablolar:
@@ -451,12 +455,14 @@ def admin_add_pharmacy():
     cihaz_limiti = request.form.get("max_devices", 1, type=int)
     ekran_olcegi = request.form.get("screen_scale", "auto").strip()
 
+    kurum_turu = request.form.get("institution_type", "pharmacy").strip()
     if not isim:
-        flash("Eczane adı zorunludur!", "danger")
+        flash("Kurum adı zorunludur!", "danger")
         return redirect(url_for("admin_dashboard"))
 
     yeni_eczane = Pharmacy(
         name=isim,
+        institution_type=kurum_turu or "pharmacy",
         city=sehir,
         district=ilce,
         latitude=enlem,
@@ -477,17 +483,20 @@ def admin_add_pharmacy():
     db.session.add(yeni_eczane)
     db.session.commit()
 
-    flash(f"'{isim}' başarıyla eklendi. Lisans Anahtarı: {yeni_eczane.license_key} (Cihaz Limiti: {yeni_eczane.max_devices})", "success")
+    flash(f"'{isim}' ({yeni_eczane.get_institution_type_label()}) başarıyla eklendi. Lisans: {yeni_eczane.license_key} (Cihaz Limiti: {yeni_eczane.max_devices})", "success")
     return redirect(url_for("admin_dashboard"))
 
 
 @app.route("/admin/pharmacy/<int:eczane_id>/edit", methods=["POST"])
 @login_required
 def admin_edit_pharmacy(eczane_id):
-    """Mevcut eczane bilgilerini düzenleme."""
+    """Mevcut kurum bilgilerini düzenleme."""
     eczane = Pharmacy.query.get_or_404(eczane_id)
 
     eczane.name = request.form.get("name", eczane.name).strip()
+    kurum_turu = request.form.get("institution_type")
+    if kurum_turu:
+        eczane.institution_type = kurum_turu.strip()
     eczane.city = request.form.get("city", eczane.city).strip()
     eczane.district = request.form.get("district", eczane.district).strip()
     eczane.latitude = request.form.get("latitude", eczane.latitude, type=float)

@@ -534,7 +534,7 @@
                 ⚙️ Genel Ayarlar
             </a>
             <button class="btn btn-primary" onclick="yeniEczaneModalAc()">
-                ➕ Yeni Eczane Ekle
+                ➕ Yeni Kurum Ekle
             </button>
             <a href="/admin/logout" class="btn btn-secondary">
                 Çıkış Yap ({{ session.get('admin_username') }})
@@ -555,7 +555,7 @@
     <section class="stats-grid">
         <div class="stat-card">
             <div class="stat-info">
-                <h3>Kayıtlı Eczane</h3>
+                <h3>Kayıtlı Kurum</h3>
                 <div class="stat-number">{{ toplam_sayi }}</div>
             </div>
             <div class="stat-badge blue">🏥</div>
@@ -582,7 +582,7 @@
     <section class="table-card">
         <div class="table-header-title">
             <div>
-                <h2>Eczaneler, Kiosk Cihazları ve Canlı Nöbet Durumu</h2>
+                <h2>Kurumlar, Kiosk Cihazları ve Canlı Nöbet Durumu</h2>
                 <span style="font-size: 0.82rem; color: var(--text-muted);">
                     Heartbeat toleransı: Son 5 dakika | Fallback: İEO &rarr; eczaneler.gen.tr &rarr; nobetcieczaneler.org
                 </span>
@@ -596,7 +596,7 @@
             <thead>
                 <tr>
                     <th>Canlılık & IP</th>
-                    <th>Eczane Bilgisi</th>
+                    <th>Kurum</th>
                     <th>Konum</th>
                     <th>Lisans Kodu</th>
                     <th>Kiosk</th>
@@ -628,11 +628,18 @@
                         </div>
                     </td>
 
-                    <!-- Eczane Adı & Eczacı Detayı (Kayan Yazı Kaldırıldı, Sade Görünüm) -->
+                    <!-- Kurum Adı & Detayı (Kayan Yazı Kaldırıldı, Sade Görünüm) -->
                     <td>
-                        <strong style="color: #fff; font-size: 0.95rem;">{{ e.name }}</strong>
+                        <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.15rem;">
+                            <strong style="color: #fff; font-size: 0.95rem;">{{ e.name }}</strong>
+                            <span class="badge" style="background: rgba(148, 163, 184, 0.15); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.3); font-size: 0.7rem; padding: 0.12rem 0.35rem;">
+                                {{ e.get_institution_type_label() }}
+                            </span>
+                        </div>
                         {% if e.pharmacist_name %}
-                            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.15rem;">Ecz. {{ e.pharmacist_name }}</div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.15rem;">
+                                {% if e.institution_type == 'pharmacy' %}Ecz. {% else %}Yetkili: {% endif %}{{ e.pharmacist_name }}
+                            </div>
                         {% endif %}
                         {% if e.phone %}
                             <div style="font-size: 0.72rem; color: #38bdf8; font-family: monospace; margin-top: 0.15rem;">☎ {{ e.phone }}</div>
@@ -656,14 +663,14 @@
                         <span class="license-code">{{ e.license_key }}</span>
                     </td>
 
-                    <!-- Çoklu Cihaz Durumu & Yönetim -->
+                    <!-- Çoklu Cihaz Durumu & Kiosk (2 Satır: Üstte TV Sayısı, Altta Buton) -->
                     <td>
-                        <div style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 0.35rem;">
                             {% set dev_sayisi = e.devices.count() %}
-                            <span class="badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35); font-weight: 700; font-size: 0.75rem;">
+                            <span class="badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35); font-weight: 700; font-size: 0.75rem; white-space: nowrap;">
                                 📺 {{ dev_sayisi }} / {{ e.max_devices or 1 }} TV
                             </span>
-                            <button type="button" class="btn btn-sm btn-secondary" onclick="cihazYonetimModalAc({{ e.id }})" style="padding: 0.2rem 0.45rem; font-size: 0.72rem;" title="Bağlı Cihazları Yönet / Sıfırla">
+                            <button type="button" class="btn btn-sm btn-secondary" onclick="cihazYonetimModalAc({{ e.id }})" style="padding: 0.2rem 0.45rem; font-size: 0.72rem; width: 100%; max-width: 95px; text-align: center;" title="Bağlı Cihazları Yönet / Sıfırla">
                                 ⚙️ Cihazlar
                             </button>
                         </div>
@@ -681,19 +688,19 @@
                         {% endif %}
                     </td>
 
-                    <!-- Durum Rozeti & Duraklatma Butonu -->
+                    <!-- Durum Rozeti & Duraklatma Butonu (2 Satır: Üstte Buton, Altta Yazı) -->
                     <td>
-                        <div style="display: inline-flex; align-items: center; gap: 0.35rem;">
-                            {% if e.lisans_gecerli_mi() %}
-                                <span class="badge badge-active">Aktif</span>
-                            {% else %}
-                                <span class="badge badge-expired">Pasif</span>
-                            {% endif %}
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 0.3rem;">
                             <form method="POST" action="/admin/pharmacy/{{ e.id }}/toggle" style="display:inline; margin: 0;">
-                                <button type="submit" class="btn btn-sm {% if e.is_active %}btn-danger{% else %}btn-success{% endif %}" style="padding: 0.18rem 0.42rem; font-size: 0.72rem; line-height: 1;" title="{% if e.is_active %}Lisansı Duraklat (Dondur){% else %}Lisansı Aktif Et{% endif %}">
-                                    {% if e.is_active %}⏸️{% else %}▶️{% endif %}
+                                <button type="submit" class="btn btn-sm {% if e.is_active %}btn-danger{% else %}btn-success{% endif %}" style="padding: 0.2rem 0.55rem; font-size: 0.75rem; line-height: 1;" title="{% if e.is_active %}Lisansı Duraklat (Dondur){% else %}Lisansı Aktif Et{% endif %}">
+                                    {% if e.is_active %}⏸️ Duraklat{% else %}▶️ Başlat{% endif %}
                                 </button>
                             </form>
+                            {% if e.lisans_gecerli_mi() %}
+                                <span class="badge badge-active" style="font-size: 0.72rem;">Aktif</span>
+                            {% else %}
+                                <span class="badge badge-expired" style="font-size: 0.72rem;">Pasif</span>
+                            {% endif %}
                         </div>
                     </td>
 
@@ -745,35 +752,53 @@
         </table>
     </section>
 
-    <!-- 1. MODAL: YENİ ECZANE EKLE -->
+    <!-- 1. MODAL: YENİ KURUM EKLE -->
     <div id="modal-add" class="modal-overlay">
         <div class="modal-box">
             <div class="modal-header">
                 <div>
-                    <h3>➕ Yeni Eczane & Kiosk Lisansı Ekle</h3>
-                    <span style="font-size: 0.78rem; color: #94a3b8;">Sisteme yeni bir eczane, vitrin TV ve lisans tanımlayın</span>
+                    <h3>➕ Yeni Kurum & Kiosk Lisansı Ekle</h3>
+                    <span style="font-size: 0.78rem; color: #94a3b8;">Sisteme yeni bir kurum (eczane, hastane vb.), vitrin TV ve lisans tanımlayın</span>
                 </div>
                 <button class="modal-close" onclick="modalKapat('modal-add')">&times;</button>
             </div>
             <form method="POST" action="/admin/pharmacy/add" class="modal-form-flex">
                 <div class="modal-body">
-                    <!-- 1. Temel Eczane & İletişim Bilgileri -->
+                    <!-- 1. Temel Kurum & İletişim Bilgileri -->
                     <div class="form-section-card">
                         <div class="form-section-title">
-                            <span>📋 Eczane & İletişim Bilgileri</span>
+                            <span>📋 Kurum & İletişim Bilgileri</span>
                         </div>
                         <div class="form-row">
                             <div class="form-group">
-                                <label>Eczane Adı *</label>
-                                <input type="text" id="add-name" name="name" class="form-control" placeholder="Örn: Çakırlar Eczanesi" required>
+                                <label>Kurum Türü *</label>
+                                <select id="add-institution_type" name="institution_type" class="form-control" required>
+                                    <option value="pharmacy" selected>💊 Eczane</option>
+                                    <option value="hospital">🏥 Hastane</option>
+                                    <option value="medical_center">🩺 Tıp Merkezi</option>
+                                    <option value="policlinic">🏢 Poliklinik</option>
+                                    <option value="other">🏛️ Diğer Kurum</option>
+                                </select>
+                                <small>Kurum tipi kiosk ekranı ve veri entegrasyonu için kullanılır.</small>
                             </div>
                             <div class="form-group">
-                                <label>Eczacı Ad Soyad</label>
-                                <input type="text" name="pharmacist_name" class="form-control" placeholder="Örn: Ecz. Ahmet Yılmaz">
+                                <label>Kurum Adı *</label>
+                                <input type="text" id="add-name" name="name" class="form-control" placeholder="Örn: Çakırlar Eczanesi / Şifa Tıp Merkezi" required>
                             </div>
                         </div>
 
-                        <div class="form-row-3">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Yetkili / Eczacı Ad Soyad</label>
+                                <input type="text" name="pharmacist_name" class="form-control" placeholder="Örn: Ecz. Ahmet Yılmaz">
+                            </div>
+                            <div class="form-group">
+                                <label>Kurum Sicil / GLN No</label>
+                                <input type="text" id="add-chamber_registration_no" name="chamber_registration_no" class="form-control" placeholder="Örn: 34-12345">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
                             <div class="form-group">
                                 <label>İl</label>
                                 <input type="text" id="add-city" name="city" class="form-control" value="İstanbul" required>
@@ -781,10 +806,6 @@
                             <div class="form-group">
                                 <label>İlçe</label>
                                 <input type="text" id="add-district" name="district" class="form-control" value="Bahçelievler" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Oda Sicil / GLN No</label>
-                                <input type="text" id="add-chamber_registration_no" name="chamber_registration_no" class="form-control" placeholder="Örn: 34-12345">
                             </div>
                         </div>
 
@@ -794,7 +815,7 @@
                                 <input type="text" id="add-phone" name="phone" class="form-control" placeholder="Örn: 0212 555 44 33">
                             </div>
                             <div class="form-group">
-                                <label>Eczacı Cep Telefonu</label>
+                                <label>Yetkili Cep Telefonu</label>
                                 <input type="text" name="mobile_phone" class="form-control" placeholder="Örn: 0532 111 22 33">
                             </div>
                         </div>
@@ -905,35 +926,52 @@
         </div>
     </div>
 
-    <!-- 2. MODAL: ECZANE DÜZENLE -->
+    <!-- 2. MODAL: KURUM DÜZENLE -->
     <div id="modal-edit" class="modal-overlay">
         <div class="modal-box">
             <div class="modal-header">
                 <div>
-                    <h3>✏️ Eczane & Lisans Bilgilerini Düzenle</h3>
+                    <h3>✏️ Kurum & Lisans Bilgilerini Düzenle</h3>
                     <span style="font-size: 0.78rem; color: #94a3b8;">TV Kiosk, konum, lisans süresi ve ekran parametreleri</span>
                 </div>
                 <button class="modal-close" onclick="modalKapat('modal-edit')">&times;</button>
             </div>
             <form id="edit-form" method="POST" action="" class="modal-form-flex">
                 <div class="modal-body">
-                    <!-- 1. Temel Eczane & İletişim Bilgileri -->
+                    <!-- 1. Temel Kurum & İletişim Bilgileri -->
                     <div class="form-section-card">
                         <div class="form-section-title">
-                            <span>📋 Eczane & İletişim Bilgileri</span>
+                            <span>📋 Kurum & İletişim Bilgileri</span>
                         </div>
                         <div class="form-row">
                             <div class="form-group">
-                                <label>Eczane Adı *</label>
-                                <input type="text" id="edit-name" name="name" class="form-control" required>
+                                <label>Kurum Türü *</label>
+                                <select id="edit-institution_type" name="institution_type" class="form-control" required>
+                                    <option value="pharmacy">💊 Eczane</option>
+                                    <option value="hospital">🏥 Hastane</option>
+                                    <option value="medical_center">🩺 Tıp Merkezi</option>
+                                    <option value="policlinic">🏢 Poliklinik</option>
+                                    <option value="other">🏛️ Diğer Kurum</option>
+                                </select>
                             </div>
                             <div class="form-group">
-                                <label>Eczacı Ad Soyad</label>
-                                <input type="text" id="edit-pharmacist_name" name="pharmacist_name" class="form-control">
+                                <label>Kurum Adı *</label>
+                                <input type="text" id="edit-name" name="name" class="form-control" required>
                             </div>
                         </div>
 
-                        <div class="form-row-3">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Yetkili / Eczacı Ad Soyad</label>
+                                <input type="text" id="edit-pharmacist_name" name="pharmacist_name" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label>Kurum Sicil / GLN No</label>
+                                <input type="text" id="edit-chamber_registration_no" name="chamber_registration_no" class="form-control">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
                             <div class="form-group">
                                 <label>İl</label>
                                 <input type="text" id="edit-city" name="city" class="form-control" required>
@@ -941,10 +979,6 @@
                             <div class="form-group">
                                 <label>İlçe</label>
                                 <input type="text" id="edit-district" name="district" class="form-control" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Oda Sicil / GLN No</label>
-                                <input type="text" id="edit-chamber_registration_no" name="chamber_registration_no" class="form-control">
                             </div>
                         </div>
 
@@ -954,7 +988,7 @@
                                 <input type="text" id="edit-phone" name="phone" class="form-control">
                             </div>
                             <div class="form-group">
-                                <label>Eczacı Cep Telefonu</label>
+                                <label>Yetkili Cep Telefonu</label>
                                 <input type="text" id="edit-mobile_phone" name="mobile_phone" class="form-control">
                             </div>
                         </div>
@@ -1412,9 +1446,11 @@
             modalAc('modal-add');
             haritayiBaslat('add', 41.0000, 28.8600);
         }
+        const yeniKurumModalAc = yeniEczaneModalAc;
 
         function duzenleModalAc(eczane) {
             document.getElementById('edit-form').action = `/admin/pharmacy/${eczane.id}/edit`;
+            document.getElementById('edit-institution_type').value = eczane.institution_type || 'pharmacy';
             document.getElementById('edit-name').value = eczane.name || '';
             document.getElementById('edit-city').value = eczane.city || 'İstanbul';
             document.getElementById('edit-district').value = eczane.district || '';

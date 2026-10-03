@@ -167,7 +167,9 @@ class Pharmacy(db.Model):
     __tablename__ = "pharmacies"
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(120), nullable=False)                    # Eczane Adı
+    name = db.Column(db.String(120), nullable=False)                    # Eczane / Kurum Adı
+    institution_type = db.Column(db.String(50), default="pharmacy", nullable=False) # 'pharmacy', 'hospital', 'medical_center', 'policlinic', 'other'
+    institution_settings = db.Column(db.Text, default='{}', nullable=False)        # Kurum tipine özel modüler ayarlar (JSON)
     city = db.Column(db.String(50), default="İstanbul", nullable=False) # İl
     district = db.Column(db.String(80), nullable=False)                 # İlçe
     latitude = db.Column(db.Float, nullable=True)                       # Enlem
@@ -381,12 +383,46 @@ class Pharmacy(db.Model):
         gecen_sure = datetime.now() - self.last_ping
         return gecen_sure <= timedelta(minutes=tolerans_dakika)
 
+    def get_institution_type_label(self) -> str:
+        """Kurum türünün Türkçe etiketini ve ikonunu döndürür."""
+        labels = {
+            "pharmacy": "💊 Eczane",
+            "hospital": "🏥 Hastane",
+            "medical_center": "🩺 Tıp Merkezi",
+            "policlinic": "🏢 Poliklinik",
+            "other": "🏛️ Diğer Kurum"
+        }
+        return labels.get(self.institution_type or "pharmacy", "💊 Eczane")
+
+    def get_institution_settings(self) -> dict:
+        """İleride farklı kurum tiplerine özel modül ayarlarını döndürür."""
+        import json
+        if self.institution_settings:
+            try:
+                veri = json.loads(self.institution_settings)
+                if isinstance(veri, dict):
+                    return veri
+            except Exception:
+                pass
+        return {}
+
+    def set_institution_settings(self, ayarlar: dict):
+        """Farklı kurum tiplerine özel ayarları kaydeder."""
+        import json
+        guncel = self.get_institution_settings()
+        if isinstance(ayarlar, dict):
+            guncel.update(ayarlar)
+        self.institution_settings = json.dumps(guncel, ensure_ascii=False)
+
     def to_dict(self) -> dict:
         """Model verilerini JSON sözlüğüne dönüştürür."""
         cihazlar = [d.to_dict() for d in self.devices]
         return {
             "id": self.id,
             "name": self.name,
+            "institution_type": self.institution_type or "pharmacy",
+            "institution_type_label": self.get_institution_type_label(),
+            "institution_settings": self.get_institution_settings(),
             "city": self.city,
             "district": self.district,
             "latitude": self.latitude,
