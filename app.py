@@ -747,6 +747,64 @@ def admin_help():
     return render_template("admin_help.html")
 
 
+@app.route("/admin/duty-pharmacies")
+@login_required
+def admin_duty_pharmacies():
+    """İl, ilçe ve tarih bazında nöbetçi eczaneleri sorgulama ve listeleme sayfası."""
+    il = request.args.get("il", "İstanbul")
+    ilce = request.args.get("ilce", "Bahçelievler")
+    tarih = request.args.get("tarih", datetime.now().strftime("%Y-%m-%d"))
+    kaynak = request.args.get("kaynak", "hepsi")
+    return render_template(
+        "admin_duty_pharmacies.html",
+        secili_il=il,
+        secili_ilce=ilce,
+        secili_tarih=tarih,
+        secili_kaynak=kaynak
+    )
+
+
+@app.route("/admin/api/duty-pharmacies")
+@login_required
+def admin_api_duty_pharmacies():
+    """AJAX ile nöbetçi eczaneleri JSON olarak döndüren uç nokta."""
+    il = request.args.get("il", "İstanbul").strip()
+    ilce = request.args.get("ilce", "Bahçelievler").strip()
+    tarih = request.args.get("tarih", "").strip() or None
+    kaynak = request.args.get("kaynak", "hepsi").strip()
+    force_refresh = request.args.get("refresh", "0") in ("1", "true", "True")
+
+    # Özel kaynak seçimi yapılmışsa öncelik listesini ona göre ayarla
+    kaynak_siralamasi = [kaynak] if kaynak and kaynak != "hepsi" else None
+    cache_suresi = 0 if force_refresh else None
+
+    try:
+        sonuc = nobetci_eczaneleri_getir(
+            il=il,
+            ilce=ilce,
+            cache_suresi_dakika=cache_suresi,
+            kaynak_siralamasi=kaynak_siralamasi,
+            tarih=tarih
+        )
+        return jsonify({
+            "success": True,
+            "eczaneler": sonuc.get("eczaneler", []),
+            "veri_saglayici": sonuc.get("veri_saglayici", ""),
+            "guncellenme_zamani": sonuc.get("guncellenme_zamani", ""),
+            "il": il,
+            "ilce": ilce,
+            "tarih": tarih or datetime.now().strftime("%Y-%m-%d"),
+            "kaynak": kaynak
+        })
+    except Exception as e:
+        app.logger.error(f"Nöbetçi eczane sorgu hatası: {e}")
+        return jsonify({
+            "success": False,
+            "error": f"Nöbetçi eczaneler alınırken hata oluştu: {str(e)}",
+            "eczaneler": []
+        }), 500
+
+
 @app.route("/admin/pharmacy/<int:eczane_id>/devices-json")
 @login_required
 def admin_pharmacy_devices_json(eczane_id):

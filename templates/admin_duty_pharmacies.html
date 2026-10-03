@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nöbetçi Eczaneler & Tarih Sorgulama | Yönetim Paneli</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet.js Harita Kütüphanesi -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <style>
+        /* Sayfa kaydırmasını açık tut */
+        html, body {
+            height: auto !important;
+            min-height: 100vh !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+            width: 100% !important;
+        }
+
+        :root {
+            --bg-body: #0b0f19;
+            --bg-card: rgba(17, 24, 39, 0.85);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --border-hover: rgba(255, 255, 255, 0.18);
+            --color-primary: #ef4444;
+            --color-accent: #38bdf8;
+            --color-success: #10b981;
+            --color-warning: #f59e0b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            background-image: 
+                radial-gradient(circle at 10% 15%, rgba(16, 185, 129, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 85% 85%, rgba(56, 189, 248, 0.05) 0%, transparent 40%);
+            color: var(--text-main);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            min-height: 100vh;
+            margin: 0;
+            padding: 1.5rem;
+            box-sizing: border-box;
+        }
+
+        .container {
+            max-width: 1240px;
+            margin: 0 auto;
+        }
+
+        /* Üst Gezinme Çubuğu */
+        .top-navbar {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            backdrop-filter: blur(12px);
+            border-radius: 16px;
+            padding: 1rem 1.6rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.8rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .brand-logo {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, #059669, #10b981);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+        }
+
+        .brand-text h1 {
+            font-size: 1.25rem;
+            font-weight: 800;
+            margin: 0;
+            color: #fff;
+        }
+
+        .brand-text p {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin: 0.15rem 0 0 0;
+        }
+
+        .nav-actions {
+            display: flex;
+            gap: 0.8rem;
+            align-items: center;
+        }
+
+        /* Buton Stilleri */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.55rem 1.1rem;
+            border-radius: 8px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            color: #fff;
+            box-sizing: border-box;
+        }
+
+        .btn-primary { background: #38bdf8; color: #0f172a; font-weight: 700; }
+        .btn-primary:hover { background: #7dd3fc; }
+        .btn-secondary { background: rgba(255, 255, 255, 0.08); border: 1px solid var(--border-color); color: var(--text-main); }
+        .btn-secondary:hover { background: rgba(255, 255, 255, 0.14); }
+        .btn-success { background: #059669; }
+        .btn-success:hover { background: #047857; }
+        .btn-danger { background: #dc2626; }
+        .btn-danger:hover { background: #b91c1c; }
+        .btn-sm { padding: 0.35rem 0.75rem; font-size: 0.8rem; }
+
+        /* Filtreleme ve Arama Kartı */
+        .filter-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1.8rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+        }
+
+        .filter-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.3fr 1.3fr 1.1fr auto;
+            gap: 1rem;
+            align-items: end;
+        }
+
+        @media (max-width: 1024px) {
+            .filter-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .filter-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: #cbd5e1;
+            margin-bottom: 0.45rem;
+        }
+
+        /* 44px Standart Form Kutuları */
+        .form-control {
+            width: 100%;
+            height: 44px;
+            min-height: 44px;
+            box-sizing: border-box;
+            padding: 0 0.85rem;
+            background: rgba(15, 23, 42, 0.65);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 0.90rem;
+            font-family: inherit;
+            line-height: 42px;
+            transition: all 0.2s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #38bdf8;
+            background: rgba(15, 23, 42, 0.9);
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+        }
+
+        select.form-control {
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.85rem center;
+            background-size: 16px;
+            padding-right: 2.5rem;
+            cursor: pointer;
+        }
+
+        select.form-control option {
+            background-color: #0f172a;
+            color: #fff;
+            padding: 10px;
+        }
+
+        input[type="date"].form-control {
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            color-scheme: dark;
+            padding: 0 0.85rem;
+        }
+
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(0.85);
+            cursor: pointer;
+            opacity: 0.85;
+            padding: 4px;
+        }
+
+        /* Hızlı Tarih Butonları */
+        .quick-date-row {
+            display: flex;
+            gap: 0.4rem;
+            margin-top: 0.4rem;
+        }
+
+        .quick-date-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #94a3b8;
+            border-radius: 6px;
+            padding: 0.2rem 0.5rem;
+            font-size: 0.72rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .quick-date-btn:hover, .quick-date-btn.active {
+            background: rgba(56, 189, 248, 0.15);
+            border-color: rgba(56, 189, 248, 0.35);
+            color: #38bdf8;
+        }
+
+        /* İstatistik & Bilgi Çubuğu */
+        .stats-bar {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 1rem 1.4rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .stats-left {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            flex-wrap: wrap;
+        }
+
+        .stats-location {
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: #fff;
+        }
+
+        .stats-date {
+            font-size: 0.88rem;
+            color: #38bdf8;
+            font-weight: 600;
+            background: rgba(56, 189, 248, 0.12);
+            padding: 0.25rem 0.65rem;
+            border-radius: 6px;
+            border: 1px solid rgba(56, 189, 248, 0.25);
+        }
+
+        .stats-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.25rem 0.65rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        .badge-count {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .badge-source {
+            background: rgba(168, 85, 247, 0.15);
+            color: #c084fc;
+            border: 1px solid rgba(168, 85, 247, 0.3);
+        }
+
+        .view-switch {
+            display: flex;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 3px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .view-switch-btn {
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            padding: 0.35rem 0.85rem;
+            border-radius: 6px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .view-switch-btn.active {
+            background: #38bdf8;
+            color: #0f172a;
+            font-weight: 700;
+        }
+
+        /* Eczane Kartları Izgarası */
+        .pharmacy-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+            gap: 1.2rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (max-width: 640px) {
+            .pharmacy-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .pharmacy-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 1.3rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+            position: relative;
+        }
+
+        .pharmacy-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(56, 189, 248, 0.3);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+        }
+
+        .card-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 0.8rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .card-index {
+            width: 28px;
+            height: 28px;
+            background: rgba(56, 189, 248, 0.15);
+            color: #38bdf8;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.82rem;
+            font-weight: 800;
+            flex-shrink: 0;
+        }
+
+        .card-title-box {
+            flex: 1;
+        }
+
+        .pharmacy-name {
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: #fff;
+            margin: 0;
+            line-height: 1.3;
+        }
+
+        .pharmacy-semt {
+            font-size: 0.78rem;
+            color: #38bdf8;
+            font-weight: 600;
+            margin-top: 0.2rem;
+        }
+
+        .duty-badge {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            padding: 0.2rem 0.55rem;
+            border-radius: 6px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .info-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.6rem;
+            margin-bottom: 0.6rem;
+            font-size: 0.86rem;
+            color: #cbd5e1;
+            line-height: 1.45;
+        }
+
+        .info-row .icon {
+            color: #94a3b8;
+            font-size: 1rem;
+            flex-shrink: 0;
+            margin-top: 0.1rem;
+        }
+
+        .info-row a {
+            color: #38bdf8;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .info-row a:hover {
+            text-decoration: underline;
+        }
+
+        .landmark-box {
+            background: rgba(245, 158, 11, 0.08);
+            border: 1px dashed rgba(245, 158, 11, 0.25);
+            border-radius: 8px;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.8rem;
+            color: #fbbf24;
+            margin-bottom: 0.8rem;
+            line-height: 1.4;
+        }
+
+        .card-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            padding-top: 0.8rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        /* Harita Konteynerı */
+        #duty-map-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1rem;
+            margin-bottom: 2rem;
+            display: none;
+        }
+
+        #duty-map {
+            height: 480px;
+            border-radius: 12px;
+            z-index: 10;
+        }
+
+        /* Yükleniyor ve Boş Durum */
+        .loading-box, .empty-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 4rem 2rem;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid rgba(56, 189, 248, 0.2);
+            border-top-color: #38bdf8;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 1.2rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* QR Kod Modalı */
+        .qr-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.82);
+            backdrop-filter: blur(6px);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+        }
+
+        .qr-modal.active { display: flex; }
+
+        .qr-box {
+            background: #111827;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 16px;
+            padding: 1.8rem;
+            text-align: center;
+            max-width: 360px;
+            width: 100%;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.8);
+        }
+
+        .qr-box img {
+            width: 200px;
+            height: 200px;
+            border-radius: 10px;
+            background: #fff;
+            padding: 8px;
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+
+        <!-- Üst Gezinme Çubuğu -->
+        <header class="top-navbar">
+            <div class="brand">
+                <div class="brand-logo">🏥</div>
+                <div class="brand-text">
+                    <h1>Nöbetçi Eczane Sorgulama</h1>
+                    <p>İl, İlçe ve Tarih Bazlı Canlı Nöbetçi Listesi & Rota Servisi</p>
+                </div>
+            </div>
+            <div class="nav-actions">
+                <a href="/admin" class="btn btn-secondary">
+                    🏠 Eczaneler & Lisanslar
+                </a>
+                <a href="/admin/duty-pharmacies" class="btn btn-secondary" style="border-color: rgba(16, 185, 129, 0.4); color: #34d399; font-weight: 700;">
+                    🏥 Nöbetçi Eczaneler
+                </a>
+                <a href="/admin/settings" class="btn btn-secondary">
+                    ⚙️ Genel Ayarlar
+                </a>
+                <a href="/admin/help" class="btn btn-secondary">
+                    📖 Yardım
+                </a>
+                <a href="/admin/logout" class="btn btn-secondary">
+                    Çıkış Yap
+                </a>
+            </div>
+        </header>
+
+        <!-- Filtreleme ve Arama Formu -->
+        <section class="filter-card">
+            <form id="filter-form" onsubmit="nobetcileriSorgulaAjax(event)">
+                <div class="filter-grid">
+                    
+                    <!-- İl -->
+                    <div class="form-group">
+                        <label>İl</label>
+                        <select id="filter-city" class="form-control" onchange="ilDegisti()">
+                            <option value="İstanbul" selected>İstanbul</option>
+                            <option value="Ankara">Ankara</option>
+                            <option value="İzmir">İzmir</option>
+                            <option value="Bursa">Bursa</option>
+                            <option value="Antalya">Antalya</option>
+                            <option value="Adana">Adana</option>
+                            <option value="Konya">Konya</option>
+                            <option value="Gaziantep">Gaziantep</option>
+                            <option value="Kocaeli">Kocaeli</option>
+                            <option value="Mersin">Mersin</option>
+                            <option value="Diyarbakır">Diyarbakır</option>
+                            <option value="Kayseri">Kayseri</option>
+                            <option value="Eskişehir">Eskişehir</option>
+                            <option value="Samsun">Samsun</option>
+                            <option value="Trabzon">Trabzon</option>
+                            <option value="Sakarya">Sakarya</option>
+                            <option value="Muğla">Muğla</option>
+                            <option value="Balıkesir">Balıkesir</option>
+                            <option value="Tekirdağ">Tekirdağ</option>
+                        </select>
+                    </div>
+
+                    <!-- İlçe -->
+                    <div class="form-group">
+                        <label>İlçe</label>
+                        <select id="filter-district" class="form-control">
+                            <!-- JS ile doldurulacak, varsayılan Bahçelievler -->
+                        </select>
+                    </div>
+
+                    <!-- Tarih -->
+                    <div class="form-group">
+                        <label>Nöbet Tarihi</label>
+                        <input type="date" id="filter-date" class="form-control" required>
+                        <div class="quick-date-row">
+                            <button type="button" class="quick-date-btn" onclick="tarihAyarla(-1)">⏪ Dün</button>
+                            <button type="button" class="quick-date-btn active" id="btn-today" onclick="tarihAyarla(0)">📍 Bugün</button>
+                            <button type="button" class="quick-date-btn" onclick="tarihAyarla(1)">⏩ Yarın</button>
+                        </div>
+                    </div>
+
+                    <!-- Veri Kaynağı -->
+                    <div class="form-group">
+                        <label>Veri Kaynağı</label>
+                        <select id="filter-source" class="form-control">
+                            <option value="auto" selected>🔄 Otomatik (Fallback Pipeline)</option>
+                            <option value="ieo_resmi">İEO (İstanbul Eczacı Odası)</option>
+                            <option value="nobetcieczaneler_org">Nobetcieczaneler.org</option>
+                            <option value="eczaneler_gen_tr">Eczaneler.gen.tr</option>
+                        </select>
+                    </div>
+
+                    <!-- Buton -->
+                    <div class="form-group">
+                        <button type="submit" id="btn-submit" class="btn btn-primary" style="height: 44px; padding: 0 1.4rem;">
+                            🔍 Nöbetçileri Getir
+                        </button>
+                    </div>
+
+                </div>
+            </form>
+        </section>
+
+        <!-- İstatistik ve Durum Çubuğu -->
+        <section class="stats-bar" id="stats-bar" style="display: none;">
+            <div class="stats-left">
+                <span class="stats-location" id="stat-location">Bahçelievler / İstanbul</span>
+                <span class="stats-date" id="stat-date">03.10.2026</span>
+                <span class="stats-badge badge-count" id="stat-count">4 Nöbetçi Eczane</span>
+                <span class="stats-badge badge-source" id="stat-source">Kaynak: İEO Resmi</span>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 0.8rem;">
+                <button type="button" class="btn btn-sm btn-secondary" onclick="nobetcileriSorgulaAjax(null, true)" title="Önbelleği atlayarak dış kaynaktan taze veri çeker">
+                    🔄 Yenile
+                </button>
+                <div class="view-switch">
+                    <button type="button" class="view-switch-btn active" id="btn-view-cards" onclick="gorunumDegistir('cards')">
+                        🗂️ Kartlar
+                    </button>
+                    <button type="button" class="view-switch-btn" id="btn-view-map" onclick="gorunumDegistir('map')">
+                        🗺️ Harita
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Harita Görünümü -->
+        <section id="duty-map-container">
+            <div id="duty-map"></div>
+        </section>
+
+        <!-- Yükleniyor Kutusu -->
+        <div id="loading-box" class="loading-box" style="display: none;">
+            <div class="spinner"></div>
+            <h3 style="font-size: 1.15rem; color: #fff; margin: 0 0 0.4rem 0;">Nöbetçi Eczaneler Çekiliyor...</h3>
+            <p style="color: #94a3b8; font-size: 0.88rem; margin: 0;">Resmi ve harici veri sağlayıcıları sorgulanıyor, lütfen bekleyiniz.</p>
+        </div>
+
+        <!-- Boş / Hata Durumu Kutusu -->
+        <div id="empty-box" class="empty-box" style="display: none;">
+            <div style="font-size: 2.8rem; margin-bottom: 0.8rem;">🔍</div>
+            <h3 style="font-size: 1.2rem; color: #fff; margin: 0 0 0.4rem 0;" id="empty-title">Nöbetçi Eczane Bulunamadı</h3>
+            <p style="color: #94a3b8; font-size: 0.9rem; margin: 0;" id="empty-desc">Seçilen ilçe ve tarih için kayıtlı nöbetçi eczane verisine ulaşılamadı.</p>
+        </div>
+
+        <!-- Eczane Kartları Izgarası -->
+        <section class="pharmacy-grid" id="pharmacy-grid">
+            <!-- JS ile dinamik render edilecek -->
+        </section>
+
+    </div>
+
+    <!-- QR Kod Modalı -->
+    <div id="qr-modal" class="qr-modal" onclick="qrModalKapat()">
+        <div class="qr-box" onclick="event.stopPropagation()">
+            <h3 style="font-size: 1.1rem; color: #fff; margin: 0;" id="qr-modal-title">Eczane Navigasyon QR</h3>
+            <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 0.2rem;">Telefon kameranız ile okutarak yol tarifini hemen başlatabilirsiniz.</p>
+            <img id="qr-modal-img" src="" alt="Navigasyon QR Kodu">
+            <div>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="qrModalKapat()">Kapat</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // İstanbul 39 İlçe Listesi
+        const ISTANBUL_ILCELERI = [
+            "Adalar", "Arnavutköy", "Ataşehir", "Avcılar", "Bağcılar",
+            "Bahçelievler", "Bakırköy", "Başakşehir", "Bayrampaşa", "Beşiktaş",
+            "Beykoz", "Beylikdüzü", "Beyoğlu", "Büyükçekmece", "Çatalca",
+            "Çekmeköy", "Esenler", "Esenyurt", "Eyüpsultan", "Fatih",
+            "Gaziosmanpaşa", "Güngören", "Kadıköy", "Kağıthane", "Kartal",
+            "Küçükçekmece", "Maltepe", "Pendik", "Sancaktepe", "Sarıyer",
+            "Silivri", "Sultanbeyli", "Sultangazi", "Şile", "Şişli",
+            "Tuzla", "Ümraniye", "Üsküdar", "Zeytinburnu"
+        ];
+
+        // Diğer Başlıca İllerin İlçeleri
+        const DIGER_ILCELER = {
+            "Ankara": ["Çankaya", "Keçiören", "Yenimahalle", "Mamak", "Etimesgut", "Sincan", "Altındağ", "Gölbaşı", "Pursaklar"],
+            "İzmir": ["Konak", "Karşıyaka", "Bornova", "Buca", "Çiğli", "Gaziemir", "Karabağlar", "Bayraklı", "Menemen", "Torbalı"],
+            "Bursa": ["Osmangazi", "Nilüfer", "Yıldırım", "Gemlik", "İnegöl", "Mudanya", "Kestel", "Gürsu"],
+            "Antalya": ["Muratpaşa", "Kepez", "Konyaaltı", "Alanya", "Manavgat", "Serik", "Kemer"],
+            "Adana": ["Seyhan", "Yüreğir", "Çukurova", "Sarıçam", "Ceyhan", "Kozan"],
+            "Kocaeli": ["İzmit", "Gebze", "Darıca", "Gölcük", "Körfez", "Derince", "Kartepe", "Başiskele"]
+        };
+
+        let leafletMap = null;
+        let mapMarkers = [];
+        let sonGelenEczaneler = [];
+        let aktifGorunum = 'cards'; // 'cards' veya 'map'
+
+        // Sayfa Yüklendiğinde Başlat
+        document.addEventListener("DOMContentLoaded", () => {
+            // Bugünün tarihini input'a yaz (YYYY-MM-DD)
+            const bugun = new Date();
+            const yil = bugun.getFullYear();
+            const ay = String(bugun.getMonth() + 1).padStart(2, '0');
+            const gun = String(bugun.getDate()).padStart(2, '0');
+            document.getElementById('filter-date').value = `${yil}-${ay}-${gun}`;
+
+            // URL parametrelerini kontrol et (varsa uygula)
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlIl = urlParams.get('il') || 'İstanbul';
+            const urlIlce = urlParams.get('ilce') || 'Bahçelievler';
+            const urlTarih = urlParams.get('tarih');
+            const urlKaynak = urlParams.get('kaynak') || 'auto';
+
+            if (urlIl) document.getElementById('filter-city').value = urlIl;
+            ilceleriDoldur(urlIl, urlIlce);
+            if (urlTarih) document.getElementById('filter-date').value = urlTarih;
+            if (urlKaynak) document.getElementById('filter-source').value = urlKaynak;
+
+            // İlk sorgulamayı başlat
+            nobetcileriSorgulaAjax();
+        });
+
+        // İl Seçimi Değiştiğinde
+        function ilDegisti() {
+            const il = document.getElementById('filter-city').value;
+            ilceleriDoldur(il);
+        }
+
+        // İlçeleri Seçim Kutusuna Doldur
+        function ilceleriDoldur(il, secilecekIlce = null) {
+            const distSelect = document.getElementById('filter-district');
+            distSelect.innerHTML = '';
+
+            let ilceler = [];
+            if (il === 'İstanbul') {
+                ilceler = ISTANBUL_ILCELERI;
+            } else if (DIGER_ILCELER[il]) {
+                ilceler = DIGER_ILCELER[il];
+            } else {
+                ilceler = ["Merkez"];
+            }
+
+            ilceler.forEach(ilce => {
+                const opt = document.createElement('option');
+                opt.value = ilce;
+                opt.textContent = ilce;
+                if (secilecekIlce && secilecekIlce.toLowerCase() === ilce.toLowerCase()) {
+                    opt.selected = true;
+                } else if (!secilecekIlce && ilce === 'Bahçelievler') {
+                    opt.selected = true;
+                }
+                distSelect.appendChild(opt);
+            });
+        }
+
+        // Hızlı Tarih Butonları (-1: Dün, 0: Bugün, 1: Yarın)
+        function tarihAyarla(offsetDays) {
+            const d = new Date();
+            d.setDate(d.getDate() + offsetDays);
+            const yil = d.getFullYear();
+            const ay = String(d.getMonth() + 1).padStart(2, '0');
+            const gun = String(d.getDate()).padStart(2, '0');
+            document.getElementById('filter-date').value = `${yil}-${ay}-${gun}`;
+
+            document.querySelectorAll('.quick-date-btn').forEach(b => b.classList.remove('active'));
+            if (offsetDays === 0) document.getElementById('btn-today').classList.add('active');
+
+            nobetcileriSorgulaAjax();
+        }
+
+        // AJAX ile Nöbetçi Eczaneleri Sorgula
+        async function nobetcileriSorgulaAjax(e = null, forceRefresh = false) {
+            if (e) e.preventDefault();
+
+            const il = document.getElementById('filter-city').value.trim();
+            const ilce = document.getElementById('filter-district').value.trim();
+            const tarih = document.getElementById('filter-date').value.trim();
+            const kaynak = document.getElementById('filter-source').value.trim();
+
+            const loadingBox = document.getElementById('loading-box');
+            const emptyBox = document.getElementById('empty-box');
+            const grid = document.getElementById('pharmacy-grid');
+            const statsBar = document.getElementById('stats-bar');
+            const submitBtn = document.getElementById('btn-submit');
+
+            loadingBox.style.display = 'block';
+            emptyBox.style.display = 'none';
+            grid.innerHTML = '';
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '⏳ Çekiliyor...';
+
+            try {
+                let url = `/admin/api/duty-pharmacies?il=${encodeURIComponent(il)}&ilce=${encodeURIComponent(ilce)}&tarih=${encodeURIComponent(tarih)}&kaynak=${encodeURIComponent(kaynak)}`;
+                if (forceRefresh) url += '&refresh=1';
+
+                const res = await fetch(url);
+                const data = await res.json();
+
+                loadingBox.style.display = 'none';
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '🔍 Nöbetçileri Getir';
+
+                if (!data.success || !data.eczaneler || data.eczaneler.length === 0) {
+                    emptyBox.style.display = 'block';
+                    document.getElementById('empty-title').textContent = `${ilce} / ${il} İçin Nöbetçi Bulunamadı`;
+                    document.getElementById('empty-desc').textContent = `${tarih} tarihi için veri kaynağında nöbetçi eczane listesi henüz yayınlanmamış veya bulunamadı.`;
+                    statsBar.style.display = 'none';
+                    return;
+                }
+
+                sonGelenEczaneler = data.eczaneler;
+
+                // İstatistikleri Güncelle
+                statsBar.style.display = 'flex';
+                document.getElementById('stat-location').textContent = `${data.ilce || ilce} / ${data.il || il}`;
+                
+                // Tarihi Türkçe formatla
+                const dateParts = tarih.split('-');
+                const tarihObj = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+                const aylar = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
+                const gunler = ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"];
+                const trTarih = `${tarihObj.getDate()} ${aylar[tarihObj.getMonth()]} ${tarihObj.getFullYear()}, ${gunler[tarihObj.getDay()]}`;
+                document.getElementById('stat-date').textContent = trTarih;
+
+                document.getElementById('stat-count').textContent = `✨ ${data.eczaneler.length} Nöbetçi Eczane`;
+                
+                const kaynakIsimleri = {
+                    "ieo_resmi": "İEO (İstanbul Eczacı Odası Resmi)",
+                    "eczaneler_gen_tr": "Eczaneler.gen.tr",
+                    "nobetcieczaneler_org": "Nobetcieczaneler.org",
+                    "cache": "Önbellek (Hızlı Yanıt)",
+                    "fallback_offline": "Acil Durum Yedek Verisi"
+                };
+                document.getElementById('stat-source').textContent = `Kaynak: ${kaynakIsimleri[data.veri_saglayici] || data.veri_saglayici || 'Resmi Oda'}`;
+
+                // Kartları Render Et
+                eczaneleriRenderEt(data.eczaneler);
+
+                // Harita açık ise haritayı güncelle
+                if (aktifGorunum === 'map') {
+                    haritayiGuncelle(data.eczaneler);
+                }
+
+            } catch (err) {
+                loadingBox.style.display = 'none';
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '🔍 Nöbetçileri Getir';
+                emptyBox.style.display = 'block';
+                document.getElementById('empty-title').textContent = 'Sorgulama Hatası Oluştu';
+                document.getElementById('empty-desc').textContent = err.message || 'Sunucuya bağlanırken bir hata oluştu.';
+            }
+        }
+
+        // Eczane Kartlarını DOM'a Çiz
+        function eczaneleriRenderEt(eczaneler) {
+            const grid = document.getElementById('pharmacy-grid');
+            grid.innerHTML = '';
+
+            eczaneler.forEach((e, idx) => {
+                const card = document.createElement('div');
+                card.className = 'pharmacy-card';
+
+                const telLink = e.telefon ? `tel:${e.telefon.replace(/[^0-9+]/g, '')}` : '#';
+                const mapsUrl = e.harita_linki || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(e.isim + ' ' + (e.adres || ''))}`;
+                const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(mapsUrl)}&margin=6`;
+
+                let landmarkHtml = '';
+                if (e.yol_tarifi) {
+                    landmarkHtml = `
+                        <div class="landmark-box">
+                            📍 <strong>Tarif / Konum:</strong> ${e.yol_tarifi}
+                        </div>
+                    `;
+                }
+
+                card.innerHTML = `
+                    <div>
+                        <div class="card-top">
+                            <div class="card-index">#${idx + 1}</div>
+                            <div class="card-title-box">
+                                <h3 class="pharmacy-name">${e.isim}</h3>
+                                <div class="pharmacy-semt">${e.semt ? e.semt + ' Mahallesi' : (e.ilce || '')}</div>
+                            </div>
+                            <span class="duty-badge">${e.nobet_durumu || 'Sabaha kadar açık'}</span>
+                        </div>
+
+                        ${landmarkHtml}
+
+                        <div class="info-row">
+                            <span class="icon">📍</span>
+                            <span>${e.adres || 'Adres bilgisi girilmemiş'}</span>
+                        </div>
+
+                        <div class="info-row">
+                            <span class="icon">📞</span>
+                            <span>
+                                ${e.telefon ? `<a href="${telLink}"><strong>${e.telefon}</strong></a>` : 'Telefon girilmemiş'}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="card-actions">
+                        ${e.telefon ? `
+                            <a href="${telLink}" class="btn btn-sm btn-secondary" style="flex: 1; border-color: rgba(16, 185, 129, 0.3); color: #34d399;">
+                                📞 Hemen Ara
+                            </a>
+                        ` : ''}
+
+                        <a href="${mapsUrl}" target="_blank" class="btn btn-sm btn-secondary" style="flex: 1; border-color: rgba(56, 189, 248, 0.3); color: #38bdf8;" title="Google Maps'te Yol Tarifi Al">
+                            🗺️ Haritada Aç
+                        </a>
+
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="qrModalAc('${e.isim.replace(/'/g, "\\'")}', '${qrUrl}')" title="Navigasyon QR Kodunu Göster">
+                            📱 QR
+                        </button>
+                    </div>
+                `;
+
+                grid.appendChild(card);
+            });
+        }
+
+        // Görünüm Değiştir (Kartlar / Harita)
+        function gorunumDegistir(gorunum) {
+            aktifGorunum = gorunum;
+            const btnCards = document.getElementById('btn-view-cards');
+            const btnMap = document.getElementById('btn-view-map');
+            const mapContainer = document.getElementById('duty-map-container');
+            const grid = document.getElementById('pharmacy-grid');
+
+            if (gorunum === 'map') {
+                btnCards.classList.remove('active');
+                btnMap.classList.add('active');
+                mapContainer.style.display = 'block';
+                grid.style.display = 'none';
+
+                setTimeout(() => {
+                    haritayiGuncelle(sonGelenEczaneler);
+                }, 100);
+            } else {
+                btnMap.classList.remove('active');
+                btnCards.classList.add('active');
+                mapContainer.style.display = 'none';
+                grid.style.display = 'grid';
+            }
+        }
+
+        // Leaflet Haritasını Başlat ve Güncelle
+        function haritayiGuncelle(eczaneler) {
+            const mapContainer = document.getElementById('duty-map');
+            if (!mapContainer) return;
+
+            if (!leafletMap) {
+                leafletMap = L.map('duty-map').setView([41.0000, 28.8600], 13);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '© OpenStreetMap'
+                }).addTo(leafletMap);
+            }
+
+            // Önceki pinleri temizle
+            mapMarkers.forEach(m => leafletMap.removeLayer(m));
+            mapMarkers = [];
+
+            const bounds = [];
+
+            eczaneler.forEach((e, idx) => {
+                if (e.enlem && e.boylam) {
+                    const lat = parseFloat(e.enlem);
+                    const lng = parseFloat(e.boylam);
+                    bounds.push([lat, lng]);
+
+                    const mapsUrl = e.harita_linki || `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+                    const telLink = e.telefon ? `tel:${e.telefon.replace(/[^0-9+]/g, '')}` : '#';
+
+                    const popupContent = `
+                        <div style="font-family: inherit; font-size: 0.9rem; min-width: 200px;">
+                            <strong style="color: #ef4444; font-size: 1rem; display: block; margin-bottom: 0.3rem;">#${idx + 1} ${e.isim}</strong>
+                            <div style="font-size: 0.8rem; color: #475569; margin-bottom: 0.3rem;">${e.semt ? e.semt + ' Mahallesi' : ''}</div>
+                            <div style="font-size: 0.82rem; margin-bottom: 0.4rem;">${e.adres || ''}</div>
+                            ${e.telefon ? `<div style="margin-bottom: 0.5rem;"><a href="${telLink}" style="color: #0284c7; font-weight: 700; text-decoration: none;">📞 ${e.telefon}</a></div>` : ''}
+                            <a href="${mapsUrl}" target="_blank" style="display: block; text-align: center; background: #0284c7; color: #fff; padding: 0.35rem 0.6rem; border-radius: 6px; text-decoration: none; font-weight: 700; font-size: 0.8rem;">🗺️ Rota ve Navigasyon</a>
+                        </div>
+                    `;
+
+                    const marker = L.marker([lat, lng]).addTo(leafletMap).bindPopup(popupContent);
+                    mapMarkers.push(marker);
+                }
+            });
+
+            leafletMap.invalidateSize();
+
+            if (bounds.length > 0) {
+                leafletMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
+            }
+        }
+
+        // QR Kod Modalı
+        function qrModalAc(isim, qrUrl) {
+            document.getElementById('qr-modal-title').textContent = `${isim} - Navigasyon QR`;
+            document.getElementById('qr-modal-img').src = qrUrl;
+            document.getElementById('qr-modal').classList.add('active');
+        }
+
+        function qrModalKapat() {
+            document.getElementById('qr-modal').classList.remove('active');
+        }
+    </script>
+</body>
+</html>

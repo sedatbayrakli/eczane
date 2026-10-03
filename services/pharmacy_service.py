@@ -126,10 +126,10 @@ def qr_kod_url_olustur(hedef_url: str) -> str:
 # ==========================================
 # 1. BİRİNCİL KAYNAK: İSTANBUL ECZACI ODASI (İEO)
 # ==========================================
-def kaynak_ieo_cek(il: str, ilce: str) -> Tuple[List[Dict[str, Any]], str]:
+def kaynak_ieo_cek(il: str, ilce: str, tarih: Optional[str] = None) -> Tuple[List[Dict[str, Any]], str]:
     """
     İstanbul Eczacı Odası resmi nöbetçi eczane servisinden veri çeker.
-    Yalnızca İstanbul ili için geçerlidir.
+    Yalnızca İstanbul ili için geçerlidir. Tarih filtresini (YYYY-MM-DD) destekler.
     """
     if turkce_karakter_temizle(il) != "istanbul":
         return [], "İEO servisi yalnızca İstanbul için geçerlidir"
@@ -163,6 +163,8 @@ def kaynak_ieo_cek(il: str, ilce: str) -> Tuple[List[Dict[str, Any]], str]:
             "ilce": ilce_temiz,
             "h": h_token
         }
+        if tarih:
+            post_data["tarih"] = tarih.strip()
 
         yanit_ajax = session.post(url_ajax, data=post_data, headers=ajax_headers, timeout=10)
         if yanit_ajax.status_code != 200:
@@ -328,13 +330,15 @@ def eczane_detay_bilgisi_ara(eczane_adi: str, ilce: str, il: str = "İstanbul", 
 # ==========================================
 # 2. İKİNCİL KAYNAK: ECZANELER.GEN.TR
 # ==========================================
-def kaynak_eczaneler_gen_tr_cek(il: str, ilce: str) -> Tuple[List[Dict[str, Any]], str]:
+def kaynak_eczaneler_gen_tr_cek(il: str, ilce: str, tarih: Optional[str] = None) -> Tuple[List[Dict[str, Any]], str]:
     """
     eczaneler.gen.tr sitesinden ilçe bazlı nöbetçi eczaneleri çeker.
     """
     il_slug = turkce_karakter_temizle(il)
     ilce_slug = turkce_karakter_temizle(ilce)
     hedef_url = f"https://www.eczaneler.gen.tr/nobetci-{il_slug}-{ilce_slug}"
+    if tarih:
+        hedef_url += f"?tarih={tarih}"
 
     try:
         yanit = requests.get(hedef_url, headers=TARAYICI_BASLIKLARI, timeout=10, allow_redirects=True)
@@ -394,13 +398,15 @@ def kaynak_eczaneler_gen_tr_cek(il: str, ilce: str) -> Tuple[List[Dict[str, Any]
 # ==========================================
 # 3. ÜÇÜNCÜL KAYNAK: NOBETCIECZANELER.ORG (YÜKSEK BAŞARI ORANI)
 # ==========================================
-def kaynak_nobetcieczaneler_org_cek(il: str, ilce: str) -> Tuple[List[Dict[str, Any]], str]:
+def kaynak_nobetcieczaneler_org_cek(il: str, ilce: str, tarih: Optional[str] = None) -> Tuple[List[Dict[str, Any]], str]:
     """
     nobetcieczaneler.org sitesinden güncel nöbetçi eczaneleri ve koordinatları çeker.
     """
     il_slug = turkce_karakter_temizle(il)
     ilce_slug = turkce_karakter_temizle(ilce)
     hedef_url = f"https://www.nobetcieczaneler.org/nobetci-eczane/{il_slug}/{ilce_slug}"
+    if tarih:
+        hedef_url += f"?tarih={tarih}"
 
     try:
         yanit = requests.get(hedef_url, headers=TARAYICI_BASLIKLARI, timeout=12, allow_redirects=True)
@@ -559,14 +565,18 @@ def nobetci_eczaneleri_getir(il: str, ilce: str,
                              kendi_enlem: Optional[float] = None,
                              kendi_boylam: Optional[float] = None,
                              cache_suresi_dakika: Optional[int] = None,
-                             kaynak_siralamasi: Optional[List[str]] = None) -> Dict[str, Any]:
+                             kaynak_siralamasi: Optional[List[str]] = None,
+                             tarih: Optional[str] = None) -> Dict[str, Any]:
     """
-    Sıralı Fallback Pipeline (Dinamik Öncelik ve Yapılandırılabilir Önbellek):
+    Sıralı Fallback Pipeline (Dinamik Öncelik, Tarih Filtresi ve Yapılandırılabilir Önbellek):
     Kullanıcı tanımlı veya varsayılan kaynak önceliğine göre sırayla dener.
+    Seçilen tarihe (YYYY-MM-DD) göre resmi veya harici kaynaklardan nöbetçi listesini çeker.
     """
-    onbellek_anahtari = f"{turkce_karakter_temizle(il)}_{turkce_karakter_temizle(ilce)}"
+    tarih_eki = f"_{turkce_karakter_temizle(tarih)}" if tarih else ""
+    onbellek_anahtari = f"{turkce_karakter_temizle(il)}_{turkce_karakter_temizle(ilce)}{tarih_eki}"
     suan = time.time()
     cache_ttl_saniye = (cache_suresi_dakika * 60) if (cache_suresi_dakika and cache_suresi_dakika > 0) else CACHE_SURESI_SANIYE
+    aktif_tarih = tarih.strip() if tarih else datetime.now().strftime("%Y-%m-%d")
 
     # 1. Aşama: Geçerli önbellek kontrolü
     with onbellek_kilidi:
@@ -578,6 +588,7 @@ def nobetci_eczaneleri_getir(il: str, ilce: str,
                 "eczaneler": eczaneler,
                 "kaynak": "cache",
                 "veri_saglayici": kayit.get("veri_saglayici", "onbellek"),
+                "tarih": aktif_tarih,
                 "onbellek_zamani": kayit["formatted_time"],
                 "gecikme_saniye": int(suan - kayit["timestamp"]),
                 "il": il.capitalize(),
@@ -589,11 +600,11 @@ def nobetci_eczaneleri_getir(il: str, ilce: str,
     kullanilan_kaynak = ""
     hata_raporu = []
 
-    # Kaynak motorları haritası
+    # Kaynak motorları haritası (tarih parametresi ile birlikte)
     kaynak_haritasi = {
-        "ieo_resmi": ("İEO (İstanbul Eczacı Odası)", kaynak_ieo_cek),
-        "eczaneler_gen_tr": ("Eczaneler.gen.tr", kaynak_eczaneler_gen_tr_cek),
-        "nobetcieczaneler_org": ("Nobetcieczaneler.org", kaynak_nobetcieczaneler_org_cek)
+        "ieo_resmi": ("İEO (İstanbul Eczacı Odası)", lambda _il, _ilce: kaynak_ieo_cek(_il, _ilce, tarih=aktif_tarih)),
+        "eczaneler_gen_tr": ("Eczaneler.gen.tr", lambda _il, _ilce: kaynak_eczaneler_gen_tr_cek(_il, _ilce, tarih=aktif_tarih)),
+        "nobetcieczaneler_org": ("Nobetcieczaneler.org", lambda _il, _ilce: kaynak_nobetcieczaneler_org_cek(_il, _ilce, tarih=aktif_tarih))
     }
 
     # Eğer özel kaynak sıralaması gelmediyse varsayılan sıra
@@ -628,6 +639,7 @@ def nobetci_eczaneleri_getir(il: str, ilce: str,
             "eczaneler": zenginlestirilmis,
             "kaynak": "live",
             "veri_saglayici": kullanilan_kaynak,
+            "tarih": aktif_tarih,
             "onbellek_zamani": zaman_metni,
             "gecikme_saniye": 0,
             "il": il.capitalize(),
@@ -643,6 +655,7 @@ def nobetci_eczaneleri_getir(il: str, ilce: str,
                 "eczaneler": zenginlestirilmis,
                 "kaynak": "stale_cache",
                 "veri_saglayici": kayit.get("veri_saglayici", "eski_onbellek"),
+                "tarih": aktif_tarih,
                 "hata_detayi": " | ".join(hata_raporu),
                 "onbellek_zamani": kayit["formatted_time"],
                 "gecikme_saniye": int(suan - kayit["timestamp"]),
@@ -658,6 +671,7 @@ def nobetci_eczaneleri_getir(il: str, ilce: str,
         "eczaneler": zenginlestirilmis,
         "kaynak": "fallback_offline",
         "veri_saglayici": "acil_durum_yedegi",
+        "tarih": aktif_tarih,
         "hata_detayi": " | ".join(hata_raporu),
         "onbellek_zamani": zaman_metni,
         "gecikme_saniye": 0,
