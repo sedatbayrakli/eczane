@@ -137,6 +137,10 @@ def init_db():
                         conn.execute(text("ALTER TABLE kiosk_devices ADD COLUMN is_approved BOOLEAN DEFAULT 1"))
                     if "approved_at" not in mevcut_dev_kolonlar:
                         conn.execute(text("ALTER TABLE kiosk_devices ADD COLUMN approved_at DATETIME"))
+                    if "theme" not in mevcut_dev_kolonlar:
+                        conn.execute(text("ALTER TABLE kiosk_devices ADD COLUMN theme VARCHAR(50)"))
+                    if "theme_settings" not in mevcut_dev_kolonlar:
+                        conn.execute(text("ALTER TABLE kiosk_devices ADD COLUMN theme_settings TEXT"))
                     conn.commit()
         except Exception as hata:
             print(f"[UYARI] Veritabanı kolon denetim hatası: {hata}")
@@ -905,24 +909,79 @@ def admin_approve_single_device(eczane_id, device_id):
 @app.route("/admin/pharmacy/<int:eczane_id>/device/<int:device_id>/edit", methods=["POST"])
 @login_required
 def admin_edit_single_device(eczane_id, device_id):
-    """Tek bir TV/Kiosk cihazının adını, MAC adresini ve ekran ölçeğini günceller."""
+    """Tek bir TV/Kiosk cihazının adını, temasını, ekran ölçeğini ve MAC adresini günceller (Form veya AJAX)."""
     eczane = Pharmacy.query.get_or_404(eczane_id)
     cihaz = KioskDevice.query.filter_by(id=device_id, pharmacy_id=eczane.id).first_or_404()
 
-    yeni_ad = request.form.get("device_name", cihaz.device_name).strip()
-    yeni_olcek = request.form.get("screen_scale", cihaz.screen_scale or "auto").strip()
-    yeni_mac = request.form.get("mac_address", cihaz.mac_address or "").strip()
+    veri = request.get_json(silent=True) or request.form
+
+    yeni_ad = (veri.get("device_name") or cihaz.device_name).strip()
+    yeni_tema = (veri.get("theme") or cihaz.get_theme()).strip()
+    yeni_olcek = (veri.get("screen_scale") or cihaz.screen_scale or "auto").strip()
+    yeni_mac = (veri.get("mac_address") or cihaz.mac_address or "").strip()
 
     if yeni_ad:
         cihaz.device_name = yeni_ad
+    if yeni_tema in ["classic_grid", "animated_route", "focus_carousel", "dual_card", "auto_rotate"]:
+        cihaz.theme = yeni_tema
     if yeni_olcek:
         cihaz.screen_scale = yeni_olcek
     if yeni_mac:
         cihaz.mac_address = yeni_mac
 
     db.session.commit()
+
+    if request.is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return jsonify({
+            "success": True,
+            "message": f"'{cihaz.device_name}' cihaz ayarları güncellendi.",
+            "device": cihaz.to_dict()
+        })
+
     flash(f"'{cihaz.device_name}' cihaz ayarları güncellendi.", "success")
     return redirect(url_for("admin_dashboard"))
+
+
+@app.route("/admin/pharmacy/<int:eczane_id>/device/<int:device_id>/theme-settings", methods=["GET"])
+@login_required
+def admin_get_device_theme_settings(eczane_id, device_id):
+    """Cihaza özel tema ve parametrik ayarları döndürür."""
+    eczane = Pharmacy.query.get_or_404(eczane_id)
+    cihaz = KioskDevice.query.filter_by(id=device_id, pharmacy_id=eczane.id).first_or_404()
+    return jsonify({
+        "success": True,
+        "pharmacy_name": eczane.name,
+        "device_id": cihaz.id,
+        "device_name": cihaz.device_name,
+        "theme": cihaz.get_theme(),
+        "theme_settings": cihaz.get_theme_settings()
+    })
+
+
+@app.route("/admin/pharmacy/<int:eczane_id>/device/<int:device_id>/theme-settings", methods=["POST"])
+@login_required
+def admin_save_device_theme_settings(eczane_id, device_id):
+    """Cihaza özel tema ve parametrik ayarlarını kaydeder (AJAX)."""
+    eczane = Pharmacy.query.get_or_404(eczane_id)
+    cihaz = KioskDevice.query.filter_by(id=device_id, pharmacy_id=eczane.id).first_or_404()
+    veri = request.get_json(silent=True) or {}
+
+    yeni_tema = veri.get("theme")
+    if yeni_tema and yeni_tema in ["classic_grid", "animated_route", "focus_carousel", "dual_card", "auto_rotate"]:
+        cihaz.theme = yeni_tema
+
+    ayarlar = veri.get("theme_settings", {})
+    if isinstance(ayarlar, dict):
+        cihaz.set_theme_settings(ayarlar)
+
+    db.session.commit()
+    return jsonify({
+        "success": True,
+        "device_id": cihaz.id,
+        "device_name": cihaz.device_name,
+        "theme": cihaz.get_theme(),
+        "theme_settings": cihaz.get_theme_settings()
+    })
 
 
 @app.route("/admin/pharmacy/<int:eczane_id>/device/<int:device_id>/identify", methods=["POST"])
@@ -1213,12 +1272,17 @@ def api_kiosk_data():
     if device_token:
         aktif_cihaz = eczane.devices.filter_by(device_token=device_token).first()
 
+    # Cihaza özel ekran ölçeği, tema ve parametre kontrolü
     cihaz_ekran_olcegi = eczane.screen_scale or "auto"
+    cihaz_temasi = eczane.theme or "classic_grid"
+    cihaz_tema_ayarlari = eczane.get_theme_settings()
     identify_bilgisi = None
 
     if aktif_cihaz:
         if aktif_cihaz.screen_scale and aktif_cihaz.screen_scale != "auto":
             cihaz_ekran_olcegi = aktif_cihaz.screen_scale
+        cihaz_temasi = aktif_cihaz.get_theme()
+        cihaz_tema_ayarlari = aktif_cihaz.get_theme_settings()
         if aktif_cihaz.is_identify_active():
             identify_bilgisi = {
                 "active": True,
@@ -1247,11 +1311,11 @@ def api_kiosk_data():
             "mobile_phone": eczane.mobile_phone or "",
             "address": eczane.address or "",
             "ticker_text": eczane.ticker_text,
-            "theme": eczane.theme or "classic_grid",
+            "theme": cihaz_temasi,
             "screen_scale": cihaz_ekran_olcegi,
             "max_devices": eczane.max_devices or 1,
             "device_count": eczane.devices.count(),
-            "theme_settings": eczane.get_theme_settings()
+            "theme_settings": cihaz_tema_ayarlari
         },
         "identify": identify_bilgisi,
         "is_on_duty_today": nihai_nobet_durumu,

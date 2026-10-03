@@ -598,9 +598,8 @@
                     <th>Canlılık & IP</th>
                     <th>Eczane Bilgisi</th>
                     <th>Konum</th>
-                    <th>Ekran Teması</th>
                     <th>Lisans Kodu</th>
-                    <th>Cihazlar & Kilit</th>
+                    <th>Cihazlar & Temalar</th>
                     <th>Kalan Süre</th>
                     <th>Durum</th>
                     <th>İşlemler</th>
@@ -650,39 +649,6 @@
                         {% else %}
                             <div style="font-size: 0.72rem; color: #f59e0b; margin-top: 0.2rem;">⚠️ Konum Yok</div>
                         {% endif %}
-                    </td>
-
-                    <!-- Ekran Teması -->
-                    <td>
-                        {% if e.theme == 'animated_route' %}
-                            <span class="badge" style="background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4);" title="Canlı Rota & Navigasyon Animasyonu">
-                                🧭 Navigasyon
-                            </span>
-                        {% elif e.theme == 'focus_carousel' %}
-                            <span class="badge" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4);" title="Vitrin Carousel & Dev Odak Kartı">
-                                🌟 Vitrin
-                            </span>
-                        {% elif e.theme == 'dual_card' %}
-                            <span class="badge" style="background: rgba(168, 85, 247, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4);" title="İkili Dev Kart & Harita (2 Eczane)">
-                                👥 İkili Kart
-                            </span>
-                        {% elif e.theme == 'auto_rotate' %}
-                            <span class="badge" style="background: rgba(236, 72, 153, 0.2); color: #f472b6; border: 1px solid rgba(236, 72, 153, 0.4);" title="Karma Mod (Saatlik Otomatik Dönüşüm)">
-                                🔄 Karma (Saatlik)
-                            </span>
-                        {% else %}
-                            <span class="badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);" title="Klasik 4'lü Izgara & Harita">
-                                🔲 Klasik Izgara
-                            </span>
-                        {% endif %}
-                        <div style="font-size: 0.7rem; color: #64748b; margin-top: 0.2rem;">
-                            Ölçek: {{ e.screen_scale or 'auto' }}
-                        </div>
-                        <div style="margin-top: 0.25rem;">
-                            <a href="javascript:void(0)" onclick='temaAyarlariModalAc({{ e.id }}, {{ e.name | tojson }}, {{ e.theme | tojson }}, {{ e.get_theme_settings() | tojson }})' style="font-size: 0.72rem; color: #38bdf8; text-decoration: none; display: inline-flex; align-items: center; gap: 0.2rem;">
-                                ⚙️ Parametreler
-                            </a>
-                        </div>
                     </td>
 
                     <!-- Lisans Kodu -->
@@ -760,11 +726,6 @@
                             <!-- Kayan Yazı Duyuru Düzenle -->
                             <button class="btn btn-sm btn-secondary btn-ticker-trigger" id="btn-ticker-{{ e.id }}" data-id="{{ e.id }}" data-name="{{ e.name }}" data-ticker="{{ e.ticker_text or '' }}" onclick="duyuruModalAcFromEl(this)" title="Kayan Yazı Duyurusunu Düzenle">
                                 📢
-                            </button>
-
-                            <!-- Kiosk Ekran Teması & Parametreleri -->
-                            <button class="btn btn-sm btn-secondary" onclick='temaAyarlariModalAc({{ e.id }}, {{ e.name | tojson }}, {{ e.theme | tojson }}, {{ e.get_theme_settings() | tojson }})' title="Kiosk Ekran Teması ve Parametrelerini Ayarla">
-                                🎨
                             </button>
 
                             <!-- Düzenle Modalı Aç -->
@@ -1244,6 +1205,7 @@
             <form id="form-theme-settings" onsubmit="temaAyarlariniKaydetAjax(event)" class="modal-form-flex">
                 <div class="modal-body">
                     <input type="hidden" id="theme-pharmacy-id" value="">
+                    <input type="hidden" id="theme-device-id" value="">
 
                     <!-- 1. Temel Tema Seçimi -->
                     <div class="form-section-card">
@@ -1506,8 +1468,13 @@
                 if (!data.success || !data.pharmacy) throw new Error('Cihaz bilgileri alınamadı.');
 
                 const eczane = data.pharmacy;
+                window.currentPharmacyData = eczane;
+                window.currentPharmacyDevicesMap = {};
                 document.getElementById('devmodal-title').textContent = `📺 ${eczane.name} - Bağlı TV Ekranları`;
                 const devices = eczane.devices || [];
+                devices.forEach(d => {
+                    window.currentPharmacyDevicesMap[d.id] = d;
+                });
                 document.getElementById('devmodal-subtitle').textContent = `Lisans Kapasitesi: ${devices.length} / ${eczane.max_devices || 1} TV Cihazı`;
 
                 if (devices.length === 0) {
@@ -1533,6 +1500,7 @@
                             : '<span class="heartbeat-dot dot-offline" style="display:inline-block; width:13px; height:13px;" title="Cihaz Çevrimdışı"></span>';
 
                         const scaleVal = d.screen_scale || 'auto';
+                        const devTheme = d.theme || eczane.theme || 'classic_grid';
 
                         const approvalBadge = d.is_approved
                             ? `<span class="badge" style="background: rgba(16,185,129,0.2); color: #34d399; border: 1px solid rgba(16,185,129,0.4); font-weight: 700; font-size: 0.74rem;">🟢 Aktif</span>`
@@ -1566,6 +1534,20 @@
                                     </div>
                                 </div>
                             </td>
+                            <td style="min-width: 180px;">
+                                <div style="display: flex; flex-direction: column; gap: 0.35rem;">
+                                    <select id="dev-theme-${d.id}" class="form-control" style="font-size: 0.8rem; padding: 0.35rem 0.5rem; background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.15); font-weight: 600;">
+                                        <option value="classic_grid" ${devTheme === 'classic_grid' ? 'selected' : ''}>1. Versiyon (Izgara)</option>
+                                        <option value="animated_route" ${devTheme === 'animated_route' ? 'selected' : ''}>2. Versiyon (Canlı Yol)</option>
+                                        <option value="focus_carousel" ${devTheme === 'focus_carousel' ? 'selected' : ''}>3. Versiyon (Carousel)</option>
+                                        <option value="dual_card" ${devTheme === 'dual_card' ? 'selected' : ''}>4. Versiyon (İkili Dev Kart)</option>
+                                        <option value="auto_rotate" ${devTheme === 'auto_rotate' ? 'selected' : ''}>5. Versiyon (Karma Mod)</option>
+                                    </select>
+                                    <button type="button" class="btn btn-sm btn-secondary" onclick="cihazTemaAyarlariModalAc(${eczane.id}, ${d.id})" style="padding: 0.25rem 0.5rem; font-size: 0.73rem; display: flex; align-items: center; justify-content: center; gap: 0.3rem; border-color: rgba(56,189,248,0.4); color: #38bdf8;">
+                                        ⚙️ Ekran Parametreleri
+                                    </button>
+                                </div>
+                            </td>
                             <td style="min-width: 140px;">
                                 <select id="dev-scale-${d.id}" class="form-control" style="font-size: 0.8rem; padding: 0.35rem 0.5rem; background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.15);">
                                     <option value="auto" ${scaleVal === 'auto' ? 'selected' : ''}>🖥️ Otomatik TV</option>
@@ -1590,7 +1572,7 @@
                             <td>
                                 <div style="display: flex; gap: 0.35rem; align-items: center;">
                                     ${approveButtonHtml}
-                                    <button type="button" class="btn btn-sm btn-primary" onclick="cihazAyarlariniKaydet(${eczane.id}, ${d.id})" style="padding: 0.3rem 0.55rem; font-size: 0.85rem;" title="Cihaz İsmi ve TV Ölçeğini Kaydet">
+                                    <button type="button" class="btn btn-sm btn-primary" onclick="cihazAyarlariniKaydet(${eczane.id}, ${d.id})" style="padding: 0.3rem 0.55rem; font-size: 0.85rem;" title="Cihaz İsmi, Teması ve TV Ölçeğini Kaydet">
                                         💾
                                     </button>
                                     <button type="button" class="btn btn-sm btn-warning" onclick="cihaziEkrandaGoster(${eczane.id}, ${d.id})" style="padding: 0.3rem 0.55rem; font-size: 0.85rem;" title="Hedef TV Ekranında 25 Saniye Tanımlama Sinyali Göster">
@@ -1613,6 +1595,7 @@
                                     <th>Cihaz İsmi</th>
                                     <th>MAC Adresi</th>
                                     <th>Yerel / Dış IP</th>
+                                    <th>Ekran Teması & Parametreler</th>
                                     <th>TV Ölçeği</th>
                                     <th>Lisans Durumu</th>
                                     <th>Canlılık</th>
@@ -1654,18 +1637,21 @@
             }
         }
 
-        // Cihaz Adı ve Ekran Ölçeğini AJAX ile Kaydetme
+        // Cihaz Adı, Ekran Teması ve TV Ölçeğini AJAX ile Kaydetme
         async function cihazAyarlariniKaydet(eczaneId, deviceId) {
             const nameInput = document.getElementById(`dev-name-${deviceId}`);
             const scaleSelect = document.getElementById(`dev-scale-${deviceId}`);
+            const themeSelect = document.getElementById(`dev-theme-${deviceId}`);
             if (!nameInput || !scaleSelect) return;
 
             const deviceName = nameInput.value.trim();
             const screenScale = scaleSelect.value;
+            const theme = themeSelect ? themeSelect.value : 'classic_grid';
 
             const formData = new FormData();
             formData.append('device_name', deviceName);
             formData.append('screen_scale', screenScale);
+            formData.append('theme', theme);
 
             try {
                 const res = await fetch(`/admin/pharmacy/${eczaneId}/device/${deviceId}/edit`, {
@@ -1673,7 +1659,8 @@
                     body: formData
                 });
                 if (res.ok) {
-                    alert(`✅ '${deviceName}' cihaz ayarları başarıyla kaydedildi!\nÖlçek: ${screenScale}`);
+                    alert(`✅ '${deviceName}' cihaz ayarları (tema, ölçek, isim) başarıyla kaydedildi!`);
+                    cihazYonetimModalAc(eczaneId);
                 } else {
                     alert('Ayarlar kaydedilirken hata oluştu.');
                 }
@@ -2216,10 +2203,12 @@
         // ==========================================
         let aktifTemaEczaneAdi = '';
 
+        // Eczane Genel Tema Ayarları Modalını Açma
         function temaAyarlariModalAc(eczaneId, eczaneAdi, mevcutTema, mevcutAyarlar) {
             document.getElementById('theme-pharmacy-id').value = eczaneId;
+            document.getElementById('theme-device-id').value = '';
             aktifTemaEczaneAdi = eczaneAdi || 'Eczane';
-            document.getElementById('theme-modal-title').textContent = '🎨 Kiosk Ekran Teması & Parametreleri';
+            document.getElementById('theme-modal-title').textContent = '🎨 Kiosk Ekran Teması & Parametreleri (Genel)';
             document.getElementById('theme-modal-subtitle').textContent = aktifTemaEczaneAdi;
 
             // Tema Seçimi
@@ -2243,9 +2232,45 @@
             modalAc('modal-theme-settings');
         }
 
+        // Tekil TV Cihazı Bazında Tema Ayarları Modalını Açma
+        function cihazTemaAyarlariModalAc(eczaneId, deviceId) {
+            const dev = (window.currentPharmacyDevicesMap && window.currentPharmacyDevicesMap[deviceId]) || {};
+            const eczaneAdi = window.currentPharmacyData ? window.currentPharmacyData.name : 'Eczane';
+            const devName = dev.device_name || `TV Cihazı #${deviceId}`;
+            const devTheme = dev.theme || (window.currentPharmacyData ? window.currentPharmacyData.theme : 'classic_grid');
+            const devSettings = dev.theme_settings || (window.currentPharmacyData ? window.currentPharmacyData.theme_settings : {});
+
+            document.getElementById('theme-pharmacy-id').value = eczaneId;
+            document.getElementById('theme-device-id').value = deviceId;
+            aktifTemaEczaneAdi = `${eczaneAdi} — ${devName}`;
+            document.getElementById('theme-modal-title').textContent = '🎨 TV Ekran Teması & Parametreleri';
+            document.getElementById('theme-modal-subtitle').textContent = `Cihaz: ${devName} (${dev.mac_address || dev.local_ip || 'TV'})`;
+
+            // Tema Seçimi (Cihazın yerel select elementindeki güncel değeri varsa öncelikli al)
+            const rowSelect = document.getElementById(`dev-theme-${deviceId}`);
+            document.getElementById('ts-theme-select').value = rowSelect ? rowSelect.value : (devTheme || 'classic_grid');
+
+            // Parametreler
+            document.getElementById('ts-carousel-interval').value = devSettings.carousel_interval_sec || 10;
+            document.getElementById('ts-autorotate-interval').value = devSettings.auto_rotate_minutes || 60;
+            document.getElementById('ts-ticker-speed').value = devSettings.ticker_speed_px || 55;
+            document.getElementById('ts-map-zoom').value = devSettings.map_zoom || 14;
+
+            // Görünürlük ve Koruma Kontrolleri
+            document.getElementById('ts-show-countdown').checked = (devSettings.show_countdown !== false);
+            document.getElementById('ts-show-qr').checked = (devSettings.show_qr !== false);
+            document.getElementById('ts-show-travel-times').checked = (devSettings.show_travel_times !== false);
+            document.getElementById('ts-show-district-counter').checked = (devSettings.show_district_counter !== false);
+            document.getElementById('ts-show-landmark').checked = (devSettings.show_landmark !== false);
+            document.getElementById('ts-anti-burn-in').checked = (devSettings.anti_burn_in !== false);
+
+            modalAc('modal-theme-settings');
+        }
+
         async function temaAyarlariniKaydetAjax(e) {
             e.preventDefault();
             const eczaneId = document.getElementById('theme-pharmacy-id').value;
+            const deviceId = document.getElementById('theme-device-id').value;
             const yeniTema = document.getElementById('ts-theme-select').value;
 
             const theme_settings = {
@@ -2266,8 +2291,12 @@
             btn.disabled = true;
             btn.innerHTML = '<span>⏳ Kaydediliyor...</span>';
 
+            const endpoint = deviceId 
+                ? `/admin/pharmacy/${eczaneId}/device/${deviceId}/theme-settings`
+                : `/admin/pharmacy/${eczaneId}/theme-settings`;
+
             try {
-                const resp = await fetch(`/admin/pharmacy/${eczaneId}/theme-settings`, {
+                const resp = await fetch(endpoint, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
@@ -2278,8 +2307,13 @@
                 const data = await resp.json();
                 if (data.success) {
                     modalKapat('modal-theme-settings');
-                    alert(`✅ ${aktifTemaEczaneAdi} ekran teması ve parametreleri kaydedildi!\nKiosk ekranı bir sonraki güncellemede yeni ayarları uygulayacaktır.`);
-                    setTimeout(() => location.reload(), 500);
+                    alert(`✅ ${aktifTemaEczaneAdi} ekran teması ve parametreleri başarıyla kaydedildi!\nTV ekranı anında yeni parametreleri uygulayacaktır.`);
+                    if (deviceId) {
+                        // Cihaz tablosunu tazele
+                        cihazYonetimModalAc(eczaneId);
+                    } else {
+                        setTimeout(() => location.reload(), 500);
+                    }
                 } else {
                     alert('Hata: ' + (data.error || 'Ayarlar kaydedilemedi.'));
                 }

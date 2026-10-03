@@ -53,6 +53,8 @@ class KioskDevice(db.Model):
     ip_address = db.Column(db.String(64), nullable=True)              # Dış / Ağ IP Adresi
     screen_resolution = db.Column(db.String(50), nullable=True)       # Örn: "1920x1080", "1280x720"
     screen_scale = db.Column(db.String(20), default="auto", nullable=False) # 'auto', 'compact', '720p', '1080p', '4k'
+    theme = db.Column(db.String(50), nullable=True)                          # 'classic_grid', 'animated_route', 'focus_carousel', 'dual_card', 'auto_rotate'
+    theme_settings = db.Column(db.Text, nullable=True)                       # Cihaza özel tema parametreleri (JSON)
     identify_until = db.Column(db.DateTime, nullable=True)            # Ekranda tanımlama / parlatma sinyali süresi
     is_approved = db.Column(db.Boolean, default=True, nullable=False) # Yönetici tarafından lisans aktif edildi mi?
     approved_at = db.Column(db.DateTime, nullable=True)               # Lisansın aktif edildiği tarih
@@ -90,6 +92,50 @@ class KioskDevice(db.Model):
         """Tanımlama sinyalinin halen aktif olup olmadığını kontrol eder."""
         return bool(self.identify_until and self.identify_until > datetime.now())
 
+    def get_theme(self) -> str:
+        """Cihaza özel tanımlı tema yoksa eczanenin varsayılan temasını döndürür."""
+        if self.theme and self.theme.strip():
+            return self.theme.strip()
+        if self.pharmacy and self.pharmacy.theme:
+            return self.pharmacy.theme
+        return "classic_grid"
+
+    def get_theme_settings(self) -> dict:
+        """Cihaza özel tema parametrelerini döndürür (varsayılanlarla harmanlanmış)."""
+        import json
+        varsayilan = {
+            "carousel_interval_sec": 10,
+            "auto_rotate_minutes": 60,
+            "map_zoom": 14,
+            "show_countdown": True,
+            "show_qr": True,
+            "show_travel_times": False,
+            "show_district_counter": True,
+            "show_landmark": True,
+            "anti_burn_in": True,
+            "ticker_speed_px": 55
+        }
+        # Önce eczanenin global parametrelerini temel al
+        if self.pharmacy:
+            varsayilan.update(self.pharmacy.get_theme_settings())
+        # Cihaza özel ayarlar varsa üzerine yaz
+        if self.theme_settings:
+            try:
+                kayitli = json.loads(self.theme_settings)
+                if isinstance(kayitli, dict):
+                    varsayilan.update(kayitli)
+            except Exception:
+                pass
+        return varsayilan
+
+    def set_theme_settings(self, ayarlar: dict):
+        """Cihaza özel tema parametrik ayarlarını kaydeder."""
+        import json
+        guncel = self.get_theme_settings()
+        if isinstance(ayarlar, dict):
+            guncel.update(ayarlar)
+        self.theme_settings = json.dumps(guncel, ensure_ascii=False)
+
     def to_dict(self) -> dict:
         return {
             "id": self.id,
@@ -101,6 +147,8 @@ class KioskDevice(db.Model):
             "ip_address": self.ip_address or "-",
             "screen_resolution": self.screen_resolution or "Bilinmiyor",
             "screen_scale": self.screen_scale or "auto",
+            "theme": self.get_theme(),
+            "theme_settings": self.get_theme_settings(),
             "is_approved": bool(self.is_approved),
             "approved_at": self.approved_at.strftime("%d.%m.%Y %H:%M") if self.approved_at else None,
             "identify_active": self.is_identify_active(),
@@ -246,6 +294,8 @@ class Pharmacy(db.Model):
             ip_address=ip,
             screen_resolution=resolution,
             screen_scale=self.screen_scale or "auto",
+            theme=self.theme or "classic_grid",
+            theme_settings=self.theme_settings or "{}",
             is_approved=False, # Yeni bağlanan cihaz admin onayına düşer
             user_agent=user_agent[:250] if user_agent else None,
             last_ping=datetime.now()
