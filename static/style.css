@@ -1770,13 +1770,49 @@ body.scale-4k {
 .compact-countdown {
     padding: 0.2rem 0.5rem;
     border-radius: 6px;
-    flex-direction: row;
-    gap: 0.4rem;
+    display: flex;
+    flex-direction: column !important;
     align-items: center;
+    justify-content: center;
+    gap: 0.05rem;
+    text-align: center;
+}
+
+.compact-countdown .countdown-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #38bdf8;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    line-height: 1.2;
+}
+
+.compact-countdown .countdown-clock {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 0.15rem;
+    font-family: var(--font-mono);
+    line-height: 1.2;
 }
 
 .compact-countdown .countdown-num {
-    font-size: 0.95rem;
+    font-size: 0.88rem;
+    font-weight: 800;
+    color: #ffffff;
+}
+
+.compact-countdown .countdown-unit {
+    font-size: 0.72rem;
+    color: #94a3b8;
+    font-weight: 600;
+}
+
+.compact-countdown .countdown-sep {
+    font-size: 0.85rem;
+    color: #38bdf8;
+    font-weight: 800;
+    margin: 0 0.15rem;
 }
 
 /* Sol QR ve Mesafe Alanı */

@@ -401,12 +401,14 @@ function nobetBilgisiHtmlUret(stil = 'focus') {
     } else {
         return `
         <div class="compact-duty-time-card">
-            <div class="duty-framed-box compact-frame" style="padding: 0.2rem 0.5rem;">
-                <span class="compact-duty-title" style="font-size: 0.72rem; color: #94a3b8;">${zaman.baslikMetni}</span>
-                <strong class="compact-duty-hours" style="font-size: 0.88rem; color: #fff;">${zaman.baslangicBitis}</strong>
+            <!-- 1. Kutu: Nöbet Saatleri (Üstte Başlık, Altta Saat) -->
+            <div class="duty-framed-box compact-frame">
+                <span class="compact-duty-title">${zaman.baslikMetni}</span>
+                <strong class="compact-duty-hours">${zaman.baslangicBitis}</strong>
             </div>
-            <div class="duty-framed-box compact-frame duty-live-countdown compact-countdown" style="padding: 0.2rem 0.5rem;">
-                <span class="countdown-label" style="font-size: 0.62rem;">${zaman.etiket}</span>
+            <!-- 2. Kutu: Nöbet Bitimine Geri Sayım (Üstte Nöbet Bitimine İfadesi, Altta Kalan Süre) -->
+            <div class="duty-framed-box compact-frame duty-live-countdown compact-countdown">
+                <span class="countdown-label">${zaman.etiket}</span>
                 <div class="countdown-clock">
                     <span class="countdown-num countdown-h">${zaman.saatStr}</span><span class="countdown-unit">sa</span>
                     <span class="countdown-sep">:</span>
