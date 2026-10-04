@@ -1191,27 +1191,17 @@ function ikiliEczaneKartiHtmlUret(eczane, siraNo) {
     return `
     <article class="dual-pharmacy-card animate-fade-in" data-id="${eczane.id}">
         <div class="dual-card-left">
-            <div class="dual-card-top-row">
-                <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-                    <span class="badge" style="background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.4); font-weight: 800;">
-                        ⭐ ${siraNo + 1}. EN YAKIN NÖBETÇİ
-                    </span>
-                    <span class="badge-duty">
-                        <span class="pulse-indicator" style="width: 7px; height: 7px;"></span>
-                        ${escapeHtml(eczane.nobet_durumu || 'Sabaha kadar açık')}
-                    </span>
-                    ${eczane.mesafe_metin ? `
-                        <span class="badge-distance" style="font-size: 0.92rem; font-weight: 800;">
-                            📍 ${escapeHtml(formatMesafeMetin(eczane.mesafe_metin))}
-                        </span>` : ''}
-                </div>
-            </div>
-
-            <!-- Eczane İsmi Açık Adres Kutusuna Alındı -->
+            <!-- Eczane İsmi, Yanında Mesafe ve Açık Adres -->
             <div class="dual-card-address-block">
-                <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.4rem; flex-wrap: wrap;">
-                    <h2 class="dual-pharmacy-title" style="margin: 0;">${escapeHtml(eczane.isim)}</h2>
-                    ${eczane.semt ? `<span class="badge-semt">${escapeHtml(eczane.semt)}</span>` : ''}
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; margin-bottom: 0.35rem; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 0.65rem; min-width: 0; flex-wrap: wrap;">
+                        <h2 class="dual-pharmacy-title" style="margin: 0;">${escapeHtml(eczane.isim)}</h2>
+                        ${eczane.mesafe_metin ? `
+                            <span class="badge-distance" style="font-size: 0.95rem; font-weight: 800; padding: 0.25rem 0.65rem; white-space: nowrap;">
+                                📍 ${escapeHtml(formatMesafeMetin(eczane.mesafe_metin))}
+                            </span>` : ''}
+                    </div>
+                    ${eczane.semt ? `<span class="badge-semt" style="font-size: 0.82rem; padding: 0.25rem 0.55rem;">${escapeHtml(eczane.semt)}</span>` : ''}
                 </div>
                 <p class="dual-card-address-text">${escapeHtml(eczane.adres)}</p>
                 ${yolTarifiHtml}
@@ -1459,9 +1449,9 @@ function dualSayfaGoster() {
 
     if (elMapPanelTitle) {
         if (toplamDualSayfa > 1) {
-            elMapPanelTitle.textContent = `CANLI HARİTA (SAYFA ${dualSayfaIndex + 1} / ${toplamDualSayfa})`;
+            elMapPanelTitle.textContent = `CANLI HARİTA & YOL TARİFİ (SAYFA ${dualSayfaIndex + 1} / ${toplamDualSayfa})`;
         } else {
-            elMapPanelTitle.textContent = `CANLI HARİTA (EN YAKIN 2 NÖBETÇİ)`;
+            elMapPanelTitle.textContent = `CANLI HARİTA & YOL TARİFİ`;
         }
     }
 
