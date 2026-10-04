@@ -220,9 +220,9 @@ function nobetZamaniniHesapla() {
     let hedefZaman = new Date(simdi);
 
     if (bugunTatil) {
-        // PAZAR VEYA RESMİ TATİL GÜNÜ
-        baslangicBitis = '09:00 — 09:00 (24 Sa)';
-        baslikMetni = 'PAZAR NÖBETİ (24 SA)';
+        // PAZAR VEYA RESMİ TATİL GÜNÜ: 24 Saat kesintisiz nöbet
+        baslangicBitis = '09:00 — 09:00';
+        baslikMetni = 'PAZAR NÖBETİ (24 SAAT)';
 
         if (saat < 9) {
             // Sabah 09:00'a kadar: Dünkü nöbetin son saatleri
@@ -245,7 +245,7 @@ function nobetZamaniniHesapla() {
             isNobetSaatinde = true;
             hedefZaman.setHours(9, 0, 0, 0);
             etiket = 'Nöbet Bitimine';
-            baslangicBitis = dunTatil ? '09:00 — 09:00 (Pazar)' : '19:00 — 09:00';
+            baslangicBitis = dunTatil ? '09:00 — 09:00' : '19:00 — 09:00';
         } else if (saat >= 19) {
             // Akşam 19:00'dan sonra gece nöbeti
             isNobetSaatinde = true;
