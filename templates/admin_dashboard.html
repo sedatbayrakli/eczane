@@ -1521,6 +1521,21 @@
             modalAc('modal-preview');
         }
 
+        // Cihazın Anlık Seçili Teması ve Ayarlarıyla Önizleme Başlatıcı
+        function cihazOnizlemeBaslat(eczaneId, deviceId) {
+            const dev = (window.currentPharmacyDevicesMap && window.currentPharmacyDevicesMap[deviceId]) || {};
+            const eczane = window.currentPharmacyData || {};
+            const devThemeEl = document.getElementById(`dev-theme-${deviceId}`);
+            const devScaleEl = document.getElementById(`dev-scale-${deviceId}`);
+            const seciliTema = devThemeEl ? devThemeEl.value : (dev.theme || eczane.theme || 'classic_grid');
+            const seciliOlcek = devScaleEl ? devScaleEl.value : (dev.screen_scale || 'auto');
+            const devName = dev.device_name || `TV #${deviceId}`;
+            const eczaneAdi = eczane.name || 'Eczane';
+
+            const url = `${window.location.origin}/kiosk?key=${encodeURIComponent(eczane.license_key)}&preview_device_id=${deviceId}&preview_theme=${encodeURIComponent(seciliTema)}&preview_scale=${encodeURIComponent(seciliOlcek)}&preview=1&_t=${Date.now()}`;
+            tvOnizlemeAc(url, `${eczaneAdi} — ${devName} (${seciliTema})`);
+        }
+
         // Harita Başlatıcı (Leaflet)
         function haritayiBaslat(tur, lat, lng) {
             lat = lat ? parseFloat(lat) : 41.0000;
@@ -1685,7 +1700,7 @@
                                 </div>
                                 <div class="device-card-actions">
                                     ${approveButtonHtml}
-                                    <button type="button" class="btn btn-sm btn-secondary" onclick="tvOnizlemeAc(window.location.origin + '/kiosk?key=' + encodeURIComponent('${eczane.license_key}') + '${d.device_token ? '&device_token=' + encodeURIComponent(d.device_token) : ''}', '${escapeHtml(eczane.name)} - ${escapeHtml(d.device_name || 'TV')}')" style="padding: 0.32rem 0.65rem; font-size: 0.78rem; border-color: rgba(56, 189, 248, 0.4); color: #38bdf8;" title="Bu TV Ekranının Yayını Önizle">
+                                    <button type="button" class="btn btn-sm btn-secondary" onclick="cihazOnizlemeBaslat(${eczane.id}, ${d.id})" style="padding: 0.32rem 0.65rem; font-size: 0.78rem; border-color: rgba(56, 189, 248, 0.4); color: #38bdf8;" title="Bu TV Ekranının Yayını Önizle">
                                         🖥️ Önizle
                                     </button>
                                     <button type="button" class="btn btn-sm btn-primary" onclick="cihazAyarlariniKaydet(${eczane.id}, ${d.id})" style="padding: 0.32rem 0.75rem; font-size: 0.78rem; font-weight: 600;" title="İsim, Tema ve TV Ölçeğini Kaydet">

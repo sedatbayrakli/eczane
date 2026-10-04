@@ -1119,6 +1119,12 @@ def kiosk():
     if not device_token:
         device_token = request.cookies.get("kiosk_device_token", "").strip()
 
+    # Yönetim panelinden cihaz bazlı önizleme parametreleri
+    preview_device_id = request.args.get("preview_device_id", type=int)
+    preview_theme = request.args.get("preview_theme", "").strip()
+    preview_scale = request.args.get("preview_scale", "").strip()
+    is_preview = (request.args.get("preview") == "1") or bool(preview_device_id or preview_theme)
+
     if not key:
         return render_template(
             "kiosk_error.html",
@@ -1146,7 +1152,8 @@ def kiosk():
         )
 
     cihaz_mac = request.cookies.get("kiosk_device_mac", "").strip()
-    if (device_token or cihaz_mac) and not eczane.cihaz_uyumlu_mu(device_token, cihaz_mac):
+    # Önizleme modunda değilken cihaz limit kontrolü yap
+    if not is_preview and (device_token or cihaz_mac) and not eczane.cihaz_uyumlu_mu(device_token, cihaz_mac):
         return render_template(
             "kiosk_error.html",
             hata_baslik="Cihaz Limiti Dolu",
@@ -1154,16 +1161,43 @@ def kiosk():
             lisans_kodu=key
         )
 
+    # Cihaza veya eczaneye göre tema ve ölçek belirleme
+    cihaz_temasi = eczane.theme or "classic_grid"
+    cihaz_olcegi = eczane.screen_scale or "auto"
+
+    if preview_device_id:
+        cihaz_obj = eczane.devices.filter_by(id=preview_device_id).first()
+        if cihaz_obj:
+            cihaz_temasi = cihaz_obj.get_theme()
+            cihaz_olcegi = cihaz_obj.screen_scale or "auto"
+    elif device_token:
+        cihaz_obj = eczane.devices.filter_by(device_token=device_token).first()
+        if cihaz_obj:
+            cihaz_temasi = cihaz_obj.get_theme()
+            cihaz_olcegi = cihaz_obj.screen_scale or "auto"
+
+    if preview_theme:
+        cihaz_temasi = preview_theme
+    if preview_scale:
+        cihaz_olcegi = preview_scale
+
     resp = make_response(render_template(
         "kiosk.html",
         eczane=eczane,
         secili_il=eczane.city,
         secili_ilce=eczane.district,
-        lisans_anahtari=eczane.license_key
+        lisans_anahtari=eczane.license_key,
+        cihaz_temasi=cihaz_temasi,
+        cihaz_olcegi=cihaz_olcegi,
+        preview_mode=is_preview,
+        preview_device_id=preview_device_id,
+        preview_theme=preview_theme,
+        preview_scale=preview_scale
     ))
-    resp.set_cookie("kiosk_license_key", eczane.license_key, max_age=365*24*3600, samesite="Lax")
-    if device_token:
-        resp.set_cookie("kiosk_device_token", device_token, max_age=365*24*3600, samesite="Lax")
+    if not is_preview:
+        resp.set_cookie("kiosk_license_key", eczane.license_key, max_age=365*24*3600, samesite="Lax")
+        if device_token:
+            resp.set_cookie("kiosk_device_token", device_token, max_age=365*24*3600, samesite="Lax")
     return resp
 
 
@@ -1213,50 +1247,60 @@ def api_kiosk_data():
     user_agent = request.headers.get("User-Agent", "")
     client_ip = istemci_ip_al()
 
+    # Yönetim panelinden cihaz bazlı önizleme parametreleri
+    preview_device_id = request.args.get("preview_device_id", type=int)
+    preview_theme = request.args.get("preview_theme", "").strip()
+    preview_scale = request.args.get("preview_scale", "").strip()
+    is_preview = (request.args.get("preview") == "1") or bool(preview_device_id or preview_theme)
+
     # Çoklu TV / Kiosk Cihazı Doğrulama ve Kayıt (MAC, Token & Yerel IP)
     aktif_cihaz = None
-    if device_token or mac_addr:
-        erisim_var, mesaj, cihaz_obj = eczane.cihaz_dogrula_veya_kaydet(
-            token=device_token,
-            mac=mac_addr,
-            local_ip=local_ip,
-            ip=client_ip,
-            resolution=resolution,
-            user_agent=user_agent
-        )
-        aktif_cihaz = cihaz_obj
+    if preview_device_id:
+        aktif_cihaz = eczane.devices.filter_by(id=preview_device_id).first()
 
-        if not erisim_var:
-            if cihaz_obj and not cihaz_obj.is_approved:
-                # Yönetim panelinden lisans aktivasyonu/onayı bekliyor
-                return jsonify({
-                    "success": False,
-                    "license_valid": True,
-                    "reason": "device_pending_approval",
-                    "message": mesaj,
-                    "device_id": cihaz_obj.id,
-                    "device_name": cihaz_obj.device_name,
-                    "mac": cihaz_obj.mac_address or mac_addr or "-",
-                    "local_ip": cihaz_obj.local_ip or local_ip or "-",
-                    "ip": client_ip,
-                    "pharmacy_name": eczane.name,
-                    "license_key": eczane.license_key
-                }), 403
-            else:
-                # Limit dolu veya başka hata
-                return jsonify({
-                    "success": False,
-                    "license_valid": False,
-                    "reason": "device_limit_exceeded",
-                    "message": mesaj,
-                    "max_devices": eczane.max_devices or 1,
-                    "device_count": eczane.devices.count(),
-                    "license_key": eczane.license_key
-                }), 403
-    else:
-        eczane.last_ping = datetime.now()
-        eczane.last_ip = client_ip
-        db.session.commit()
+    if not is_preview:
+        if device_token or mac_addr:
+            erisim_var, mesaj, cihaz_obj = eczane.cihaz_dogrula_veya_kaydet(
+                token=device_token,
+                mac=mac_addr,
+                local_ip=local_ip,
+                ip=client_ip,
+                resolution=resolution,
+                user_agent=user_agent
+            )
+            aktif_cihaz = cihaz_obj
+
+            if not erisim_var:
+                if cihaz_obj and not cihaz_obj.is_approved:
+                    # Yönetim panelinden lisans aktivasyonu/onayı bekliyor
+                    return jsonify({
+                        "success": False,
+                        "license_valid": True,
+                        "reason": "device_pending_approval",
+                        "message": mesaj,
+                        "device_id": cihaz_obj.id,
+                        "device_name": cihaz_obj.device_name,
+                        "mac": cihaz_obj.mac_address or mac_addr or "-",
+                        "local_ip": cihaz_obj.local_ip or local_ip or "-",
+                        "ip": client_ip,
+                        "pharmacy_name": eczane.name,
+                        "license_key": eczane.license_key
+                    }), 403
+                else:
+                    # Limit dolu veya başka hata
+                    return jsonify({
+                        "success": False,
+                        "license_valid": False,
+                        "reason": "device_limit_exceeded",
+                        "message": mesaj,
+                        "max_devices": eczane.max_devices or 1,
+                        "device_count": eczane.devices.count(),
+                        "license_key": eczane.license_key
+                    }), 403
+        else:
+            eczane.last_ping = datetime.now()
+            eczane.last_ip = client_ip
+            db.session.commit()
 
     # Sistem global ayarlarını al (Önbellek süresi ve kaynak öncelikleri)
     sistem_ayari = SystemSetting.get_settings()
@@ -1294,8 +1338,6 @@ def api_kiosk_data():
                 break
 
     # Cihaza özel ekran ölçeği & Ekranda Tanımlama Sinyali Kontrolü
-    # Not: aktif_cihaz yukarıda token/MAC/yerel IP ile doğrulandı; sıfırlanmamalı.
-    # (Önceden yalnızca token ile yeniden arandığı için MAC ile eşleşen cihazın teması uygulanmıyordu.)
     if not aktif_cihaz and device_token:
         aktif_cihaz = eczane.devices.filter_by(device_token=device_token).first()
 
@@ -1310,7 +1352,7 @@ def api_kiosk_data():
             cihaz_ekran_olcegi = aktif_cihaz.screen_scale
         cihaz_temasi = aktif_cihaz.get_theme()
         cihaz_tema_ayarlari = aktif_cihaz.get_theme_settings()
-        if aktif_cihaz.is_identify_active():
+        if not is_preview and aktif_cihaz.is_identify_active():
             identify_bilgisi = {
                 "active": True,
                 "device_id": aktif_cihaz.id,
@@ -1321,6 +1363,12 @@ def api_kiosk_data():
             # Sinyal TV ekranına teslim edildi, tek seferlik olarak tüketilir
             aktif_cihaz.identify_until = None
             db.session.commit()
+
+    # Önizleme anlık parametreleri varsa doğrudan uygula
+    if preview_theme:
+        cihaz_temasi = preview_theme
+    if preview_scale:
+        cihaz_ekran_olcegi = preview_scale
 
     # Manuel test veya otomatik tespit kontrolü
     nihai_nobet_durumu = eczane.nobetci_mi()

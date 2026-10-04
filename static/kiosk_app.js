@@ -19,9 +19,10 @@
     try {
         if (window.history && window.history.replaceState) {
             const url = new URL(window.location.href);
+            const isPreview = url.searchParams.get('preview') === '1' || (typeof PREVIEW_MODE !== 'undefined' && PREVIEW_MODE);
             if (url.searchParams.has('key')) {
                 const lisansKey = url.searchParams.get('key');
-                if (lisansKey) {
+                if (lisansKey && !isPreview) {
                     try {
                         localStorage.setItem('kiosk_license_key', lisansKey);
                     } catch(e) {}
@@ -54,7 +55,10 @@ let routeLineGroup = null;
 let screenWakeLock = null;
 let sonGeceReloadGunu = -1;
 
-let aktifTema = (typeof BASLANGIC_TEMASI !== 'undefined' && BASLANGIC_TEMASI) ? BASLANGIC_TEMASI : 'classic_grid';
+// Önizleme veya cihaz parametrelerine göre başlangıç temasını belirle
+const _urlParamsInit = (typeof window !== 'undefined' && window.location) ? new URLSearchParams(window.location.search) : null;
+const _previewThemeInit = _urlParamsInit ? (_urlParamsInit.get('preview_theme') || '') : '';
+let aktifTema = _previewThemeInit || ((typeof PREVIEW_THEME !== 'undefined' && PREVIEW_THEME) ? PREVIEW_THEME : ((typeof BASLANGIC_TEMASI !== 'undefined' && BASLANGIC_TEMASI) ? BASLANGIC_TEMASI : 'classic_grid'));
 let sonGecerliVeri = null;
 let guncelEczaneler = [];
 let guncelKendiEczane = null;
@@ -862,13 +866,12 @@ function haritaPinleriniCiz(kendiEczane, nobetciler, seciliIndex = null, tumIsim
             if (e.enlem && e.boylam) {
                 const isSelected = (seciliIndex !== null && idx === seciliIndex);
                 const isTarget = isSelected || (seciliIndex === null && idx === 0);
-                const siraNo = (typeof e._globalIndex !== 'undefined') ? (e._globalIndex + 1) : (idx + 1);
 
-                // Pin ortasında net okunaklı nöbetçi sıra numarası (1, 2, 3, 4...)
+                // Sade ve şık eczane pini (Kafa karıştırıcı rakamlar kaldırıldı)
                 const dutyIcon = L.divIcon({
                     className: 'custom-leaflet-marker',
                     html: `<div class="pulse-ring-pin ${isTarget ? 'active-focused-pin' : ''}" title="${escapeHtml(e.isim)}">
-                             <span>${siraNo}</span>
+                             <span style="font-size: 11px; line-height: 1;">💊</span>
                            </div>`,
                     iconSize: isTarget ? [36, 36] : [28, 28],
                     iconAnchor: isTarget ? [18, 18] : [14, 14]
@@ -891,7 +894,7 @@ function haritaPinleriniCiz(kendiEczane, nobetciler, seciliIndex = null, tumIsim
                     const tooltipDirection = (idx % 2 === 0) ? 'bottom' : 'top';
                     const tooltipOffset = (idx % 2 === 0) ? [0, 18] : [0, -18];
 
-                    marker.bindTooltip(`${siraNo}. ${escapeHtml(e.isim)}`, {
+                    marker.bindTooltip(escapeHtml(e.isim), {
                         permanent: true,
                         direction: tooltipDirection,
                         className: tooltipClass,
@@ -1956,11 +1959,29 @@ function arayuzuGuncelle(veri, isOffline = false, savedTime = '') {
  * 10. Lisanslı Kiosk Verilerini ve Heartbeat Sinyalini Gönderir
  */
 async function kioskVerileriniGetir() {
+    const urlParams = (typeof window !== 'undefined' && window.location) ? new URLSearchParams(window.location.search) : null;
+    const isPreview = (urlParams && urlParams.get('preview') === '1') || (typeof PREVIEW_MODE !== 'undefined' && PREVIEW_MODE);
+    const prevDevId = (urlParams && urlParams.get('preview_device_id')) || (typeof PREVIEW_DEVICE_ID !== 'undefined' ? PREVIEW_DEVICE_ID : null);
+    const prevTheme = (urlParams && urlParams.get('preview_theme')) || (typeof PREVIEW_THEME !== 'undefined' ? PREVIEW_THEME : '');
+    const prevScale = (urlParams && urlParams.get('preview_scale')) || (typeof PREVIEW_SCALE !== 'undefined' ? PREVIEW_SCALE : '');
+
     const deviceToken = getOrCreateDeviceToken();
     const deviceMac = getOrCreateDeviceMac();
     const localIp = localStorage.getItem('kiosk_local_ip') || kioskLocalIP || '';
     const ekranCozunurluk = `${window.innerWidth}x${window.innerHeight}`;
-    const apiAdresi = `/api/kiosk-data?key=${encodeURIComponent(LISANS_KEY)}&device_token=${encodeURIComponent(deviceToken)}&mac=${encodeURIComponent(deviceMac)}&local_ip=${encodeURIComponent(localIp)}&res=${encodeURIComponent(ekranCozunurluk)}&_t=${Date.now()}`;
+    let apiAdresi = `/api/kiosk-data?key=${encodeURIComponent(LISANS_KEY)}&device_token=${encodeURIComponent(deviceToken)}&mac=${encodeURIComponent(deviceMac)}&local_ip=${encodeURIComponent(localIp)}&res=${encodeURIComponent(ekranCozunurluk)}&_t=${Date.now()}`;
+    if (isPreview) {
+        apiAdresi += `&preview=1`;
+    }
+    if (prevDevId) {
+        apiAdresi += `&preview_device_id=${encodeURIComponent(prevDevId)}`;
+    }
+    if (prevTheme) {
+        apiAdresi += `&preview_theme=${encodeURIComponent(prevTheme)}`;
+    }
+    if (prevScale) {
+        apiAdresi += `&preview_scale=${encodeURIComponent(prevScale)}`;
+    }
 
     try {
         const yanit = await fetch(apiAdresi);
