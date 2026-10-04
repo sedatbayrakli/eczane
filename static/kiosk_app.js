@@ -1716,10 +1716,20 @@ function listSayfaGoster() {
         `;
     }
 
+    let cardsHtml = buSayfaEczaneler.map((e, idx) => listeEczaneKartiHtmlUret(e, baslangic + idx)).join('');
+    // 4'ten az kart olduğunda (örneğin son sayfada 1, 2 veya 3 kart varken) kartların dikeyde büyüyüp
+    // ölçeğin bozulmaması için eksik satırlara şeffaf boş yer tutucular eklenir:
+    const eksikKart = LISTE_SAYFA_BOYUTU - buSayfaEczaneler.length;
+    for (let k = 0; k < eksikKart; k++) {
+        cardsHtml += `
+            <div class="list-pharmacy-row-card list-card-placeholder" style="visibility: hidden; opacity: 0; pointer-events: none; border: none; background: transparent; box-shadow: none;"></div>
+        `;
+    }
+
     elPharmacyGrid.className = 'pharmacy-grid-container layout-list-container';
     elPharmacyGrid.innerHTML = `
         <div class="list-pharmacy-rows-wrapper">
-            ${buSayfaEczaneler.map((e, idx) => listeEczaneKartiHtmlUret(e, baslangic + idx)).join('')}
+            ${cardsHtml}
             ${paginationHtml}
         </div>
     `;
@@ -1920,7 +1930,7 @@ function arayuzuGuncelle(veri, isOffline = false, savedTime = '') {
             slaytDongusunuDurdur();
             listSayfaGoster();
 
-            const toplamListSayfa = Math.ceil(guncelEczaneler.length / 5);
+            const toplamListSayfa = Math.ceil(guncelEczaneler.length / 4);
             if (toplamListSayfa > 1) {
                 slaytTimer = setInterval(() => {
                     listSayfaIndex = (listSayfaIndex + 1) % toplamListSayfa;

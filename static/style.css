@@ -304,7 +304,8 @@ body,
 
 /* Eksik Kartlar İçin Görünmez Yer Tutucu (Ölçek ve Mimarinin Korunması İçin) */
 .classic-card-placeholder,
-.dual-card-placeholder {
+.dual-card-placeholder,
+.list-card-placeholder {
     visibility: hidden !important;
     opacity: 0 !important;
     pointer-events: none !important;
