@@ -60,6 +60,8 @@ let guncelEczaneler = [];
 let guncelKendiEczane = null;
 let slaytIndex = 0;
 let dualSayfaIndex = 0;
+let classicSayfaIndex = 0;
+let listSayfaIndex = 0;
 let slaytTimer = null;
 let progressTimer = null;
 let progressStartTime = 0;
@@ -90,17 +92,21 @@ let isOfflineModAktif = false;
 /**
  * Aktif Görünüm Modunu Belirler:
  * 'auto_rotate' (Karma Mod) ise o anki saate göre dönüşümlü tema seçer:
- *   Saat % 4 == 0 -> classic_grid
- *   Saat % 4 == 1 -> animated_route
- *   Saat % 4 == 2 -> focus_carousel
- *   Saat % 4 == 3 -> dual_card
+ *   1 -> classic_grid (Klasik 4'lü Izgara & Harita)
+ *   2 -> list_view (Liste Görünümü - Haritasız)
+ *   3 -> focus_carousel (Vitrin Carousel & Rota)
+ *   4 -> dual_card (İkili Dev Kart & Harita)
  */
 function aktifGorunumuBelirle() {
     if (aktifTema === 'auto_rotate') {
         const arMinutes = (window._kioskThemeSettings && window._kioskThemeSettings.auto_rotate_minutes) ? window._kioskThemeSettings.auto_rotate_minutes : 60;
         const totalPeriods = Math.floor(Date.now() / (arMinutes * 60 * 1000));
-        const temalar = ['classic_grid', 'animated_route', 'focus_carousel', 'dual_card'];
+        const temalar = ['classic_grid', 'list_view', 'focus_carousel', 'dual_card'];
         return temalar[totalPeriods % temalar.length];
+    }
+    // Geriye dönük uyumluluk: animated_route doğrudan seçilmişse focus_carousel motorunu kullanır
+    if (aktifTema === 'animated_route') {
+        return 'focus_carousel';
     }
     return aktifTema;
 }
@@ -856,12 +862,13 @@ function haritaPinleriniCiz(kendiEczane, nobetciler, seciliIndex = null, tumIsim
             if (e.enlem && e.boylam) {
                 const isSelected = (seciliIndex !== null && idx === seciliIndex);
                 const isTarget = isSelected || (seciliIndex === null && idx === 0);
+                const siraNo = (typeof e._globalIndex !== 'undefined') ? (e._globalIndex + 1) : (idx + 1);
 
                 // Pin ortasında net okunaklı nöbetçi sıra numarası (1, 2, 3, 4...)
                 const dutyIcon = L.divIcon({
                     className: 'custom-leaflet-marker',
                     html: `<div class="pulse-ring-pin ${isTarget ? 'active-focused-pin' : ''}" title="${escapeHtml(e.isim)}">
-                             <span>${idx + 1}</span>
+                             <span>${siraNo}</span>
                            </div>`,
                     iconSize: isTarget ? [36, 36] : [28, 28],
                     iconAnchor: isTarget ? [18, 18] : [14, 14]
@@ -884,7 +891,7 @@ function haritaPinleriniCiz(kendiEczane, nobetciler, seciliIndex = null, tumIsim
                     const tooltipDirection = (idx % 2 === 0) ? 'bottom' : 'top';
                     const tooltipOffset = (idx % 2 === 0) ? [0, 18] : [0, -18];
 
-                    marker.bindTooltip(`${idx + 1}. ${escapeHtml(e.isim)}`, {
+                    marker.bindTooltip(`${siraNo}. ${escapeHtml(e.isim)}`, {
                         permanent: true,
                         direction: tooltipDirection,
                         className: tooltipClass,
@@ -1354,10 +1361,12 @@ function slaytGoster() {
     }
 
     const seciliEczane = guncelEczaneler[slaytIndex];
-    const gorunum = aktifGorunumuBelirle();
+    const ts = window._kioskThemeSettings || {};
+    // Rota gösterimi: parametreye göre (show_route !== false) veya eski animated_route temasına göre belirlenir
+    const showRoute = (aktifTema === 'animated_route') ? true : (ts.show_route !== false);
 
-    if (gorunum === 'animated_route') {
-        // Tema 2: Canlı Yol & Navigasyon Rota
+    if (showRoute) {
+        // Tema 3 (Rotası Açık): Canlı Yol & Navigasyon Rota
         const rotaPrefix = isOfflineModAktif ? '💾 ÇEVRİMDIŞI HARİTA & KONUM' : 'CANLI HARİTA & YOL TARİFİ';
         if (elMapPanelTitle) elMapPanelTitle.textContent = `${rotaPrefix} (${seciliEczane.isim})`;
         elPharmacyGrid.innerHTML = devOdakKartiHtmlUret(seciliEczane, slaytIndex, guncelEczaneler.length, 'YOL TARİFİ');
@@ -1365,8 +1374,8 @@ function slaytGoster() {
         haritaPinleriniCiz(guncelKendiEczane, guncelEczaneler, slaytIndex);
         haritadaRotaGoster(guncelKendiEczane, seciliEczane);
 
-    } else if (gorunum === 'focus_carousel') {
-        // Tema 3: Vitrin Carousel & Dev Odak Kartı (Harita Siyah Ekran Hatası Çözüldü)
+    } else {
+        // Tema 3 (Rotasız Temiz Vitrin): Vitrin Carousel & Dev Odak Kartı
         if (elMapPanelTitle) elMapPanelTitle.textContent = `BÖLGE NÖBETÇİ HARİTASI (${seciliEczane.isim})`;
         elPharmacyGrid.innerHTML = devOdakKartiHtmlUret(seciliEczane, slaytIndex, guncelEczaneler.length, 'VİTRİN');
         
@@ -1508,6 +1517,218 @@ function manuelDualSayfayaGit(index) {
         slaytTimer = setInterval(() => {
             dualSayfaIndex = (dualSayfaIndex + 1) % toplamDualSayfa;
             dualSayfaGoster();
+        }, KIOSK_AYARLAR.SLAYT_SURESI_MS);
+    }
+}
+
+/**
+ * Tema 1: Klasik Izgara Sayfa Gösterimi (4'erli Nöbetçi Gösterimi ve Otomatik Sayfalama)
+ * Eğer 4 veya daha az eczane varsa sayfalama yapmaz; 4'ten fazla varsa 15 saniyede bir sayfalar.
+ */
+function classicSayfaGoster() {
+    if (!guncelEczaneler || guncelEczaneler.length === 0) return;
+
+    if (routeLineGroup) routeLineGroup.clearLayers();
+
+    const toplamEczane = guncelEczaneler.length;
+    const toplamClassicSayfa = Math.ceil(toplamEczane / 4);
+    if (classicSayfaIndex >= toplamClassicSayfa) {
+        classicSayfaIndex = 0;
+    }
+
+    const baslangic = classicSayfaIndex * 4;
+    const buSayfaEczaneler = guncelEczaneler.slice(baslangic, baslangic + 4);
+
+    // Her eczaneye genel sıralama indeksini ata (harita ve kart pinleri için)
+    buSayfaEczaneler.forEach((e, i) => {
+        e._globalIndex = baslangic + i;
+    });
+
+    if (elMapPanelTitle) {
+        if (toplamClassicSayfa > 1) {
+            elMapPanelTitle.textContent = `CANLI HARİTA & YOL TARİFİ (SAYFA ${classicSayfaIndex + 1} / ${toplamClassicSayfa})`;
+        } else {
+            elMapPanelTitle.textContent = `CANLI HARİTA & YOL TARİFİ`;
+        }
+    }
+
+    elPharmacyGrid.className = 'pharmacy-grid-container';
+    if (buSayfaEczaneler.length === 1) elPharmacyGrid.classList.add('grid-count-1');
+    else if (buSayfaEczaneler.length === 3) elPharmacyGrid.classList.add('grid-count-3');
+
+    let paginationHtml = '';
+    if (toplamClassicSayfa > 1) {
+        const pills = Array.from({ length: toplamClassicSayfa }).map((_, pIdx) => `
+            <span class="dual-page-pill ${pIdx === classicSayfaIndex ? 'active' : ''}" onclick="manuelClassicSayfayaGit(${pIdx})" title="Sayfa ${pIdx + 1}"></span>
+        `).join('');
+
+        paginationHtml = `
+            <div class="dual-pagination-bar" style="grid-column: 1 / -1; margin-top: 0.35rem;">
+                <span class="dual-page-badge">📄 Nöbetçiler: Sayfa ${classicSayfaIndex + 1} / ${toplamClassicSayfa} (${baslangic + 1}-${Math.min(baslangic + 4, toplamEczane)} / Toplam ${toplamEczane})</span>
+                <div class="dual-pills-row">${pills}</div>
+            </div>
+        `;
+    }
+
+    elPharmacyGrid.innerHTML = buSayfaEczaneler.map((e, idx) => eczaneKartiHtmlUret(e, baslangic + idx)).join('') + paginationHtml;
+
+    // Harita: Lisanslı eczanemiz + ekranda o an gösterilen bu 4 eczane
+    const noktalar = haritaPinleriniCiz(guncelKendiEczane, buSayfaEczaneler, null, true);
+    if (noktalar && noktalar.length > 0 && kioskMap) {
+        setTimeout(() => {
+            kioskMap.invalidateSize();
+            try {
+                kioskMap.flyToBounds(noktalar, { padding: [45, 45], maxZoom: 15, duration: 1.0 });
+            } catch (e) {
+                kioskMap.fitBounds(noktalar, { padding: [45, 45], maxZoom: 15 });
+            }
+        }, 100);
+    }
+
+    // Birden fazla sayfa varsa ilerleme animasyonu çalıştır
+    if (toplamClassicSayfa > 1) {
+        slaytIlerlemeAnimasyonunuBaslat();
+    } else {
+        if (elProgressBarContainer) elProgressBarContainer.style.display = 'none';
+    }
+
+    temaIcerikGorunurlukleriniUygula();
+}
+
+function manuelClassicSayfayaGit(index) {
+    classicSayfaIndex = index;
+    classicSayfaGoster();
+
+    const toplamClassicSayfa = Math.ceil(guncelEczaneler.length / 4);
+    if (toplamClassicSayfa > 1) {
+        if (slaytTimer) clearInterval(slaytTimer);
+        slaytTimer = setInterval(() => {
+            classicSayfaIndex = (classicSayfaIndex + 1) % toplamClassicSayfa;
+            classicSayfaGoster();
+        }, KIOSK_AYARLAR.SLAYT_SURESI_MS);
+    }
+}
+
+
+/**
+ * Tema 2: Liste Görünümü (Haritasız, Tek Satırlık Şerit Kartlar & Sayfalama)
+ */
+function listeEczaneKartiHtmlUret(e, globalIdx) {
+    const isEnYakin = (globalIdx === 0);
+    const mesafeMetin = formatMesafeMetin(e.mesafe_metin || '');
+    const telefon = e.telefon ? escapeHtml(e.telefon) : '';
+    const siraNo = globalIdx + 1;
+    const adres = escapeHtml(e.adres || '');
+    const yolTarifi = e.yol_tarifi ? escapeHtml(e.yol_tarifi) : '';
+
+    // Harita QR Kodu
+    let qrHtml = '';
+    if (e.harita_linki) {
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(e.harita_linki)}&margin=1`;
+        qrHtml = `
+            <div class="list-card-qr-box" title="Harita ve Yol Tarifi İçin Telefonunuzla Okutun">
+                <img src="${qrUrl}" alt="Navigasyon QR" loading="lazy" class="list-card-qr-img">
+                <span class="list-card-qr-text">YOL TARİFİ</span>
+            </div>
+        `;
+    }
+
+    return `
+        <div class="list-pharmacy-row-card ${isEnYakin ? 'is-closest-card' : ''}">
+            <!-- Sol: Sıra No ve İsim Grubu -->
+            <div class="list-card-main-info">
+                <div class="list-card-number-badge">${siraNo}</div>
+                <div class="list-card-name-group">
+                    <div class="list-card-title-row">
+                        <h2 class="list-card-pharmacy-name">${escapeHtml(e.isim)}</h2>
+                        ${isEnYakin ? '<span class="list-badge-closest">⭐ EN YAKIN</span>' : ''}
+                        ${mesafeMetin ? `<span class="list-badge-distance">🚶 ${escapeHtml(mesafeMetin)}</span>` : ''}
+                    </div>
+                    <div class="list-card-address-row">
+                        <span class="list-card-address">📍 ${adres}</span>
+                        ${yolTarifi ? `<span class="list-card-landmark">(${yolTarifi})</span>` : ''}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sağ: İletişim, Nöbet Saati ve QR -->
+            <div class="list-card-meta-group">
+                ${telefon ? `
+                    <div class="list-card-phone-pill">
+                        <span class="list-phone-icon">📞</span>
+                        <span class="list-phone-number">${telefon}</span>
+                    </div>
+                ` : ''}
+                <div class="list-card-duty-pill">
+                    <span class="duty-pill-dot"></span>
+                    <span>NÖBETÇİ</span>
+                </div>
+                ${qrHtml}
+            </div>
+        </div>
+    `;
+}
+
+function listSayfaGoster() {
+    if (!guncelEczaneler || guncelEczaneler.length === 0) return;
+
+    if (routeLineGroup) routeLineGroup.clearLayers();
+
+    const toplamEczane = guncelEczaneler.length;
+    const LISTE_SAYFA_BOYUTU = 5;
+    const toplamListSayfa = Math.ceil(toplamEczane / LISTE_SAYFA_BOYUTU);
+    if (listSayfaIndex >= toplamListSayfa) {
+        listSayfaIndex = 0;
+    }
+
+    const baslangic = listSayfaIndex * LISTE_SAYFA_BOYUTU;
+    const buSayfaEczaneler = guncelEczaneler.slice(baslangic, baslangic + LISTE_SAYFA_BOYUTU);
+
+    buSayfaEczaneler.forEach((e, i) => {
+        e._globalIndex = baslangic + i;
+    });
+
+    let paginationHtml = '';
+    if (toplamListSayfa > 1) {
+        const pills = Array.from({ length: toplamListSayfa }).map((_, pIdx) => `
+            <span class="dual-page-pill ${pIdx === listSayfaIndex ? 'active' : ''}" onclick="manuelListSayfayaGit(${pIdx})" title="Sayfa ${pIdx + 1}"></span>
+        `).join('');
+
+        paginationHtml = `
+            <div class="dual-pagination-bar" style="margin-top: 0.5rem; justify-content: center;">
+                <span class="dual-page-badge">📄 Nöbetçiler: Sayfa ${listSayfaIndex + 1} / ${toplamListSayfa} (${baslangic + 1}-${Math.min(baslangic + LISTE_SAYFA_BOYUTU, toplamEczane)} / Toplam ${toplamEczane})</span>
+                <div class="dual-pills-row">${pills}</div>
+            </div>
+        `;
+    }
+
+    elPharmacyGrid.className = 'pharmacy-grid-container layout-list-container';
+    elPharmacyGrid.innerHTML = `
+        <div class="list-pharmacy-rows-wrapper">
+            ${buSayfaEczaneler.map((e, idx) => listeEczaneKartiHtmlUret(e, baslangic + idx)).join('')}
+            ${paginationHtml}
+        </div>
+    `;
+
+    if (toplamListSayfa > 1) {
+        slaytIlerlemeAnimasyonunuBaslat();
+    } else {
+        if (elProgressBarContainer) elProgressBarContainer.style.display = 'none';
+    }
+
+    temaIcerikGorunurlukleriniUygula();
+}
+
+function manuelListSayfayaGit(index) {
+    listSayfaIndex = index;
+    listSayfaGoster();
+
+    const toplamListSayfa = Math.ceil(guncelEczaneler.length / 5);
+    if (toplamListSayfa > 1) {
+        if (slaytTimer) clearInterval(slaytTimer);
+        slaytTimer = setInterval(() => {
+            listSayfaIndex = (listSayfaIndex + 1) % toplamListSayfa;
+            listSayfaGoster();
         }, KIOSK_AYARLAR.SLAYT_SURESI_MS);
     }
 }
@@ -1658,7 +1879,7 @@ function arayuzuGuncelle(veri, isOffline = false, savedTime = '') {
 
         // SEÇİLEN GÖRÜNÜME GÖRE RENDER:
         if (gorunum === 'animated_route' || gorunum === 'focus_carousel') {
-            // Tema 2 veya Tema 3: Slayt Döngüsü
+            // Tema 3: Vitrin Carousel & Dev Odak Kartı (veya Canlı Rota)
             slaytDongusunuDurdur();
             slaytGoster();
 
@@ -1680,26 +1901,30 @@ function arayuzuGuncelle(veri, isOffline = false, savedTime = '') {
                 }, KIOSK_AYARLAR.SLAYT_SURESI_MS);
             }
 
-        } else {
-            // Tema 1: classic_grid (Klasik 4'lü Izgara & Harita)
+        } else if (gorunum === 'list_view') {
+            // Tema 2: Liste Görünümü (Haritasız Tam Liste & Sayfalama)
             slaytDongusunuDurdur();
-            if (routeLineGroup) routeLineGroup.clearLayers();
-            if (elMapPanelTitle) elMapPanelTitle.textContent = `CANLI HARİTA & YOL TARİFİ`;
+            listSayfaGoster();
 
-            elPharmacyGrid.className = 'pharmacy-grid-container';
-            if (veri.eczaneler.length === 1) elPharmacyGrid.classList.add('grid-count-1');
-            else if (veri.eczaneler.length === 3) elPharmacyGrid.classList.add('grid-count-3');
-            else if (veri.eczaneler.length >= 5) elPharmacyGrid.classList.add('grid-count-6');
+            const toplamListSayfa = Math.ceil(guncelEczaneler.length / 5);
+            if (toplamListSayfa > 1) {
+                slaytTimer = setInterval(() => {
+                    listSayfaIndex = (listSayfaIndex + 1) % toplamListSayfa;
+                    listSayfaGoster();
+                }, KIOSK_AYARLAR.SLAYT_SURESI_MS);
+            }
 
-            elPharmacyGrid.innerHTML = veri.eczaneler.map((e, idx) => eczaneKartiHtmlUret(e, idx)).join('');
+        } else {
+            // Tema 1: classic_grid (Klasik 4'lü Izgara & Harita, 4'ten fazlaysa 4'erli sayfalama)
+            slaytDongusunuDurdur();
+            classicSayfaGoster();
 
-            // 1. versiyon ızgarada tüm nöbetçi eczanelerin isimleri harita üzerinde kalıcı görünür
-            const noktalar = haritaPinleriniCiz(veri.pharmacy, veri.eczaneler, null, true);
-            if (noktalar && noktalar.length > 0 && kioskMap) {
-                setTimeout(() => {
-                    kioskMap.invalidateSize();
-                    kioskMap.fitBounds(noktalar, { padding: [45, 45], maxZoom: 15 });
-                }, 100);
+            const toplamClassicSayfa = Math.ceil(guncelEczaneler.length / 4);
+            if (toplamClassicSayfa > 1) {
+                slaytTimer = setInterval(() => {
+                    classicSayfaIndex = (classicSayfaIndex + 1) % toplamClassicSayfa;
+                    classicSayfaGoster();
+                }, KIOSK_AYARLAR.SLAYT_SURESI_MS);
             }
         }
 

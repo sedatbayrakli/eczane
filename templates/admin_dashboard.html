@@ -446,19 +446,40 @@
             z-index: 10;
         }
 
-        /* Canlı TV Önizleme iframe */
+        /* Canlı TV Önizleme iframe & Modalı */
+        #modal-preview {
+            z-index: 99999 !important;
+        }
+        #modal-preview .modal-box-large {
+            max-width: 1320px;
+            width: 95vw;
+            height: 90vh;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            background: #0f172a;
+        }
+        #modal-preview .modal-header {
+            flex-shrink: 0;
+            padding: 0.9rem 1.4rem;
+        }
         .preview-iframe-wrapper {
             flex: 1;
+            min-height: 0;
             width: 100%;
+            height: 100%;
             background: #000;
-            border-radius: 10px;
+            border-radius: 0 0 16px 16px;
             overflow: hidden;
-            border: 2px solid rgba(255, 255, 255, 0.15);
+            display: flex;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
         }
         .preview-iframe {
             width: 100%;
             height: 100%;
             border: none;
+            flex: 1;
+            display: block;
         }
 
         /* Kompakt Canlılık & IP Rozeti */
@@ -754,11 +775,8 @@
                                     🔔 {{ bekleyen_sayisi }} Onay Bekliyor
                                 </span>
                                 <div style="display: flex; gap: 0.25rem; justify-content: center;">
-                                    <button type="button" class="btn btn-sm btn-warning" onclick="cihazYonetimModalAc({{ e.id }})" style="padding: 0.2rem 0.45rem; font-size: 0.72rem; font-weight: 700; box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);" title="Onay Bekleyen TV'yi Onaylamak İçin Tıklayın">
+                                    <button type="button" class="btn btn-sm btn-warning" onclick="cihazYonetimModalAc({{ e.id }})" style="padding: 0.25rem 0.6rem; font-size: 0.76rem; font-weight: 700; box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);" title="Onay Bekleyen TV'yi Onaylamak İçin Tıklayın">
                                         ⚡ Onayla
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-secondary" onclick="tvOnizlemeAc('{{ base_url }}/kiosk?key={{ e.license_key }}', '{{ e.name }}')" style="padding: 0.2rem 0.45rem; font-size: 0.72rem;" title="TV Kiosk Ekranını Canlı Önizle">
-                                        🖥️ Önizle
                                     </button>
                                 </div>
                             {% else %}
@@ -766,11 +784,8 @@
                                     📺 {{ dev_sayisi }} / {{ e.max_devices or 1 }} TV
                                 </span>
                                 <div style="display: flex; gap: 0.25rem; justify-content: center;">
-                                    <button type="button" class="btn btn-sm btn-secondary" onclick="cihazYonetimModalAc({{ e.id }})" style="padding: 0.2rem 0.45rem; font-size: 0.72rem;" title="Bağlı Cihazları Yönet / Sıfırla">
+                                    <button type="button" class="btn btn-sm btn-secondary" onclick="cihazYonetimModalAc({{ e.id }})" style="padding: 0.25rem 0.6rem; font-size: 0.76rem;" title="Bağlı Cihazları Yönet / Sıfırla">
                                         ⚙️ Cihazlar
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-secondary" onclick="tvOnizlemeAc('{{ base_url }}/kiosk?key={{ e.license_key }}', '{{ e.name }}')" style="padding: 0.2rem 0.45rem; font-size: 0.72rem;" title="TV Kiosk Ekranını Canlı Önizle">
-                                        🖥️ Önizle
                                     </button>
                                 </div>
                             {% endif %}
@@ -981,7 +996,7 @@
                                 <label>Kiosk Ekran Teması</label>
                                 <select name="theme" class="form-control">
                                     <option value="classic_grid" selected>1. Klasik 4'lü Izgara & Harita</option>
-                                    <option value="animated_route">2. Canlı Yol & Navigasyon Animasyonu</option>
+                                    <option value="list_view">2. Liste Görünümü (Haritasız Tam Liste)</option>
                                     <option value="focus_carousel">3. Vitrin Carousel & Dev Odak Kartı</option>
                                     <option value="dual_card">4. İkili Dev Kart & Harita (2 Eczane)</option>
                                     <option value="auto_rotate">5. Karma Mod (Saatlik Otomatik Dönüşüm)</option>
@@ -1148,7 +1163,7 @@
                                 <label>Kiosk Ekran Teması</label>
                                 <select id="edit-theme" name="theme" class="form-control">
                                     <option value="classic_grid">1. Klasik 4'lü Izgara & Harita</option>
-                                    <option value="animated_route">2. Canlı Yol & Navigasyon Animasyonu</option>
+                                    <option value="list_view">2. Liste Görünümü (Haritasız Tam Liste)</option>
                                     <option value="focus_carousel">3. Vitrin Carousel & Dev Odak Kartı</option>
                                     <option value="dual_card">4. İkili Dev Kart & Harita (2 Eczane)</option>
                                     <option value="auto_rotate">5. Karma Mod (Saatlik Otomatik Dönüşüm)</option>
@@ -1338,8 +1353,8 @@
                         </div>
                         <div class="form-group" style="margin-bottom: 0;">
                             <select id="ts-theme-select" class="form-control" style="font-weight: 600;">
-                                <option value="classic_grid">1. Versiyon: Klasik 4'lü Izgara & Harita</option>
-                                <option value="animated_route">2. Versiyon: Canlı Yol & Navigasyon Animasyonu</option>
+                                <option value="classic_grid">1. Versiyon: Klasik 4'lü Izgara & Harita (Sayfalamalı)</option>
+                                <option value="list_view">2. Versiyon: Liste Görünümü (Haritasız Tam Liste)</option>
                                 <option value="focus_carousel">3. Versiyon: Vitrin Carousel & Dev Odak Kartı</option>
                                 <option value="dual_card">4. Versiyon: İkili Dev Kart & Harita (2 Eczane)</option>
                                 <option value="auto_rotate">5. Versiyon: Karma Mod (Zaman Ayarlı Otomatik Dönüşüm)</option>
@@ -1403,6 +1418,13 @@
                                 <option value="15">15 - Yakın Mahalle Odaklı</option>
                                 <option value="16">16 - Detaylı Cadde / Sokak Odaklı</option>
                             </select>
+                        </div>
+                        <div class="form-group" style="margin-top: 0.75rem; margin-bottom: 0;">
+                            <label style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.84rem; color: #e2e8f0; cursor: pointer;">
+                                <input type="checkbox" id="ts-show-route" checked style="width: 18px; height: 18px; accent-color: #38bdf8;">
+                                <span>Haritada Canlı Yürüyüş Rotası Çiz (OSRM Yol Tarifi)</span>
+                            </label>
+                            <small>Vitrin Carousel modunda nöbetçi eczaneye giden sokak/cadde navigasyon rotasını çizer.</small>
                         </div>
                     </div>
 
@@ -1658,7 +1680,7 @@
                                 </div>
                                 <div class="device-card-actions">
                                     ${approveButtonHtml}
-                                    <button type="button" class="btn btn-sm btn-secondary" onclick="tvOnizlemeAc('/kiosk?key=${eczane.license_key}', '${escapeHtml(eczane.name)} - ${escapeHtml(d.device_name || 'TV')}')" style="padding: 0.32rem 0.65rem; font-size: 0.78rem; border-color: rgba(56, 189, 248, 0.4); color: #38bdf8;" title="Bu TV Ekranının Yayını Önizle">
+                                    <button type="button" class="btn btn-sm btn-secondary" onclick="tvOnizlemeAc(window.location.origin + '/kiosk?key=' + encodeURIComponent('${eczane.license_key}') + '${d.device_token ? '&device_token=' + encodeURIComponent(d.device_token) : ''}', '${escapeHtml(eczane.name)} - ${escapeHtml(d.device_name || 'TV')}')" style="padding: 0.32rem 0.65rem; font-size: 0.78rem; border-color: rgba(56, 189, 248, 0.4); color: #38bdf8;" title="Bu TV Ekranının Yayını Önizle">
                                         🖥️ Önizle
                                     </button>
                                     <button type="button" class="btn btn-sm btn-primary" onclick="cihazAyarlariniKaydet(${eczane.id}, ${d.id})" style="padding: 0.32rem 0.75rem; font-size: 0.78rem; font-weight: 600;" title="İsim, Tema ve TV Ölçeğini Kaydet">
@@ -1694,10 +1716,11 @@
                                     <div class="device-field-label">🎨 Ekran Teması</div>
                                     <select id="dev-theme-${d.id}" class="form-control" style="font-size: 0.8rem; height: 34px; min-height: 34px; line-height: 32px; padding: 0 0.5rem; background: rgba(0,0,0,0.4); border-color: rgba(255,255,255,0.15); font-weight: 600;">
                                         <option value="classic_grid" ${devTheme === 'classic_grid' ? 'selected' : ''}>1. Klasik Izgara</option>
-                                        <option value="animated_route" ${devTheme === 'animated_route' ? 'selected' : ''}>2. Canlı Yol</option>
+                                        <option value="list_view" ${devTheme === 'list_view' ? 'selected' : ''}>2. Liste Görünümü</option>
                                         <option value="focus_carousel" ${devTheme === 'focus_carousel' ? 'selected' : ''}>3. Vitrin Carousel</option>
                                         <option value="dual_card" ${devTheme === 'dual_card' ? 'selected' : ''}>4. İkili Dev Kart</option>
                                         <option value="auto_rotate" ${devTheme === 'auto_rotate' ? 'selected' : ''}>5. Karma Mod (Saatlik)</option>
+                                        ${devTheme === 'animated_route' ? '<option value="animated_route" selected>[Eski] Canlı Yol</option>' : ''}
                                     </select>
                                     <button type="button" class="btn btn-sm btn-secondary" onclick="cihazTemaAyarlariModalAc(${eczane.id}, ${d.id})" style="margin-top: 0.35rem; padding: 0.28rem 0.5rem; font-size: 0.74rem; display: flex; align-items: center; justify-content: center; gap: 0.3rem; border-color: rgba(56,189,248,0.4); color: #38bdf8;">
                                         ⚙️ Ekran Parametreleri
@@ -2347,6 +2370,7 @@
             // Görünürlük ve Koruma Kontrolleri
             document.getElementById('ts-show-countdown').checked = (ayar.show_countdown !== false);
             document.getElementById('ts-show-qr').checked = (ayar.show_qr !== false);
+            document.getElementById('ts-show-route').checked = (ayar.show_route !== false);
             document.getElementById('ts-show-travel-times').checked = (ayar.show_travel_times !== false);
             document.getElementById('ts-show-district-counter').checked = (ayar.show_district_counter !== false);
             document.getElementById('ts-show-landmark').checked = (ayar.show_landmark !== false);
@@ -2382,6 +2406,7 @@
             // Görünürlük ve Koruma Kontrolleri
             document.getElementById('ts-show-countdown').checked = (devSettings.show_countdown !== false);
             document.getElementById('ts-show-qr').checked = (devSettings.show_qr !== false);
+            document.getElementById('ts-show-route').checked = (devSettings.show_route !== false);
             document.getElementById('ts-show-travel-times').checked = (devSettings.show_travel_times !== false);
             document.getElementById('ts-show-district-counter').checked = (devSettings.show_district_counter !== false);
             document.getElementById('ts-show-landmark').checked = (devSettings.show_landmark !== false);
@@ -2403,6 +2428,7 @@
                 map_zoom: parseInt(document.getElementById('ts-map-zoom').value, 10) || 14,
                 show_countdown: document.getElementById('ts-show-countdown').checked,
                 show_qr: document.getElementById('ts-show-qr').checked,
+                show_route: document.getElementById('ts-show-route').checked,
                 show_travel_times: document.getElementById('ts-show-travel-times').checked,
                 show_district_counter: document.getElementById('ts-show-district-counter').checked,
                 show_landmark: document.getElementById('ts-show-landmark').checked,

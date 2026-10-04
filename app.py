@@ -618,7 +618,7 @@ def admin_save_theme_settings(eczane_id):
     veri = request.get_json(silent=True) or {}
     
     yeni_tema = veri.get("theme")
-    if yeni_tema and yeni_tema in ["classic_grid", "animated_route", "focus_carousel", "dual_card", "auto_rotate"]:
+    if yeni_tema and yeni_tema in ["classic_grid", "list_view", "animated_route", "focus_carousel", "dual_card", "auto_rotate"]:
         eczane.theme = yeni_tema
         
     ayarlar = veri.get("theme_settings", {})
@@ -940,7 +940,7 @@ def admin_edit_single_device(eczane_id, device_id):
 
     if yeni_ad:
         cihaz.device_name = yeni_ad
-    if yeni_tema in ["classic_grid", "animated_route", "focus_carousel", "dual_card", "auto_rotate"]:
+    if yeni_tema in ["classic_grid", "list_view", "animated_route", "focus_carousel", "dual_card", "auto_rotate"]:
         cihaz.theme = yeni_tema
     if yeni_olcek:
         cihaz.screen_scale = yeni_olcek
@@ -985,7 +985,7 @@ def admin_save_device_theme_settings(eczane_id, device_id):
     veri = request.get_json(silent=True) or {}
 
     yeni_tema = veri.get("theme")
-    if yeni_tema and yeni_tema in ["classic_grid", "animated_route", "focus_carousel", "dual_card", "auto_rotate"]:
+    if yeni_tema and yeni_tema in ["classic_grid", "list_view", "animated_route", "focus_carousel", "dual_card", "auto_rotate"]:
         cihaz.theme = yeni_tema
 
     ayarlar = veri.get("theme_settings", {})
