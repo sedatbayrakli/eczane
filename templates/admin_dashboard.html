@@ -744,7 +744,7 @@
                         <span class="license-code">{{ e.license_key }}</span>
                     </td>
 
-                    <!-- Çoklu Cihaz Durumu & Kiosk (2 Satır: Üstte TV Sayısı, Altta Buton) -->
+                    <!-- Çoklu Cihaz Durumu & Kiosk (2 Satır: Üstte TV Sayısı, Altta Butonlar) -->
                     <td>
                         <div style="display: flex; flex-direction: column; align-items: center; gap: 0.35rem;">
                             {% set dev_sayisi = e.devices.count() %}
@@ -753,16 +753,26 @@
                                 <span class="badge" style="background: rgba(245, 158, 11, 0.25); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.6); font-weight: 800; font-size: 0.72rem; white-space: nowrap; animation: pulse 1.8s infinite;" title="{{ bekleyen_sayisi }} TV lisans onayı bekliyor">
                                     🔔 {{ bekleyen_sayisi }} Onay Bekliyor
                                 </span>
-                                <button type="button" class="btn btn-sm btn-warning" onclick="cihazYonetimModalAc({{ e.id }})" style="padding: 0.2rem 0.45rem; font-size: 0.72rem; width: 100%; max-width: 95px; text-align: center; font-weight: 700; box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);" title="Onay Bekleyen TV'yi Onaylamak İçin Tıklayın">
-                                    ⚡ Onayla
-                                </button>
+                                <div style="display: flex; gap: 0.25rem; justify-content: center;">
+                                    <button type="button" class="btn btn-sm btn-warning" onclick="cihazYonetimModalAc({{ e.id }})" style="padding: 0.2rem 0.45rem; font-size: 0.72rem; font-weight: 700; box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);" title="Onay Bekleyen TV'yi Onaylamak İçin Tıklayın">
+                                        ⚡ Onayla
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-secondary" onclick="tvOnizlemeAc('{{ base_url }}/kiosk?key={{ e.license_key }}', '{{ e.name }}')" style="padding: 0.2rem 0.45rem; font-size: 0.72rem;" title="TV Kiosk Ekranını Canlı Önizle">
+                                        🖥️ Önizle
+                                    </button>
+                                </div>
                             {% else %}
                                 <span class="badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35); font-weight: 700; font-size: 0.75rem; white-space: nowrap;">
                                     📺 {{ dev_sayisi }} / {{ e.max_devices or 1 }} TV
                                 </span>
-                                <button type="button" class="btn btn-sm btn-secondary" onclick="cihazYonetimModalAc({{ e.id }})" style="padding: 0.2rem 0.45rem; font-size: 0.72rem; width: 100%; max-width: 95px; text-align: center;" title="Bağlı Cihazları Yönet / Sıfırla">
-                                    ⚙️ Cihazlar
-                                </button>
+                                <div style="display: flex; gap: 0.25rem; justify-content: center;">
+                                    <button type="button" class="btn btn-sm btn-secondary" onclick="cihazYonetimModalAc({{ e.id }})" style="padding: 0.2rem 0.45rem; font-size: 0.72rem;" title="Bağlı Cihazları Yönet / Sıfırla">
+                                        ⚙️ Cihazlar
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-secondary" onclick="tvOnizlemeAc('{{ base_url }}/kiosk?key={{ e.license_key }}', '{{ e.name }}')" style="padding: 0.2rem 0.45rem; font-size: 0.72rem;" title="TV Kiosk Ekranını Canlı Önizle">
+                                        🖥️ Önizle
+                                    </button>
+                                </div>
                             {% endif %}
                         </div>
                     </td>
@@ -798,11 +808,6 @@
                     <!-- İşlemler -->
                     <td>
                         <div class="actions-cell">
-                            <!-- TV Canlı Önizleme Modalı -->
-                            <button class="btn btn-sm btn-secondary" onclick="tvOnizlemeAc('{{ base_url }}/kiosk?key={{ e.license_key }}', '{{ e.name }}')" title="TV Kiosk Ekranını Önizle">
-                                🖥️
-                            </button>
-
                             <!-- Hızlı Nöbet Testi (1 Saat) -->
                             <form method="POST" action="/admin/pharmacy/{{ e.id }}/toggle-duty-test" style="display:inline;">
                                 <button type="submit" class="btn btn-sm {% if e.duty_test_aktif_mi() %}btn-danger{% else %}btn-success{% endif %}" title="{% if e.duty_test_aktif_mi() %}1 Saatlik Test Nöbetini Kapat{% else %}1 Saatlik Hızlı Nöbet Testini Başlat{% endif %}">
@@ -1653,6 +1658,9 @@
                                 </div>
                                 <div class="device-card-actions">
                                     ${approveButtonHtml}
+                                    <button type="button" class="btn btn-sm btn-secondary" onclick="tvOnizlemeAc('/kiosk?key=${eczane.license_key}', '${escapeHtml(eczane.name)} - ${escapeHtml(d.device_name || 'TV')}')" style="padding: 0.32rem 0.65rem; font-size: 0.78rem; border-color: rgba(56, 189, 248, 0.4); color: #38bdf8;" title="Bu TV Ekranının Yayını Önizle">
+                                        🖥️ Önizle
+                                    </button>
                                     <button type="button" class="btn btn-sm btn-primary" onclick="cihazAyarlariniKaydet(${eczane.id}, ${d.id})" style="padding: 0.32rem 0.75rem; font-size: 0.78rem; font-weight: 600;" title="İsim, Tema ve TV Ölçeğini Kaydet">
                                         💾 Kaydet
                                     </button>

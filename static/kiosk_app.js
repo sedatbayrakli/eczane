@@ -836,11 +836,11 @@ function haritaPinleriniCiz(kendiEczane, nobetciler, seciliIndex = null, tumIsim
 
         const originMarker = L.marker([kendiEczane.latitude, kendiEczane.longitude], { icon: originIcon })
             .bindPopup(`<b>⭐ ${escapeHtml(kendiEczane.name)}</b><br><small>Buradasınız</small>`)
-            .bindTooltip(`⭐ ${escapeHtml(kendiEczane.name)} (Buradasınız)`, {
+            .bindTooltip(`⭐ ${escapeHtml(kendiEczane.name)}`, {
                 permanent: true,
                 direction: 'top',
                 className: 'kiosk-map-tooltip origin-tooltip',
-                offset: [0, -16]
+                offset: [0, -18]
             });
         mapMarkersGroup.addLayer(originMarker);
         koordinatNoktalari.push([kendiEczane.latitude, kendiEczane.longitude]);
@@ -857,10 +857,11 @@ function haritaPinleriniCiz(kendiEczane, nobetciler, seciliIndex = null, tumIsim
                 const isSelected = (seciliIndex !== null && idx === seciliIndex);
                 const isTarget = isSelected || (seciliIndex === null && idx === 0);
 
+                // Pin ortasında net okunaklı nöbetçi sıra numarası (1, 2, 3, 4...)
                 const dutyIcon = L.divIcon({
                     className: 'custom-leaflet-marker',
                     html: `<div class="pulse-ring-pin ${isTarget ? 'active-focused-pin' : ''}" title="${escapeHtml(e.isim)}">
-                             ${isTarget ? '<span class="pin-selected-star">📍</span>' : ''}
+                             <span>${idx + 1}</span>
                            </div>`,
                     iconSize: isTarget ? [36, 36] : [28, 28],
                     iconAnchor: isTarget ? [18, 18] : [14, 14]
@@ -879,11 +880,15 @@ function haritaPinleriniCiz(kendiEczane, nobetciler, seciliIndex = null, tumIsim
                 // 1. Versiyon Izgara ve İkili Kartta tüm nöbetçi isimlerini haritada kalıcı göster
                 if (hepsiGosterilsin || isTarget) {
                     const tooltipClass = isTarget ? 'kiosk-map-tooltip target-tooltip' : 'kiosk-map-tooltip duty-tooltip';
-                    marker.bindTooltip(`📍 ${escapeHtml(e.isim)}`, {
+                    // Üst üste binmeleri önlemek için ardışık pinlerin etiketleri alt-üst zikzak açılır
+                    const tooltipDirection = (idx % 2 === 0) ? 'bottom' : 'top';
+                    const tooltipOffset = (idx % 2 === 0) ? [0, 18] : [0, -18];
+
+                    marker.bindTooltip(`${idx + 1}. ${escapeHtml(e.isim)}`, {
                         permanent: true,
-                        direction: 'bottom',
+                        direction: tooltipDirection,
                         className: tooltipClass,
-                        offset: [0, 16]
+                        offset: tooltipOffset
                     });
                 }
 
@@ -1693,7 +1698,7 @@ function arayuzuGuncelle(veri, isOffline = false, savedTime = '') {
             if (noktalar && noktalar.length > 0 && kioskMap) {
                 setTimeout(() => {
                     kioskMap.invalidateSize();
-                    kioskMap.fitBounds(noktalar, { padding: [35, 35], maxZoom: 15 });
+                    kioskMap.fitBounds(noktalar, { padding: [45, 45], maxZoom: 15 });
                 }, 100);
             }
         }
