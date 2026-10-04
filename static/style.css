@@ -2276,42 +2276,13 @@ body.scale-4k {
     transition: all 0.25s ease;
 }
 
-/* En Yakın Eczane Vurgusu */
-.list-pharmacy-row-card.is-closest-card {
-    background: linear-gradient(90deg, rgba(245, 158, 11, 0.12), rgba(15, 23, 42, 0.88) 35%);
-    border-color: rgba(245, 158, 11, 0.5);
-    box-shadow: 0 8px 24px rgba(245, 158, 11, 0.15);
-}
-
-/* Sol Bilgi Grubu (Sıra No + İsim + Adres) */
+/* Sol Bilgi Grubu (İsim + Mesafe + Nöbet Saati + Adres + Alt Satırda Tarif) */
 .list-card-main-info {
     display: flex;
     align-items: center;
-    gap: 1.15rem;
+    gap: 1rem;
     flex: 1;
     min-width: 0;
-}
-
-/* Sıra Numarası Rozeti (1, 2, 3...) */
-.list-card-number-badge {
-    width: 44px;
-    height: 44px;
-    min-width: 44px;
-    border-radius: 12px;
-    background: linear-gradient(135deg, #e11d48, #be123c);
-    color: #ffffff;
-    font-size: 1.45rem;
-    font-weight: 900;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 0 14px rgba(225, 29, 72, 0.5);
-    font-family: var(--font-mono);
-}
-
-.list-pharmacy-row-card.is-closest-card .list-card-number-badge {
-    background: linear-gradient(135deg, #f59e0b, #d97706);
-    box-shadow: 0 0 16px rgba(245, 158, 11, 0.6);
 }
 
 .list-card-name-group {
@@ -2319,6 +2290,7 @@ body.scale-4k {
     flex-direction: column;
     gap: 0.25rem;
     min-width: 0;
+    width: 100%;
 }
 
 .list-card-title-row {
@@ -2329,25 +2301,13 @@ body.scale-4k {
 }
 
 .list-card-pharmacy-name {
-    font-size: 1.55rem;
+    font-size: 1.6rem;
     font-weight: 900;
     color: #ffffff;
     letter-spacing: 0.02em;
     margin: 0;
     text-transform: uppercase;
     text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
-    white-space: nowrap;
-}
-
-.list-badge-closest {
-    background: rgba(245, 158, 11, 0.22);
-    color: #fbbf24;
-    border: 1px solid rgba(245, 158, 11, 0.55);
-    font-size: 0.78rem;
-    font-weight: 800;
-    padding: 0.2rem 0.65rem;
-    border-radius: 6px;
-    letter-spacing: 0.04em;
     white-space: nowrap;
 }
 
@@ -2363,6 +2323,19 @@ body.scale-4k {
     white-space: nowrap;
 }
 
+.list-badge-hours {
+    background: rgba(16, 185, 129, 0.18);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.45);
+    font-size: 0.88rem;
+    font-weight: 800;
+    padding: 0.2rem 0.75rem;
+    border-radius: 6px;
+    font-family: var(--font-mono);
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+}
+
 .list-card-address-row {
     display: flex;
     align-items: center;
@@ -2375,15 +2348,25 @@ body.scale-4k {
     white-space: nowrap;
 }
 
+.list-card-landmark-row {
+    display: flex;
+    align-items: center;
+    margin-top: 0.15rem;
+}
+
 .list-card-landmark {
     color: #fde047;
     font-weight: 700;
+    font-size: 0.98rem;
     background: rgba(253, 224, 71, 0.12);
-    padding: 0.1rem 0.5rem;
-    border-radius: 4px;
+    border: 1px solid rgba(253, 224, 71, 0.28);
+    padding: 0.2rem 0.65rem;
+    border-radius: 6px;
+    line-height: 1.35;
+    display: inline-block;
 }
 
-/* Sağ Bilgi Grubu (Telefon + Nöbetçi Durumu + QR) */
+/* Sağ Bilgi Grubu (Telefon + QR) */
 .list-card-meta-group {
     display: flex;
     align-items: center;
@@ -2395,7 +2378,7 @@ body.scale-4k {
     background: rgba(16, 185, 129, 0.16);
     border: 1px solid rgba(16, 185, 129, 0.45);
     color: #34d399;
-    font-size: 1.2rem;
+    font-size: 1.25rem;
     font-weight: 800;
     padding: 0.45rem 1.0rem;
     border-radius: 10px;
@@ -2405,30 +2388,6 @@ body.scale-4k {
     font-family: var(--font-mono);
     letter-spacing: 0.03em;
     white-space: nowrap;
-}
-
-.list-card-duty-pill {
-    background: rgba(225, 29, 72, 0.18);
-    border: 1px solid rgba(225, 29, 72, 0.45);
-    color: #fb7185;
-    font-size: 0.88rem;
-    font-weight: 800;
-    padding: 0.45rem 0.85rem;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    gap: 0.45rem;
-    letter-spacing: 0.05em;
-    white-space: nowrap;
-}
-
-.duty-pill-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #e11d48;
-    box-shadow: 0 0 8px #e11d48;
-    animation: pulse 1.8s infinite;
 }
 
 /* Mini Navigasyon QR Kutusu */

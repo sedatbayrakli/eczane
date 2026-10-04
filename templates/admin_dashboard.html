@@ -1332,8 +1332,8 @@
     </div>
 
     <!-- 6. MODAL: KİOSK EKRAN TEMASI PARAMETRİK AYARLARI -->
-    <div id="modal-theme-settings" class="modal-overlay">
-        <div class="modal-box" style="max-width: 640px;">
+    <div id="modal-theme-settings" class="modal-overlay" style="z-index: 10005;">
+        <div class="modal-box" style="max-width: 920px; width: 95vw; max-height: 90vh;">
             <div class="modal-header">
                 <div>
                     <h3 id="theme-modal-title">🎨 Kiosk Ekran Teması & Parametreleri</h3>
@@ -1342,19 +1342,19 @@
                 <button class="modal-close" onclick="modalKapat('modal-theme-settings')">&times;</button>
             </div>
             <form id="form-theme-settings" onsubmit="temaAyarlariniKaydetAjax(event)" class="modal-form-flex">
-                <div class="modal-body">
+                <div class="modal-body" style="padding: 1.25rem 1.6rem; overflow-y: auto;">
                     <input type="hidden" id="theme-pharmacy-id" value="">
                     <input type="hidden" id="theme-device-id" value="">
 
-                    <!-- 1. Temel Tema Seçimi -->
-                    <div class="form-section-card">
+                    <!-- 1. Üst Bölüm: Temel Tema Seçimi (Tam Genişlik) -->
+                    <div class="form-section-card" style="margin-bottom: 1rem; border-color: rgba(56, 189, 248, 0.35); background: rgba(56, 189, 248, 0.04);">
                         <div class="form-section-title">
                             <span>📺 Aktif Ekran Teması</span>
                         </div>
                         <div class="form-group" style="margin-bottom: 0;">
-                            <select id="ts-theme-select" class="form-control" style="font-weight: 600;">
-                                <option value="classic_grid">1. Versiyon: Klasik 4'lü Izgara & Harita (Sayfalamalı)</option>
-                                <option value="list_view">2. Versiyon: Liste Görünümü (Haritasız Tam Liste)</option>
+                            <select id="ts-theme-select" class="form-control" style="font-weight: 700; font-size: 0.95rem; height: 42px; border-color: rgba(56, 189, 248, 0.45); background: rgba(15, 23, 42, 0.9);">
+                                <option value="classic_grid">1. Versiyon: Klasik 4'lü Izgara & Harita (4'ten Fazlaysa Sayfalamalı)</option>
+                                <option value="list_view">2. Versiyon: Liste Görünümü (Haritasız Tam Ekran Liste)</option>
                                 <option value="focus_carousel">3. Versiyon: Vitrin Carousel & Dev Odak Kartı</option>
                                 <option value="dual_card">4. Versiyon: İkili Dev Kart & Harita (2 Eczane)</option>
                                 <option value="auto_rotate">5. Versiyon: Karma Mod (Zaman Ayarlı Otomatik Dönüşüm)</option>
@@ -1362,109 +1362,114 @@
                         </div>
                     </div>
 
-                    <!-- 2. Geçiş & Zamanlama Parametreleri -->
-                    <div class="form-section-card">
-                        <div class="form-section-title">
-                            <span>⏱️ Zamanlama ve Geçiş Süreleri</span>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group" style="margin-bottom: 0;">
-                                <label>Slayt / Karusel Geçişi</label>
-                                <select id="ts-carousel-interval" class="form-control">
-                                    <option value="5">5 Saniye (Çok Hızlı)</option>
-                                    <option value="8">8 Saniye (Hızlı)</option>
-                                    <option value="10" selected>10 Saniye (Standart Önerilen)</option>
-                                    <option value="15">15 Saniye (Geniş Okuma)</option>
-                                    <option value="20">20 Saniye (Yavaş)</option>
-                                    <option value="30">30 Saniye (Sabit Odak)</option>
-                                </select>
-                                <small>Nöbetçi kartının ekranda kalma süresi.</small>
+                    <!-- 2 Sütunlu Grid Düzeni: Sol (Zamanlama & Harita) + Sağ (Bileşenler & Kontroller) -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: start;">
+                        <!-- SOL SÜTUN -->
+                        <div style="display: flex; flex-direction: column; gap: 1rem;">
+                            <!-- 2. Geçiş & Zamanlama Parametreleri -->
+                            <div class="form-section-card" style="margin-bottom: 0;">
+                                <div class="form-section-title">
+                                    <span>⏱️ Zamanlama ve Geçiş Süreleri</span>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label>Slayt / Karusel Geçişi</label>
+                                        <select id="ts-carousel-interval" class="form-control">
+                                            <option value="5">5 Saniye (Çok Hızlı)</option>
+                                            <option value="8">8 Saniye (Hızlı)</option>
+                                            <option value="10" selected>10 Saniye (Standart)</option>
+                                            <option value="15">15 Saniye (Geniş Okuma)</option>
+                                            <option value="20">20 Saniye (Yavaş)</option>
+                                            <option value="30">30 Saniye (Sabit Odak)</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label>Karma Mod Sıklığı</label>
+                                        <select id="ts-autorotate-interval" class="form-control">
+                                            <option value="15">15 Dakikada Bir</option>
+                                            <option value="30">30 Dakikada Bir</option>
+                                            <option value="60" selected>Her 1 Saatte Bir</option>
+                                            <option value="120">Her 2 Saatte Bir</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-group" style="margin-top: 0.75rem; margin-bottom: 0;">
+                                    <label>📢 Kayan Yazı (Ticker) Hızı</label>
+                                    <select id="ts-ticker-speed" class="form-control">
+                                        <option value="40">40 px/sn — Çok Yavaş</option>
+                                        <option value="55" selected>55 px/sn — İdeal & Akıcı</option>
+                                        <option value="70">70 px/sn — Standart Hız</option>
+                                        <option value="90">90 px/sn — Hızlı</option>
+                                    </select>
+                                    <small style="color: #94a3b8; font-size: 0.73rem; margin-top: 0.2rem; display: block;">Yaşlı ve uzaktaki vatandaşların rahatça okuyabilmesi için ideal hız 50-60 px/sn'dir.</small>
+                                </div>
                             </div>
-                            <div class="form-group" style="margin-bottom: 0;">
-                                <label>Karma Mod Dönüşüm Sıklığı</label>
-                                <select id="ts-autorotate-interval" class="form-control">
-                                    <option value="15">15 Dakikada Bir</option>
-                                    <option value="30">30 Dakikada Bir</option>
-                                    <option value="60" selected>Her 1 Saatte Bir (Önerilen)</option>
-                                    <option value="120">Her 2 Saatte Bir</option>
-                                </select>
-                                <small>Temaların otomatik yer değiştirme periyodu.</small>
-                            </div>
-                        </div>
-                        <div class="form-row" style="margin-top: 0.75rem;">
-                            <div class="form-group" style="margin-bottom: 0; width: 100%;">
-                                <label>📢 Kayan Yazı / Ticker Hızı (Akan Duyuru Bandı)</label>
-                                <select id="ts-ticker-speed" class="form-control">
-                                    <option value="40">40 px/sn — Çok Yavaş (Özel Okuma)</option>
-                                    <option value="55" selected>55 px/sn — İdeal & Akıcı (Yaşlı Vatandaşlar İçin Önerilen)</option>
-                                    <option value="70">70 px/sn — Standart Hız</option>
-                                    <option value="90">90 px/sn — Hızlı</option>
-                                </select>
-                                <small>Yaşlı ve uzaktaki vatandaşların rahatça okuyabilmesi için ideal hız 50-60 piksel/saniyedir.</small>
-                            </div>
-                        </div>
-                    </div>
 
-                    <!-- 3. Harita & Görünüm Parametreleri -->
-                    <div class="form-section-card">
-                        <div class="form-section-title">
-                            <span>🗺️ Harita ve Ölçek Ayarları</span>
+                            <!-- 3. Harita & Canlı Rota Parametreleri -->
+                            <div class="form-section-card" style="margin-bottom: 0;">
+                                <div class="form-section-title">
+                                    <span>🗺️ Harita ve Ölçek Ayarları</span>
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0.65rem;">
+                                    <label>Harita Başlangıç Yakınlaştırma (Zoom)</label>
+                                    <select id="ts-map-zoom" class="form-control">
+                                        <option value="13">13 - Geniş İlçe Çerçevesi</option>
+                                        <option value="14" selected>14 - Standart İlçe Görünümü</option>
+                                        <option value="15">15 - Yakın Mahalle Odaklı</option>
+                                        <option value="16">16 - Detaylı Cadde / Sokak Odaklı</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0; background: rgba(0,0,0,0.25); padding: 0.5rem 0.65rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
+                                    <label style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.84rem; color: #e2e8f0; cursor: pointer; margin-bottom: 0;">
+                                        <input type="checkbox" id="ts-show-route" checked style="width: 18px; height: 18px; accent-color: #38bdf8;">
+                                        <span><strong>Haritada Canlı Yürüyüş Rotası Çiz (OSRM)</strong></span>
+                                    </label>
+                                    <small style="color: #94a3b8; font-size: 0.72rem; margin-left: 1.8rem; display: block;">Vitrin Carousel modunda nöbetçi eczaneye giden sokak/cadde navigasyon rotasını çizer.</small>
+                                </div>
+                            </div>
                         </div>
-                        <div class="form-group" style="margin-bottom: 0;">
-                            <label>Harita Başlangıç Yakınlaştırma (Zoom)</label>
-                            <select id="ts-map-zoom" class="form-control">
-                                <option value="13">13 - Geniş İlçe Çerçevesi</option>
-                                <option value="14" selected>14 - Standart İlçe Görünümü</option>
-                                <option value="15">15 - Yakın Mahalle Odaklı</option>
-                                <option value="16">16 - Detaylı Cadde / Sokak Odaklı</option>
-                            </select>
-                        </div>
-                        <div class="form-group" style="margin-top: 0.75rem; margin-bottom: 0;">
-                            <label style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.84rem; color: #e2e8f0; cursor: pointer;">
-                                <input type="checkbox" id="ts-show-route" checked style="width: 18px; height: 18px; accent-color: #38bdf8;">
-                                <span>Haritada Canlı Yürüyüş Rotası Çiz (OSRM Yol Tarifi)</span>
-                            </label>
-                            <small>Vitrin Carousel modunda nöbetçi eczaneye giden sokak/cadde navigasyon rotasını çizer.</small>
-                        </div>
-                    </div>
 
-                    <!-- 4. İçerik ve Bileşen Görünürlük Ayarları -->
-                    <div class="form-section-card" style="margin-bottom: 0;">
-                        <div class="form-section-title">
-                            <span>👁️ Ekran Bileşenleri ve İçerik Kontrolleri</span>
-                        </div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem;">
-                            <label style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.84rem; color: #e2e8f0; cursor: pointer;">
-                                <input type="checkbox" id="ts-show-countdown" checked style="width: 18px; height: 18px; accent-color: #38bdf8;">
-                                <span>Nöbet Bitimi Canlı Sayacı</span>
-                            </label>
-                            <label style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.84rem; color: #e2e8f0; cursor: pointer;">
-                                <input type="checkbox" id="ts-show-qr" checked style="width: 18px; height: 18px; accent-color: #38bdf8;">
-                                <span>Navigasyon QR Kodu</span>
-                            </label>
-                            <label style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.84rem; color: #e2e8f0; cursor: pointer;">
-                                <input type="checkbox" id="ts-show-travel-times" checked style="width: 18px; height: 18px; accent-color: #38bdf8;">
-                                <span>Araba & Yürüme Süreleri</span>
-                            </label>
-                            <label style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.84rem; color: #e2e8f0; cursor: pointer;">
-                                <input type="checkbox" id="ts-show-district-counter" checked style="width: 18px; height: 18px; accent-color: #38bdf8;">
-                                <span>İlçe Nöbetçi Sayacı</span>
-                            </label>
-                            <label style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.84rem; color: #e2e8f0; cursor: pointer;">
-                                <input type="checkbox" id="ts-show-landmark" checked style="width: 18px; height: 18px; accent-color: #38bdf8;">
-                                <span>Önemli Nokta / Muhtarlık Bandı</span>
-                            </label>
-                            <label style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.84rem; color: #38bdf8; cursor: pointer; grid-column: span 2; background: rgba(56, 189, 248, 0.08); padding: 0.45rem 0.65rem; border-radius: 6px; border: 1px solid rgba(56, 189, 248, 0.25);">
-                                <input type="checkbox" id="ts-anti-burn-in" checked style="width: 18px; height: 18px; accent-color: #38bdf8;">
-                                <span>🛡️ <strong>Pikselleri Koruma Modu (Anti-Burn-In):</strong> TV ve OLED ekranlarda yanık izini önlemek için mikro seviyede (1-2px) periyodik piksel kaydırma yapar.</span>
-                            </label>
+                        <!-- SAĞ SÜTUN -->
+                        <div style="display: flex; flex-direction: column; gap: 1rem;">
+                            <!-- 4. İçerik ve Bileşen Görünürlük Ayarları -->
+                            <div class="form-section-card" style="margin-bottom: 0; height: 100%;">
+                                <div class="form-section-title">
+                                    <span>👁️ Ekran Bileşenleri ve İçerik Kontrolleri</span>
+                                </div>
+                                <div style="display: flex; flex-direction: column; gap: 0.65rem;">
+                                    <label style="display: flex; align-items: center; gap: 0.65rem; font-size: 0.84rem; color: #e2e8f0; cursor: pointer; background: rgba(0,0,0,0.25); padding: 0.5rem 0.7rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
+                                        <input type="checkbox" id="ts-show-countdown" checked style="width: 18px; height: 18px; accent-color: #38bdf8;">
+                                        <span>⏳ <strong>Nöbet Bitimi Canlı Sayacı</strong></span>
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 0.65rem; font-size: 0.84rem; color: #e2e8f0; cursor: pointer; background: rgba(0,0,0,0.25); padding: 0.5rem 0.7rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
+                                        <input type="checkbox" id="ts-show-qr" checked style="width: 18px; height: 18px; accent-color: #38bdf8;">
+                                        <span>📱 <strong>Navigasyon QR Kodu</strong> (Cep Telefonu İçin)</span>
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 0.65rem; font-size: 0.84rem; color: #e2e8f0; cursor: pointer; background: rgba(0,0,0,0.25); padding: 0.5rem 0.7rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
+                                        <input type="checkbox" id="ts-show-travel-times" checked style="width: 18px; height: 18px; accent-color: #38bdf8;">
+                                        <span>🚗 <strong>Araba & Yürüme Süreleri</strong></span>
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 0.65rem; font-size: 0.84rem; color: #e2e8f0; cursor: pointer; background: rgba(0,0,0,0.25); padding: 0.5rem 0.7rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
+                                        <input type="checkbox" id="ts-show-district-counter" checked style="width: 18px; height: 18px; accent-color: #38bdf8;">
+                                        <span>📊 <strong>İlçe Nöbetçi Sayacı</strong></span>
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 0.65rem; font-size: 0.84rem; color: #e2e8f0; cursor: pointer; background: rgba(0,0,0,0.25); padding: 0.5rem 0.7rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
+                                        <input type="checkbox" id="ts-show-landmark" checked style="width: 18px; height: 18px; accent-color: #38bdf8;">
+                                        <span>🏛️ <strong>Önemli Nokta / Yol Tarifi Bandı</strong></span>
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 0.65rem; font-size: 0.82rem; color: #38bdf8; cursor: pointer; background: rgba(56, 189, 248, 0.08); padding: 0.55rem 0.7rem; border-radius: 8px; border: 1px solid rgba(56, 189, 248, 0.25); margin-top: 0.2rem;">
+                                        <input type="checkbox" id="ts-anti-burn-in" checked style="width: 18px; height: 18px; accent-color: #38bdf8;">
+                                        <span>🛡️ <strong>Pikselleri Koruma Modu (Anti-Burn-In):</strong> TV/OLED ekranlarda yanık izini önlemek için periyodik mikro piksel kaydırma yapar.</span>
+                                    </label>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="modal-footer">
+                <div class="modal-footer" style="padding: 1rem 1.6rem; border-top: 1px solid rgba(255,255,255,0.1); background: #111827;">
                     <button type="button" class="btn btn-secondary" onclick="modalKapat('modal-theme-settings')">İptal</button>
-                    <button type="submit" id="btn-save-theme-settings" class="btn btn-primary" style="display: flex; align-items: center; gap: 0.4rem;">
+                    <button type="submit" id="btn-save-theme-settings" class="btn btn-primary" style="display: flex; align-items: center; gap: 0.45rem; font-weight: 700; padding: 0.55rem 1.35rem;">
                         <span>💾 Tema Ayarlarını Kaydet</span>
                     </button>
                 </div>

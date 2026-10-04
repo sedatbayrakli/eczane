@@ -1614,12 +1614,13 @@ function manuelClassicSayfayaGit(index) {
  * Tema 2: Liste Görünümü (Haritasız, Tek Satırlık Şerit Kartlar & Sayfalama)
  */
 function listeEczaneKartiHtmlUret(e, globalIdx) {
-    const isEnYakin = (globalIdx === 0);
     const mesafeMetin = formatMesafeMetin(e.mesafe_metin || '');
     const telefon = e.telefon ? escapeHtml(e.telefon) : '';
-    const siraNo = globalIdx + 1;
     const adres = escapeHtml(e.adres || '');
     const yolTarifi = e.yol_tarifi ? escapeHtml(e.yol_tarifi) : '';
+
+    const nobetZaman = nobetZamaniniHesapla();
+    const nobetSaatAraligi = e.nobet_saatleri || (nobetZaman ? nobetZaman.baslangicBitis : 'Sabaha Kadar');
 
     // Harita QR Kodu
     let qrHtml = '';
@@ -1634,24 +1635,32 @@ function listeEczaneKartiHtmlUret(e, globalIdx) {
     }
 
     return `
-        <div class="list-pharmacy-row-card ${isEnYakin ? 'is-closest-card' : ''}">
-            <!-- Sol: Sıra No ve İsim Grubu -->
+        <div class="list-pharmacy-row-card">
+            <!-- Sol: Eczane Bilgileri (İsim, Mesafe, Saat, Adres, Alt Satırda Tarif) -->
             <div class="list-card-main-info">
-                <div class="list-card-number-badge">${siraNo}</div>
                 <div class="list-card-name-group">
+                    <!-- 1. Satır: İsim + Mesafe Rozeti + Nöbet Saati Rozeti -->
                     <div class="list-card-title-row">
                         <h2 class="list-card-pharmacy-name">${escapeHtml(e.isim)}</h2>
-                        ${isEnYakin ? '<span class="list-badge-closest">⭐ EN YAKIN</span>' : ''}
                         ${mesafeMetin ? `<span class="list-badge-distance">🚶 ${escapeHtml(mesafeMetin)}</span>` : ''}
+                        <span class="list-badge-hours">⏰ ${escapeHtml(nobetSaatAraligi)}</span>
                     </div>
+
+                    <!-- 2. Satır: Açık Adres -->
                     <div class="list-card-address-row">
                         <span class="list-card-address">📍 ${adres}</span>
-                        ${yolTarifi ? `<span class="list-card-landmark">(${yolTarifi})</span>` : ''}
                     </div>
+
+                    <!-- 3. Satır: Eczane Yol Tarifi (Uzun tariflerin sıkışmaması için alt satırda) -->
+                    ${yolTarifi ? `
+                        <div class="list-card-landmark-row">
+                            <span class="list-card-landmark">🧭 ${yolTarifi}</span>
+                        </div>
+                    ` : ''}
                 </div>
             </div>
 
-            <!-- Sağ: İletişim, Nöbet Saati ve QR -->
+            <!-- Sağ: İletişim Telefonu ve QR Kod -->
             <div class="list-card-meta-group">
                 ${telefon ? `
                     <div class="list-card-phone-pill">
@@ -1659,10 +1668,6 @@ function listeEczaneKartiHtmlUret(e, globalIdx) {
                         <span class="list-phone-number">${telefon}</span>
                     </div>
                 ` : ''}
-                <div class="list-card-duty-pill">
-                    <span class="duty-pill-dot"></span>
-                    <span>NÖBETÇİ</span>
-                </div>
                 ${qrHtml}
             </div>
         </div>
@@ -1675,7 +1680,7 @@ function listSayfaGoster() {
     if (routeLineGroup) routeLineGroup.clearLayers();
 
     const toplamEczane = guncelEczaneler.length;
-    const LISTE_SAYFA_BOYUTU = 5;
+    const LISTE_SAYFA_BOYUTU = 4;
     const toplamListSayfa = Math.ceil(toplamEczane / LISTE_SAYFA_BOYUTU);
     if (listSayfaIndex >= toplamListSayfa) {
         listSayfaIndex = 0;
@@ -1695,7 +1700,7 @@ function listSayfaGoster() {
         `).join('');
 
         paginationHtml = `
-            <div class="dual-pagination-bar" style="margin-top: 0.5rem; justify-content: center;">
+            <div class="dual-pagination-bar" style="margin-top: 0.4rem; justify-content: center;">
                 <span class="dual-page-badge">📄 Nöbetçiler: Sayfa ${listSayfaIndex + 1} / ${toplamListSayfa} (${baslangic + 1}-${Math.min(baslangic + LISTE_SAYFA_BOYUTU, toplamEczane)} / Toplam ${toplamEczane})</span>
                 <div class="dual-pills-row">${pills}</div>
             </div>
@@ -1723,7 +1728,7 @@ function manuelListSayfayaGit(index) {
     listSayfaIndex = index;
     listSayfaGoster();
 
-    const toplamListSayfa = Math.ceil(guncelEczaneler.length / 5);
+    const toplamListSayfa = Math.ceil(guncelEczaneler.length / 4);
     if (toplamListSayfa > 1) {
         if (slaytTimer) clearInterval(slaytTimer);
         slaytTimer = setInterval(() => {
