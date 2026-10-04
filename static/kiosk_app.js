@@ -1469,10 +1469,18 @@ function dualSayfaGoster() {
         `;
     }
 
+    let cardsHtml = buSayfaEczaneler.map((e, idx) => ikiliEczaneKartiHtmlUret(e, baslangic + idx)).join('');
+    // Son sayfada tek kart kaldığında (örn. 7 nöbetçinin son sayfası) kartın tüm ekrana büyümemesi ve 2'li mimarinin korunması için boş 2. kare
+    if (buSayfaEczaneler.length < 2) {
+        cardsHtml += `
+            <div class="dual-pharmacy-card dual-card-placeholder" style="visibility: hidden; opacity: 0; pointer-events: none; border: none; background: transparent; box-shadow: none;"></div>
+        `;
+    }
+
     elPharmacyGrid.className = 'pharmacy-grid-container';
     elPharmacyGrid.innerHTML = `
         <div class="dual-pharmacy-cards-container">
-            ${buSayfaEczaneler.map((e, idx) => ikiliEczaneKartiHtmlUret(e, baslangic + idx)).join('')}
+            ${cardsHtml}
             ${paginationHtml}
         </div>
     `;
@@ -1546,8 +1554,6 @@ function classicSayfaGoster() {
     }
 
     elPharmacyGrid.className = 'pharmacy-grid-container';
-    if (buSayfaEczaneler.length === 1) elPharmacyGrid.classList.add('grid-count-1');
-    else if (buSayfaEczaneler.length === 3) elPharmacyGrid.classList.add('grid-count-3');
 
     let paginationHtml = '';
     if (toplamClassicSayfa > 1) {
@@ -1563,7 +1569,17 @@ function classicSayfaGoster() {
         `;
     }
 
-    elPharmacyGrid.innerHTML = buSayfaEczaneler.map((e, idx) => eczaneKartiHtmlUret(e, baslangic + idx)).join('') + paginationHtml;
+    let cardsHtml = buSayfaEczaneler.map((e, idx) => eczaneKartiHtmlUret(e, baslangic + idx)).join('');
+    // 4'ten az kart olduğunda (örneğin 7 nöbetçinin 2. sayfasında 3 kart varken) 3'e bölünüp ölçek bozulmasın,
+    // 4'lü ızgara mimarisi sabit kalsın, son kareler boş olsun:
+    const eksikKart = 4 - buSayfaEczaneler.length;
+    for (let k = 0; k < eksikKart; k++) {
+        cardsHtml += `
+            <div class="pharmacy-card classic-card-placeholder" style="visibility: hidden; opacity: 0; pointer-events: none; border: none; background: transparent; box-shadow: none;"></div>
+        `;
+    }
+
+    elPharmacyGrid.innerHTML = cardsHtml + paginationHtml;
 
     // Harita: Lisanslı eczanemiz + ekranda o an gösterilen bu 4 eczane
     const noktalar = haritaPinleriniCiz(guncelKendiEczane, buSayfaEczaneler, null, true);

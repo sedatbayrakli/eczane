@@ -297,13 +297,20 @@ body,
     width: 100%;
 }
 
-.pharmacy-grid-container.grid-count-3 {
-    grid-template-columns: repeat(3, 1fr);
+/* 4'lü Izgara Ekranında Her Zaman 2x2 Mimarisi Korunur, 3 Eczane Varsa 4. Kare Boş Kalır */
+.layout-classic_grid .pharmacy-grid-container {
+    grid-template-columns: repeat(2, 1fr) !important;
 }
 
-.pharmacy-grid-container.grid-count-5,
-.pharmacy-grid-container.grid-count-6 {
-    grid-template-columns: repeat(3, 1fr);
+/* Eksik Kartlar İçin Görünmez Yer Tutucu (Ölçek ve Mimarinin Korunması İçin) */
+.classic-card-placeholder,
+.dual-card-placeholder {
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
 }
 
 /* Tekil Eczane Kartı */
