@@ -937,8 +937,8 @@ body.kiosk-mode {
 .dual-pharmacy-cards-container {
     display: flex;
     flex-direction: column;
-    gap: 0.9rem;
-    height: 100%;
+    gap: 0.45rem;
+    flex: 1;
     min-height: 0;
     overflow: hidden;
 }
@@ -947,17 +947,16 @@ body.kiosk-mode {
     background: var(--bg-card);
     border: 2px solid var(--bg-card-border);
     border-radius: var(--radius-lg);
-    padding: clamp(0.85rem, 1.4vh, 1.3rem) clamp(1.1rem, 1.6vw, 1.6rem);
+    padding: clamp(0.45rem, 0.8vh, 0.75rem) clamp(0.8rem, 1.2vw, 1.2rem);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    flex: 1;
+    flex: 1 1 0;
     min-height: 0;
-    max-height: 100%;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
     position: relative;
     overflow: hidden;
-    gap: 1.2rem;
+    gap: 0.8rem;
 }
 
 .dual-pharmacy-card::before {
@@ -977,19 +976,19 @@ body.kiosk-mode {
     justify-content: space-between;
     height: 100%;
     min-width: 0;
-    gap: 0.35rem;
+    gap: 0.2rem;
 }
 
 .dual-card-top-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 0.6rem;
+    gap: 0.5rem;
     flex-wrap: wrap;
 }
 
 .dual-pharmacy-title {
-    font-size: clamp(1.35rem, 1.8vw, 1.75rem);
+    font-size: clamp(1.15rem, 1.5vw, 1.45rem);
     font-weight: 900;
     color: var(--text-pure);
     letter-spacing: -0.01em;
@@ -1003,12 +1002,12 @@ body.kiosk-mode {
 .dual-card-address-block {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: 0.15rem;
 }
 
 .dual-card-address-text {
-    font-size: clamp(0.88rem, 1.05vw, 1.02rem);
-    line-height: 1.35;
+    font-size: clamp(0.78rem, 0.9vw, 0.88rem);
+    line-height: 1.25;
     color: var(--text-primary);
     font-weight: 500;
     display: -webkit-box;
@@ -1020,11 +1019,11 @@ body.kiosk-mode {
 .dual-card-phone-row {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
+    gap: 0.5rem;
 }
 
 .dual-phone-number {
-    font-size: clamp(1.05rem, 1.35vw, 1.35rem);
+    font-size: clamp(0.95rem, 1.2vw, 1.2rem);
     font-weight: 800;
     color: #38bdf8;
     font-family: var(--font-mono);
@@ -2323,9 +2322,11 @@ body.scale-4k {
 .list-pharmacy-rows-wrapper {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 0.4rem;
     width: 100%;
     flex: 1;
+    min-height: 0;
+    overflow: hidden;
 }
 
 /* Tek Satırlık Yatay Nöbetçi Şerit Kartı */
@@ -2333,24 +2334,25 @@ body.scale-4k {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 1.2rem;
+    gap: 0.75rem;
     background: rgba(15, 23, 42, 0.82);
     border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 14px;
-    padding: 0.85rem 1.4rem;
+    border-radius: 12px;
+    padding: clamp(0.3rem, 0.6vh, 0.5rem) clamp(0.75rem, 1.2vw, 1.1rem);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
-    min-height: 82px;
-    flex: 1;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.35);
+    min-height: 0;
+    flex: 1 1 0;
     transition: all 0.25s ease;
+    overflow: hidden;
 }
 
 /* Sol Bilgi Grubu (İsim + Mesafe + Nöbet Saati + Adres + Alt Satırda Tarif) */
 .list-card-main-info {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 0.75rem;
     flex: 1;
     min-width: 0;
 }
@@ -2358,7 +2360,7 @@ body.scale-4k {
 .list-card-name-group {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: 0.15rem;
     min-width: 0;
     width: 100%;
 }
@@ -2366,12 +2368,12 @@ body.scale-4k {
 .list-card-title-row {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.5rem;
     flex-wrap: wrap;
 }
 
 .list-card-pharmacy-name {
-    font-size: 1.6rem;
+    font-size: clamp(1.1rem, 1.4vw, 1.35rem);
     font-weight: 900;
     color: #ffffff;
     letter-spacing: 0.02em;
@@ -2385,9 +2387,9 @@ body.scale-4k {
     background: rgba(56, 189, 248, 0.2);
     color: #38bdf8;
     border: 1px solid rgba(56, 189, 248, 0.45);
-    font-size: 0.88rem;
+    font-size: 0.8rem;
     font-weight: 800;
-    padding: 0.2rem 0.7rem;
+    padding: 0.15rem 0.55rem;
     border-radius: 6px;
     font-family: var(--font-mono);
     white-space: nowrap;
@@ -2397,9 +2399,9 @@ body.scale-4k {
     background: rgba(16, 185, 129, 0.18);
     color: #34d399;
     border: 1px solid rgba(16, 185, 129, 0.45);
-    font-size: 0.88rem;
+    font-size: 0.8rem;
     font-weight: 800;
-    padding: 0.2rem 0.75rem;
+    padding: 0.15rem 0.6rem;
     border-radius: 6px;
     font-family: var(--font-mono);
     white-space: nowrap;
@@ -2409,9 +2411,9 @@ body.scale-4k {
 .list-card-address-row {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
+    gap: 0.5rem;
     color: #cbd5e1;
-    font-size: 1.05rem;
+    font-size: clamp(0.78rem, 0.92vw, 0.88rem);
     font-weight: 500;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -2421,26 +2423,30 @@ body.scale-4k {
 .list-card-landmark-row {
     display: flex;
     align-items: center;
-    margin-top: 0.15rem;
+    margin-top: 0.1rem;
 }
 
 .list-card-landmark {
     color: #fde047;
     font-weight: 700;
-    font-size: 0.98rem;
+    font-size: clamp(0.72rem, 0.82vw, 0.8rem);
     background: rgba(253, 224, 71, 0.12);
     border: 1px solid rgba(253, 224, 71, 0.28);
-    padding: 0.2rem 0.65rem;
-    border-radius: 6px;
-    line-height: 1.35;
+    padding: 0.12rem 0.5rem;
+    border-radius: 5px;
+    line-height: 1.25;
     display: inline-block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
 }
 
 /* Sağ Bilgi Grubu (Telefon + QR) */
 .list-card-meta-group {
     display: flex;
     align-items: center;
-    gap: 0.9rem;
+    gap: 0.75rem;
     flex-shrink: 0;
 }
 
@@ -2448,15 +2454,15 @@ body.scale-4k {
     background: rgba(16, 185, 129, 0.16);
     border: 1px solid rgba(16, 185, 129, 0.45);
     color: #34d399;
-    font-size: 1.25rem;
+    font-size: clamp(0.95rem, 1.15vw, 1.15rem);
     font-weight: 800;
-    padding: 0.45rem 1.0rem;
-    border-radius: 10px;
+    padding: 0.3rem 0.75rem;
+    border-radius: 8px;
     display: flex;
     align-items: center;
-    gap: 0.45rem;
+    gap: 0.4rem;
     font-family: var(--font-mono);
-    letter-spacing: 0.03em;
+    letter-spacing: 0.02em;
     white-space: nowrap;
 }
 
@@ -2465,16 +2471,16 @@ body.scale-4k {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.15rem;
+    gap: 0.1rem;
     background: #ffffff;
-    padding: 0.25rem 0.35rem 0.2rem;
-    border-radius: 8px;
+    padding: 0.2rem 0.3rem 0.15rem;
+    border-radius: 6px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }
 
 .list-card-qr-img {
-    width: 52px;
-    height: 52px;
+    width: 48px;
+    height: 48px;
     display: block;
     border-radius: 3px;
 }
