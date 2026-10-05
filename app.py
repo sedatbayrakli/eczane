@@ -186,6 +186,161 @@ def init_db():
             db.session.commit()
             print("[BİLGİ] Demo eczane oluşturuldu: Çakırlar Eczanesi (ECZ-CAKIRLAR-001)")
 
+        # İlayda Eczanesi ve Bağlı Cihazların Kalıcı Restorasyonu (ECZ-A62F-D143)
+        ilayda = Pharmacy.query.filter_by(license_key="ECZ-A62F-D143").first()
+        if not ilayda:
+            import json
+            ilayda_tema_ayarlari = {
+                "anti_burn_in": True,
+                "auto_rotate_minutes": 60,
+                "carousel_interval_sec": 15,
+                "map_zoom": 14,
+                "safeAreaMargin": 0,
+                "scale": 1.0,
+                "show_countdown": True,
+                "show_district_counter": True,
+                "show_landmark": True,
+                "show_map": True,
+                "show_qr": True,
+                "show_route": True,
+                "show_travel_times": False,
+                "themes": {
+                    "classic_grid": {
+                        "carousel_interval_sec": 15,
+                        "show_countdown": True,
+                        "show_district_counter": True,
+                        "show_landmark": True,
+                        "show_map": True,
+                        "show_qr": True,
+                        "show_route": True,
+                        "show_travel_times": False
+                    },
+                    "dual_card": {
+                        "carousel_interval_sec": 15,
+                        "show_countdown": True,
+                        "show_district_counter": True,
+                        "show_landmark": True,
+                        "show_map": True,
+                        "show_qr": True,
+                        "show_route": True,
+                        "show_travel_times": False
+                    },
+                    "focus_carousel": {
+                        "carousel_interval_sec": 15,
+                        "show_countdown": True,
+                        "show_district_counter": True,
+                        "show_landmark": True,
+                        "show_map": True,
+                        "show_qr": True,
+                        "show_route": True,
+                        "show_travel_times": False
+                    },
+                    "list_view": {
+                        "carousel_interval_sec": 15,
+                        "show_countdown": True,
+                        "show_district_counter": True,
+                        "show_landmark": True,
+                        "show_map": False,
+                        "show_qr": True,
+                        "show_route": False,
+                        "show_travel_times": False
+                    }
+                },
+                "ticker_speed_px": 55
+            }
+            ilayda = Pharmacy(
+                name="İLAYDA ECZANESİ",
+                city="İstanbul",
+                district="Bahçelievler",
+                latitude=41.000752,
+                longitude=28.837577,
+                pharmacist_name="Türkan Demirli",
+                chamber_registration_no="6645",
+                phone="0212 551 02 49",
+                mobile_phone="",
+                address="Zafer Mah. Gümüş Sok. No: 40/B",
+                license_key="ECZ-A62F-D143",
+                expires_at=datetime(2027, 10, 1, 0, 0, 0),
+                is_active=True,
+                max_devices=5,
+                theme="classic_grid",
+                screen_scale="auto",
+                theme_settings=json.dumps(ilayda_tema_ayarlari, ensure_ascii=False),
+                ticker_text="İlayda Eczanesi sağlıklı günler diler."
+            )
+            db.session.add(ilayda)
+            db.session.flush()
+
+            # TV Cihazları
+            cihaz_tanimlari = [
+                {
+                    "device_name": "mi box",
+                    "device_token": "tv-b5a44bad-eadb-4350-86df-474bce880c9d",
+                    "mac_address": "4A:29:55:BC:64:65",
+                    "local_ip": "192.168.1.10",
+                    "screen_resolution": "960x540",
+                    "screen_scale": "0.80",
+                    "theme": "classic_grid",
+                    "theme_settings": json.dumps({
+                        "show_map": False,
+                        "carousel_interval_sec": 15,
+                        "safeAreaMargin": 0,
+                        "themes": {
+                            "classic_grid": {"show_map": False, "carousel_interval_sec": 15},
+                            "focus_carousel": {"show_map": True, "carousel_interval_sec": 15}
+                        }
+                    }, ensure_ascii=False)
+                },
+                {
+                    "device_name": "chrome",
+                    "device_token": "tv-hw-F6E36600A92E33C3",
+                    "mac_address": "4A:F6:E3:66:00:A9",
+                    "local_ip": "-",
+                    "screen_resolution": "864x486",
+                    "screen_scale": "0.77",
+                    "theme": "focus_carousel",
+                    "theme_settings": "{}"
+                },
+                {
+                    "device_name": "Mac",
+                    "device_token": "tv-f58fd6a0-0117-42a8-be21-5a898ce2187e",
+                    "mac_address": "4A:39:6E:1A:A7:15",
+                    "local_ip": "-",
+                    "screen_resolution": "1512x805",
+                    "screen_scale": "1.0",
+                    "theme": "focus_carousel",
+                    "theme_settings": "{}"
+                },
+                {
+                    "device_name": "samsung",
+                    "device_token": "tv-cf07adb1-50a8-4319-9713-0ecfd82559f3",
+                    "mac_address": "4A:ED:9F:3C:FE:02",
+                    "local_ip": "192.168.1.29",
+                    "screen_resolution": "1536x864",
+                    "screen_scale": "4k",
+                    "theme": "classic_grid",
+                    "theme_settings": "{}"
+                }
+            ]
+            for cd in cihaz_tanimlari:
+                dev = KioskDevice(
+                    pharmacy_id=ilayda.id,
+                    device_name=cd["device_name"],
+                    device_token=cd["device_token"],
+                    mac_address=cd["mac_address"],
+                    local_ip=cd["local_ip"],
+                    screen_resolution=cd["screen_resolution"],
+                    screen_scale=cd["screen_scale"],
+                    theme=cd["theme"],
+                    theme_settings=cd["theme_settings"],
+                    is_approved=True,
+                    approved_at=datetime.now()
+                )
+                db.session.add(dev)
+
+            db.session.commit()
+            print("[BİLGİ] İlayda Eczanesi ve bağlı TV cihazları başarıyla geri yüklendi.")
+
         # Global sistem ayarlarını başlat (yoksa varsayılan kayıt oluşturur)
         try:
             SystemSetting.get_settings()
