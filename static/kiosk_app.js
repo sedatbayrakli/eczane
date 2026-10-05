@@ -43,7 +43,7 @@ const KIOSK_AYARLAR = {
     HATA_TEKRAR_DENE_MS: 60 * 1000,     // Ağ kesintisinde 60 saniyede bir tekrar deneme
     SAAT_ARALIGI_MS: 1000,              // Saniyede bir saat güncelleme
     GECE_RELOAD_SAATI: 5,               // Her gece 05:00'te bellek temizliği için yenileme
-    SLAYT_SURESI_MS: 10000,             // Tema 2 ve Tema 3 için slayt süresi (10 saniye)
+    SLAYT_SURESI_MS: 15000,             // Nöbetçi kart ve harita döngü süresi (15 saniye)
     ANTI_BURN_IN: true,                 // TV / OLED Ekran Yanık Koruması (Piksel Kaydırma)
     TICKER_SPEED_PX: 55                 // Yaşlı vatandaşlar için ideal kayan yazı hızı (50-60 px/sn)
 };
@@ -883,7 +883,7 @@ function haritaPinleriniCiz(kendiEczane, nobetciler, seciliIndex = null) {
 
         const originMarker = L.marker([kendiEczane.latitude, kendiEczane.longitude], { icon: originIcon })
             .bindPopup(`<b>⭐ ${escapeHtml(kendiIsimFormatli)}</b><br><small>Buradasınız</small>`)
-            .bindTooltip(`⭐ Buradasınız (${escapeHtml(kendiIsimFormatli)})`, {
+            .bindTooltip(`⭐ Buradasınız`, {
                 permanent: true,
                 direction: 'top',
                 className: 'kiosk-map-tooltip origin-tooltip',
@@ -1966,7 +1966,8 @@ function arayuzuGuncelle(veri, isOffline = false, savedTime = '') {
             const ts = veri.pharmacy.theme_settings;
             window._kioskThemeSettings = ts;
             if (ts.carousel_interval_sec && ts.carousel_interval_sec > 0) {
-                KIOSK_AYARLAR.SLAYT_SURESI_MS = ts.carousel_interval_sec * 1000;
+                const sn = (ts.carousel_interval_sec === 10) ? 15 : ts.carousel_interval_sec;
+                KIOSK_AYARLAR.SLAYT_SURESI_MS = sn * 1000;
             }
             if (ts.auto_rotate_minutes && ts.auto_rotate_minutes > 0) {
                 KIOSK_AYARLAR.AUTO_ROTATE_MINUTES = ts.auto_rotate_minutes;

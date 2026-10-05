@@ -1377,8 +1377,8 @@
                                         <select id="ts-carousel-interval" class="form-control">
                                             <option value="5">5 Saniye (Çok Hızlı)</option>
                                             <option value="8">8 Saniye (Hızlı)</option>
-                                            <option value="10" selected>10 Saniye (Standart)</option>
-                                            <option value="15">15 Saniye (Geniş Okuma)</option>
+                                            <option value="10">10 Saniye</option>
+                                            <option value="15" selected>15 Saniye (Standart)</option>
                                             <option value="20">20 Saniye (Yavaş)</option>
                                             <option value="30">30 Saniye (Sabit Odak)</option>
                                         </select>
@@ -2486,7 +2486,7 @@
 
             // Parametreler
             const ayar = mevcutAyarlar || {};
-            document.getElementById('ts-carousel-interval').value = ayar.carousel_interval_sec || 10;
+            document.getElementById('ts-carousel-interval').value = ayar.carousel_interval_sec || 15;
             document.getElementById('ts-autorotate-interval').value = ayar.auto_rotate_minutes || 60;
             document.getElementById('ts-ticker-speed').value = ayar.ticker_speed_px || 55;
             document.getElementById('ts-safe-area-margin').value = String(ayar.safeAreaMargin !== undefined ? ayar.safeAreaMargin : 0);
@@ -2523,7 +2523,7 @@
             document.getElementById('ts-theme-select').value = rowSelect ? rowSelect.value : (devTheme || 'classic_grid');
 
             // Parametreler
-            document.getElementById('ts-carousel-interval').value = devSettings.carousel_interval_sec || 10;
+            document.getElementById('ts-carousel-interval').value = devSettings.carousel_interval_sec || 15;
             document.getElementById('ts-autorotate-interval').value = devSettings.auto_rotate_minutes || 60;
             document.getElementById('ts-ticker-speed').value = devSettings.ticker_speed_px || 55;
             document.getElementById('ts-safe-area-margin').value = String(devSettings.safeAreaMargin !== undefined ? devSettings.safeAreaMargin : 0);
@@ -2548,7 +2548,7 @@
             const yeniTema = document.getElementById('ts-theme-select').value;
 
             const theme_settings = {
-                carousel_interval_sec: parseInt(document.getElementById('ts-carousel-interval').value, 10) || 10,
+                carousel_interval_sec: parseInt(document.getElementById('ts-carousel-interval').value, 10) || 15,
                 auto_rotate_minutes: parseInt(document.getElementById('ts-autorotate-interval').value, 10) || 60,
                 ticker_speed_px: parseInt(document.getElementById('ts-ticker-speed').value, 10) || 55,
                 safeAreaMargin: parseInt(document.getElementById('ts-safe-area-margin').value, 10) || 0,

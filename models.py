@@ -104,7 +104,7 @@ class KioskDevice(db.Model):
         """Cihaza özel tema parametrelerini döndürür (varsayılanlarla harmanlanmış)."""
         import json
         varsayilan = {
-            "carousel_interval_sec": 10,
+            "carousel_interval_sec": 15,
             "auto_rotate_minutes": 60,
             "map_zoom": 14,
             "show_countdown": True,
@@ -474,7 +474,7 @@ class Pharmacy(db.Model):
         """Kiosk ekran teması parametrik ayarlarını döndürür (varsayılanlarla harmanlanmış)."""
         import json
         varsayilan = {
-            "carousel_interval_sec": 10,
+            "carousel_interval_sec": 15,
             "auto_rotate_minutes": 60,
             "map_zoom": 14,
             "show_countdown": True,
