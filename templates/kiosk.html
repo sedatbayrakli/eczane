@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-    <link rel="stylesheet" href="/static/style.css?v=5.6">
+    <link rel="stylesheet" href="/static/style.css?v=5.7">
     <style>
         /* Bu Gece Nöbetçiyiz Özel Bannerı */
         .on-duty-banner {
@@ -167,9 +167,13 @@
         const PREVIEW_DEVICE_ID = {{ preview_device_id if preview_device_id else 'null' }};
         const PREVIEW_THEME = "{{ preview_theme or '' }}";
         const PREVIEW_SCALE = "{{ preview_scale or '' }}";
+        const CIHAZ_SCALE = {{ cihaz_scale|tojson if cihaz_scale else 'null' }};
+        const CIHAZ_SAFE_MARGIN = {{ cihaz_safe_margin|tojson if cihaz_safe_margin else '0' }};
+        const URL_ZOOM = {{ url_zoom|tojson if url_zoom else 'null' }};
+        const URL_MARGIN = {{ url_margin|tojson if url_margin else 'null' }};
     </script>
     <!-- Çevrimdışı Bağımsız Yerel QR Kod Motoru -->
     <script src="/static/qrcode.min.js?v=1.0"></script>
-    <script src="/static/kiosk_app.js?v=6.1"></script>
+    <script src="/static/kiosk_app.js?v=6.2"></script>
 </body>
 </html>

@@ -60,6 +60,16 @@ const _urlParamsInit = (typeof window !== 'undefined' && window.location) ? new 
 const _previewThemeInit = _urlParamsInit ? (_urlParamsInit.get('preview_theme') || '') : '';
 let aktifTema = _previewThemeInit || ((typeof PREVIEW_THEME !== 'undefined' && PREVIEW_THEME) ? PREVIEW_THEME : ((typeof BASLANGIC_TEMASI !== 'undefined' && BASLANGIC_TEMASI) ? BASLANGIC_TEMASI : 'classic_grid'));
 let sonGecerliVeri = null;
+
+// Sayfa açılır açılmaz anında URL veya şablon parametrelerine göre zoom & safe area uygula (FOUC önleme)
+try {
+    ekranOlceginiUygula(
+        (typeof CIHAZ_SCALE !== 'undefined' && CIHAZ_SCALE) ? CIHAZ_SCALE : 'auto',
+        (typeof CIHAZ_SAFE_MARGIN !== 'undefined' && CIHAZ_SAFE_MARGIN) ? CIHAZ_SAFE_MARGIN : 0
+    );
+} catch (e) {
+    console.warn('[Ölçekleme] İlk başlatma hatası:', e);
+}
 let guncelEczaneler = [];
 let guncelKendiEczane = null;
 let slaytIndex = 0;
@@ -1823,8 +1833,16 @@ function arayuzuGuncelle(veri, isOffline = false, savedTime = '') {
             aktifTema = veri.pharmacy.theme;
         }
 
-        // TV / Mi Box Ekran Çözünürlüğü ve Ölçek Ayarını Uygula
-        ekranOlceginiUygula(veri.pharmacy.screen_scale || 'auto');
+        // TV / Mi Box Ekran Çözünürlüğü, Dinamik Zoom ve Güvenli Alan Ayarını Uygula
+        const tsSettings = veri.pharmacy.theme_settings || {};
+        const seciliScale = (tsSettings.scale !== undefined && tsSettings.scale !== null) 
+            ? tsSettings.scale 
+            : (veri.pharmacy.scale || veri.pharmacy.screen_scale || 'auto');
+        const seciliSafeMargin = (tsSettings.safeAreaMargin !== undefined && tsSettings.safeAreaMargin !== null) 
+            ? tsSettings.safeAreaMargin 
+            : (veri.pharmacy.safeAreaMargin || 0);
+
+        ekranOlceginiUygula(seciliScale, seciliSafeMargin);
 
         // Kiosk Ekran Teması Parametrik Ayarlarını Uygula
         if (veri.pharmacy.theme_settings) {
@@ -2189,7 +2207,11 @@ function kioskBaslat() {
     // Pencere boyutu değiştiğinde ölçeği ve haritayı yeniden hesapla
     window.addEventListener('resize', () => {
         if (sonGecerliVeri && sonGecerliVeri.pharmacy) {
-            ekranOlceginiUygula(sonGecerliVeri.pharmacy.screen_scale || 'auto');
+            const ph = sonGecerliVeri.pharmacy;
+            const ts = ph.theme_settings || {};
+            const sc = (ts.scale !== undefined && ts.scale !== null) ? ts.scale : (ph.scale || ph.screen_scale || 'auto');
+            const sm = (ts.safeAreaMargin !== undefined && ts.safeAreaMargin !== null) ? ts.safeAreaMargin : (ph.safeAreaMargin || 0);
+            ekranOlceginiUygula(sc, sm);
         }
         if (kioskMap) {
             setTimeout(() => kioskMap.invalidateSize(), 200);
@@ -2199,30 +2221,173 @@ function kioskBaslat() {
 }
 
 /**
- * TV ve Kiosk Ekran Çözünürlüğünü Ayarlar (Mi Box & TV Uyumluluğu)
+ * Ekran Ölçekleme (Zoom) ve Güvenli Alan (Safe Area Margin) Parametrelerini Ayrıştırır
+ * URL Parametreleri (Öncelikli):
+ *   - ?zoom=0.88 veya ?scale=88 veya ?scale=0.85
+ *   - ?margin=20 veya ?padding=20 veya ?safe_area=20
  */
-function ekranOlceginiUygula(scaleAyar = 'auto') {
-    document.body.classList.remove('scale-compact', 'scale-720p', 'scale-1080p', 'scale-4k');
+function getDisplayScalingParams() {
+    let urlZoom = null;
+    let urlMargin = null;
 
-    if (scaleAyar === 'auto') {
-        const vh = window.innerHeight;
-        const ua = (navigator.userAgent || '').toLowerCase();
-        const isTvDevice = /android|smart-tv|smarttv|googletv|appletv|tizen|webos|crkey|aft/i.test(ua);
-
-        // TV cihazlarında veya dikey alanı kısıtlı ekranlarda kompakt TV modu
-        if (isTvDevice && vh < 750) {
-            document.body.classList.add('scale-compact');
-        } else if (vh < 620) {
-            document.body.classList.add('scale-compact');
-        } else if (vh < 850) {
-            document.body.classList.add('scale-720p');
-        } else if (vh < 1450) {
-            document.body.classList.add('scale-1080p');
-        } else {
-            document.body.classList.add('scale-4k');
+    try {
+        const params = (typeof window !== 'undefined' && window.location) ? new URLSearchParams(window.location.search) : null;
+        
+        // 1. Zoom / Ölçek Parametresi
+        const rawZoom = (params && (params.get('zoom') || params.get('scale'))) || (typeof URL_ZOOM !== 'undefined' ? URL_ZOOM : null);
+        if (rawZoom !== null && rawZoom !== '') {
+            const num = parseFloat(rawZoom);
+            if (!isNaN(num) && num > 0) {
+                // 85 -> 0.85 (yüzde girilmişse oranla)
+                urlZoom = (num > 2) ? (num / 100) : num;
+            } else if (rawZoom === '720p' || rawZoom === 'compact') {
+                urlZoom = 0.85;
+            } else if (rawZoom === '1080p') {
+                urlZoom = 1.0;
+            } else if (rawZoom === '4k') {
+                urlZoom = 1.25;
+            }
         }
+
+        // 2. Güvenli Alan Margin / Padding Parametresi
+        const rawMargin = (params && (params.get('margin') || params.get('padding') || params.get('safe_area') || params.get('safeAreaMargin'))) || (typeof URL_MARGIN !== 'undefined' ? URL_MARGIN : null);
+        if (rawMargin !== null && rawMargin !== '') {
+            const numMargin = parseFloat(rawMargin);
+            if (!isNaN(numMargin) && numMargin >= 0) {
+                urlMargin = numMargin;
+            }
+        }
+    } catch (e) {
+        console.warn('[Ölçekleme] URL parametreleri okunamadı:', e);
+    }
+
+    return { urlZoom, urlMargin };
+}
+
+/**
+ * TV ve Kiosk Ekran Çözünürlüğü, Dinamik Zoom ve Güvenli Alanı (Safe Area) Uygular
+ * Öncelik Sırası:
+ * 1. URL Parametreleri (?zoom=0.88&margin=20)
+ * 2. Cihaz / API Ayarları (scale, safeAreaMargin)
+ * 3. Varsayılanlar (1.0 ve 0px)
+ */
+function ekranOlceginiUygula(scaleAyar = 'auto', safeAreaAyar = null) {
+    const { urlZoom, urlMargin } = getDisplayScalingParams();
+
+    // 1. Hedef Zoom Belirleme
+    let hedefZoom = 1.0;
+    
+    if (urlZoom !== null) {
+        // Öncelik 1: URL Parametresi (?zoom=0.88 veya ?scale=85)
+        hedefZoom = urlZoom;
+    } else if (typeof scaleAyar === 'number' && scaleAyar > 0) {
+        hedefZoom = (scaleAyar > 2) ? (scaleAyar / 100) : scaleAyar;
+    } else if (typeof scaleAyar === 'string' && scaleAyar.trim()) {
+        const parsed = parseFloat(scaleAyar);
+        if (!isNaN(parsed) && parsed > 0 && scaleAyar !== 'auto') {
+            hedefZoom = (parsed > 2) ? (parsed / 100) : parsed;
+        } else if (scaleAyar === 'compact' || scaleAyar === '720p') {
+            hedefZoom = 0.85;
+        } else if (scaleAyar === '1080p') {
+            hedefZoom = 1.0;
+        } else if (scaleAyar === '4k') {
+            hedefZoom = 1.25;
+        } else if (scaleAyar === 'auto') {
+            const vh = window.innerHeight;
+            const vw = window.innerWidth;
+            const ua = (navigator.userAgent || '').toLowerCase();
+            const isTvDevice = /android|smart-tv|smarttv|googletv|appletv|tizen|webos|crkey|aft/i.test(ua);
+            
+            if (isTvDevice && vh < 750) {
+                hedefZoom = 0.85;
+            } else if (vh < 650 || vw <= 1366) {
+                hedefZoom = 0.88;
+            } else if (vh < 850) {
+                hedefZoom = 0.92;
+            } else if (vh < 1450) {
+                hedefZoom = 1.0;
+            } else {
+                hedefZoom = 1.25;
+            }
+        }
+    } else if (typeof CIHAZ_SCALE !== 'undefined' && CIHAZ_SCALE) {
+        const parsed = parseFloat(CIHAZ_SCALE);
+        if (!isNaN(parsed) && parsed > 0) {
+            hedefZoom = (parsed > 2) ? (parsed / 100) : parsed;
+        }
+    }
+
+    // 2. Hedef Güvenli Alan (Safe Area Margin) Belirleme
+    let hedefMargin = 0;
+    if (urlMargin !== null) {
+        // Öncelik 1: URL Parametresi (?margin=20 veya ?padding=20)
+        hedefMargin = urlMargin;
+    } else if (safeAreaAyar !== null && safeAreaAyar !== undefined) {
+        const parsedMargin = parseFloat(safeAreaAyar);
+        if (!isNaN(parsedMargin) && parsedMargin >= 0) {
+            hedefMargin = parsedMargin;
+        }
+    } else if (typeof CIHAZ_SAFE_MARGIN !== 'undefined' && CIHAZ_SAFE_MARGIN) {
+        const parsedMargin = parseFloat(CIHAZ_SAFE_MARGIN);
+        if (!isNaN(parsedMargin) && parsedMargin >= 0) {
+            hedefMargin = parsedMargin;
+        }
+    }
+
+    // Güvenlik sınırları (Zoom: %50 - %150, Margin: 0 - 100px)
+    hedefZoom = Math.max(0.5, Math.min(1.5, hedefZoom));
+    hedefMargin = Math.max(0, Math.min(100, hedefMargin));
+
+    // 3. CSS Zoom / Scale Uygulama (Tüm grid, kartlar ve haritayı orantılı ölçekler)
+    if ('zoom' in document.body.style) {
+        document.body.style.zoom = String(hedefZoom);
     } else {
-        document.body.classList.add(`scale-${scaleAyar}`);
+        // Fallback: zoom desteklemeyen eski tarayıcılar için transform
+        const elWrapper = document.querySelector('.dashboard-wrapper');
+        if (elWrapper) {
+            elWrapper.style.transform = `scale(${hedefZoom})`;
+            elWrapper.style.transformOrigin = 'top center';
+            elWrapper.style.width = `${100 / hedefZoom}vw`;
+            elWrapper.style.height = `${100 / hedefZoom}vh`;
+        }
+    }
+
+    // 4. Safe Area Margin / Padding Değişkenlerini Güncelle (Overscan kesilmesini engeller)
+    document.documentElement.style.setProperty('--safe-area-top', `${hedefMargin}px`);
+    document.documentElement.style.setProperty('--safe-area-right', `${hedefMargin}px`);
+    document.documentElement.style.setProperty('--safe-area-bottom', `${hedefMargin}px`);
+    document.documentElement.style.setProperty('--safe-area-left', `${hedefMargin}px`);
+
+    const elWrapper = document.querySelector('.dashboard-wrapper');
+    if (elWrapper) {
+        elWrapper.style.boxSizing = 'border-box';
+        if (hedefMargin > 0) {
+            elWrapper.style.padding = `calc(0.65rem + ${hedefMargin}px) calc(0.85rem + ${hedefMargin}px)`;
+        } else {
+            elWrapper.style.padding = '';
+        }
+    }
+
+    // 5. CSS Sınıflarını Uyumlu Tut
+    document.body.classList.remove('scale-compact', 'scale-720p', 'scale-1080p', 'scale-4k');
+    if (hedefZoom <= 0.88) {
+        document.body.classList.add('scale-compact');
+    } else if (hedefZoom <= 0.95) {
+        document.body.classList.add('scale-720p');
+    } else if (hedefZoom <= 1.15) {
+        document.body.classList.add('scale-1080p');
+    } else {
+        document.body.classList.add('scale-4k');
+    }
+
+    // 6. Harita Boyut Güncellemesi (Leaflet tile koordinatlarının kaymaması için)
+    if (kioskMap) {
+        setTimeout(() => {
+            try { kioskMap.invalidateSize(); } catch (e) {}
+        }, 120);
+        setTimeout(() => {
+            try { kioskMap.invalidateSize(); } catch (e) {}
+        }, 350);
     }
 }
 

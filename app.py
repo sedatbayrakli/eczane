@@ -1176,10 +1176,16 @@ def kiosk():
             cihaz_temasi = cihaz_obj.get_theme()
             cihaz_olcegi = cihaz_obj.screen_scale or "auto"
 
+    # URL'den dinamik zoom / scale ve safe-area margin / padding parametreleri
+    url_zoom = request.args.get("zoom") or request.args.get("scale")
+    url_margin = request.args.get("margin") or request.args.get("padding") or request.args.get("safe_area") or request.args.get("safeAreaMargin")
+
     if preview_theme:
         cihaz_temasi = preview_theme
     if preview_scale:
         cihaz_olcegi = preview_scale
+    if url_zoom:
+        cihaz_olcegi = url_zoom
 
     resp = make_response(render_template(
         "kiosk.html",
@@ -1189,6 +1195,10 @@ def kiosk():
         lisans_anahtari=eczane.license_key,
         cihaz_temasi=cihaz_temasi,
         cihaz_olcegi=cihaz_olcegi,
+        cihaz_scale=url_zoom or cihaz_olcegi,
+        cihaz_safe_margin=url_margin or 0,
+        url_zoom=url_zoom or "",
+        url_margin=url_margin or "",
         preview_mode=is_preview,
         preview_device_id=preview_device_id,
         preview_theme=preview_theme,
@@ -1364,11 +1374,22 @@ def api_kiosk_data():
             aktif_cihaz.identify_until = None
             db.session.commit()
 
-    # Önizleme anlık parametreleri varsa doğrudan uygula
+    # Önizleme veya URL'den gelen anlık parametreler varsa doğrudan uygula
     if preview_theme:
         cihaz_temasi = preview_theme
     if preview_scale:
         cihaz_ekran_olcegi = preview_scale
+
+    # Dinamik ölçekleme ve Güvenli Alan parametreleri
+    url_zoom = request.args.get("zoom") or request.args.get("scale")
+    url_margin = request.args.get("margin") or request.args.get("padding") or request.args.get("safe_area") or request.args.get("safeAreaMargin")
+    
+    cihaz_scale = url_zoom or (cihaz_tema_ayarlari.get("scale") if isinstance(cihaz_tema_ayarlari, dict) else None) or cihaz_ekran_olcegi
+    cihaz_safe_margin = url_margin or (cihaz_tema_ayarlari.get("safeAreaMargin") if isinstance(cihaz_tema_ayarlari, dict) else 0)
+
+    if isinstance(cihaz_tema_ayarlari, dict):
+        cihaz_tema_ayarlari["scale"] = cihaz_scale
+        cihaz_tema_ayarlari["safeAreaMargin"] = cihaz_safe_margin
 
     # Manuel test veya otomatik tespit kontrolü
     nihai_nobet_durumu = eczane.nobetci_mi()
@@ -1391,6 +1412,8 @@ def api_kiosk_data():
             "ticker_text": eczane.ticker_text,
             "theme": cihaz_temasi,
             "screen_scale": cihaz_ekran_olcegi,
+            "scale": cihaz_scale,
+            "safeAreaMargin": cihaz_safe_margin,
             "max_devices": eczane.max_devices or 1,
             "device_count": eczane.devices.count(),
             "theme_settings": cihaz_tema_ayarlari

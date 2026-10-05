@@ -67,19 +67,40 @@ body,
     scrollbar-width: none;
 }
 
+/* TV Ekranı Dinamik Güvenli Alan (Safe Area Margin / Padding) ve Ölçek Stilleri */
+:root {
+    --safe-area-top: 0px;
+    --safe-area-right: 0px;
+    --safe-area-bottom: 0px;
+    --safe-area-left: 0px;
+}
+
+body.kiosk-mode {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+}
+
 /* Tam Ekran Kiosk Kapsayıcısı (TV ve Mi Box Tam Ekranı Doldurur) */
 .dashboard-wrapper {
     display: flex;
     flex-direction: column;
     width: 100vw;
     height: 100vh;
-    padding: 0.65rem 0.85rem;
+    padding: calc(0.65rem + var(--safe-area-top, 0px)) 
+             calc(0.85rem + var(--safe-area-right, 0px)) 
+             calc(0.65rem + var(--safe-area-bottom, 0px)) 
+             calc(0.85rem + var(--safe-area-left, 0px));
     background: radial-gradient(circle at top right, rgba(239, 68, 68, 0.08) 0%, transparent 45%),
                 radial-gradient(circle at bottom left, rgba(56, 189, 248, 0.05) 0%, transparent 45%),
                 var(--bg-main);
     gap: 0.65rem;
     box-sizing: border-box;
     overflow: hidden;
+    transition: padding 0.2s ease;
 }
 
 /* ===================================================================
@@ -1485,8 +1506,8 @@ body.scale-4k {
 /* TV Kontrolleri (Sağ Üst Köşe: Yenileme & Tam Ekran Solgun Kare Butonlar) */
 .tv-controls-group {
     position: fixed;
-    top: 10px;
-    right: 12px;
+    top: calc(10px + var(--safe-area-top, 0px));
+    right: calc(12px + var(--safe-area-right, 0px));
     display: flex;
     align-items: center;
     gap: 6px;

@@ -114,7 +114,9 @@ class KioskDevice(db.Model):
             "show_district_counter": True,
             "show_landmark": True,
             "anti_burn_in": True,
-            "ticker_speed_px": 55
+            "ticker_speed_px": 55,
+            "scale": 1.0,
+            "safeAreaMargin": 0
         }
         # Önce eczanenin global parametrelerini temel al
         if self.pharmacy:
@@ -482,7 +484,9 @@ class Pharmacy(db.Model):
             "show_district_counter": True,
             "show_landmark": True,
             "anti_burn_in": True,
-            "ticker_speed_px": 55
+            "ticker_speed_px": 55,
+            "scale": 1.0,
+            "safeAreaMargin": 0
         }
         if not self.theme_settings:
             return varsayilan
