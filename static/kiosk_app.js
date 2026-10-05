@@ -1019,75 +1019,67 @@ function yedekDuzCizgiCiz(startLat, startLng, endLat, endLng) {
 // Şablon A: Klasik Izgara Kartı (Tema 1)
 function eczaneKartiHtmlUret(eczane, index) {
     const semtHtml = eczane.semt 
-        ? `<span class="badge-semt">${escapeHtml(eczane.semt)}</span>` 
+        ? `<span class="badge-semt" style="font-size: 0.75rem; padding: 0.15rem 0.45rem; border-radius: 4px;">${escapeHtml(eczane.semt)}</span>` 
         : '';
 
     const mesafeHtml = eczane.mesafe_metin 
-        ? `<span class="badge-distance" style="font-size: 0.92rem; font-weight: 800;">📍 ${escapeHtml(formatMesafeMetin(eczane.mesafe_metin))}</span>` 
+        ? `<span class="badge-distance" style="font-size: 0.82rem; font-weight: 800; background: rgba(56, 189, 248, 0.14); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35); padding: 0.15rem 0.5rem; border-radius: 9999px; display: inline-flex; align-items: center; gap: 0.25rem;">📍 ${escapeHtml(formatMesafeMetin(eczane.mesafe_metin))}</span>` 
         : '';
 
     const yolTarifiHtml = eczane.yol_tarifi 
         ? `
-        <div class="card-landmark-box">
-            <span class="card-landmark-icon">📍</span>
+        <div class="card-landmark-box" style="padding: 0.15rem 0.45rem; font-size: 0.76rem; margin-top: 0.15rem;">
+            <span class="card-landmark-icon" style="font-size: 0.85rem;">📍</span>
             <span>${escapeHtml(eczane.yol_tarifi)}</span>
         </div>` 
         : '';
 
-    const qrKodUrl = eczane.qr_kod_url || `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(eczane.rota_linki || eczane.harita_linki)}`;
+    const qrKodUrl = eczane.qr_kod_url || `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(eczane.rota_linki || eczane.harita_linki)}`;
 
     return `
-    <article class="pharmacy-card" data-id="${eczane.id}" data-index="${index}">
+    <article class="pharmacy-card classic-grid-card" data-id="${eczane.id}" data-index="${index}">
         <div class="card-left-info">
-            <div class="card-top-row">
-                <div class="card-badges">
-                    <span class="badge-duty">
-                        <span class="pulse-indicator" style="width: 7px; height: 7px;"></span>
-                        ${escapeHtml(eczane.nobet_durumu || 'Sabaha kadar açık')}
-                    </span>
+            <div class="card-top-row" style="margin-bottom: 0.15rem;">
+                <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 0.3rem;">
                     ${mesafeHtml}
+                    ${semtHtml}
                 </div>
             </div>
 
-            <!-- Eczane İsmi Açık Adres Kutusunun İçine Alındı -->
+            <!-- Eczane İsmi ve Adres -->
             <div class="card-address-block">
-                <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.4rem; flex-wrap: wrap;">
-                    <h2 class="pharmacy-name-title" style="margin: 0;">${escapeHtml(eczane.isim)}</h2>
-                    ${semtHtml}
-                </div>
-                <p class="card-address-text">${escapeHtml(eczane.adres)}</p>
+                <h2 class="pharmacy-name-title" style="margin: 0.1rem 0; font-size: clamp(1.05rem, 1.25vw, 1.22rem); font-weight: 800; color: #ffffff; line-height: 1.18; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;" title="${escapeHtml(eczane.isim)}">
+                    ${escapeHtml(eczane.isim)}
+                </h2>
+                <p class="card-address-text" style="font-size: 0.78rem; line-height: 1.24; margin: 0; color: #cbd5e1; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                    ${escapeHtml(eczane.adres)}
+                </p>
                 ${yolTarifiHtml}
             </div>
 
-            <div class="card-phone-row">
-                <div class="phone-icon-box">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <div class="card-phone-row" style="display: flex; align-items: center; gap: 0.45rem; margin-top: 0.2rem; white-space: nowrap;">
+                <div class="phone-icon-box" style="width: 22px; height: 22px; min-width: 22px; padding: 2px;">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                         <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
                     </svg>
                 </div>
-                <span class="phone-number-display">${escapeHtml(eczane.telefon || 'Belirtilmedi')}</span>
+                <span class="phone-number-display" style="font-size: 0.95rem; font-weight: 800; color: #ffffff; white-space: nowrap; font-family: monospace;">
+                    ${escapeHtml(eczane.telefon || 'Belirtilmedi')}
+                </span>
             </div>
-
-            ${nobetBilgisiHtmlUret('compact')}
         </div>
 
-        <div class="card-right-qr">
-            <div class="qr-image-wrapper">
+        <div class="card-right-qr classic-qr-box">
+            <div class="qr-image-wrapper classic-qr-img-wrap">
                 <img class="qr-image" 
                      src="${qrKodUrl}" 
                      alt="${escapeHtml(eczane.isim)} Rota QR Kodu"
                      onerror="window.yerelQrKodFallback(this, '${escapeHtml(eczane.rota_linki || eczane.harita_linki || '')}');"
                      loading="eager" />
             </div>
-            <div class="qr-caption">
-                <div class="qr-camera-icon-sm">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-                        <circle cx="12" cy="13" r="4"></circle>
-                    </svg>
-                </div>
-                <span class="qr-text-top">Adres Tarifi İçin</span>
-                <strong class="qr-text-bottom">OKUTUNUZ</strong>
+            <div class="qr-caption" style="margin-top: 0.2rem;">
+                <span style="font-size: 0.62rem; color: #94a3b8; display: block; line-height: 1.1;">Adres İçin</span>
+                <strong style="font-size: 0.72rem; color: #38bdf8; font-weight: 800; letter-spacing: 0.04em;">OKUTUN</strong>
             </div>
         </div>
     </article>
@@ -2293,26 +2285,12 @@ function ekranOlceginiUygula(scaleAyar = 'auto', safeAreaAyar = null) {
         } else if (scaleAyar === '4k') {
             hedefZoom = 1.25;
         } else if (scaleAyar === 'auto') {
-            const vh = window.innerHeight;
-            const vw = window.innerWidth;
-            const ua = (navigator.userAgent || '').toLowerCase();
-            const isTvDevice = /android|smart-tv|smarttv|googletv|appletv|tizen|webos|crkey|aft/i.test(ua);
-            
-            if (isTvDevice && vh < 750) {
-                hedefZoom = 0.85;
-            } else if (vh < 650 || vw <= 1366) {
-                hedefZoom = 0.88;
-            } else if (vh < 850) {
-                hedefZoom = 0.92;
-            } else if (vh < 1450) {
-                hedefZoom = 1.0;
-            } else {
-                hedefZoom = 1.25;
-            }
+            // Standart TV ve Monitörlerde doğal tam ekran (yapay zoom büzüşmesi olmadan)
+            hedefZoom = 1.0;
         }
     } else if (typeof CIHAZ_SCALE !== 'undefined' && CIHAZ_SCALE) {
         const parsed = parseFloat(CIHAZ_SCALE);
-        if (!isNaN(parsed) && parsed > 0) {
+        if (!isNaN(parsed) && parsed > 0 && CIHAZ_SCALE !== 'auto') {
             hedefZoom = (parsed > 2) ? (parsed / 100) : parsed;
         }
     }
@@ -2338,18 +2316,28 @@ function ekranOlceginiUygula(scaleAyar = 'auto', safeAreaAyar = null) {
     hedefZoom = Math.max(0.5, Math.min(1.5, hedefZoom));
     hedefMargin = Math.max(0, Math.min(100, hedefMargin));
 
-    // 3. CSS Zoom / Scale Uygulama (Tüm grid, kartlar ve haritayı orantılı ölçekler)
-    if ('zoom' in document.body.style) {
-        document.body.style.zoom = String(hedefZoom);
-    } else {
-        // Fallback: zoom desteklemeyen eski tarayıcılar için transform
-        const elWrapper = document.querySelector('.dashboard-wrapper');
-        if (elWrapper) {
-            elWrapper.style.transform = `scale(${hedefZoom})`;
-            elWrapper.style.transformOrigin = 'top center';
-            elWrapper.style.width = `${100 / hedefZoom}vw`;
-            elWrapper.style.height = `${100 / hedefZoom}vh`;
+    // 3. CSS Zoom / Scale Uygulama (Tam ekranı doldurarak orantılı ölçekler)
+    if (Math.abs(hedefZoom - 1.0) > 0.01) {
+        if ('zoom' in document.body.style) {
+            document.body.style.zoom = String(hedefZoom);
+            // Zoom uygulandığında ekranın sağında ve altında boşluk kalmaması için boyutu telafi et
+            const compW = (100 / hedefZoom).toFixed(4);
+            const compH = (100 / hedefZoom).toFixed(4);
+            document.body.style.width = `${compW}vw`;
+            document.body.style.height = `${compH}vh`;
+            document.body.style.minWidth = `${compW}vw`;
+            document.body.style.minHeight = `${compH}vh`;
+            document.body.style.maxWidth = `${compW}vw`;
+            document.body.style.maxHeight = `${compH}vh`;
         }
+    } else {
+        document.body.style.zoom = '';
+        document.body.style.width = '100vw';
+        document.body.style.height = '100vh';
+        document.body.style.minWidth = '';
+        document.body.style.minHeight = '';
+        document.body.style.maxWidth = '';
+        document.body.style.maxHeight = '';
     }
 
     // 4. Safe Area Margin / Padding Değişkenlerini Güncelle (Overscan kesilmesini engeller)

@@ -857,8 +857,39 @@ body.kiosk-mode {
 }
 
 /* ===================================================================
-   8. ÇOKLU KIOSK TEMALARI (TEMA 2: ANIMATED ROUTE & TEMA 3: FOCUS CAROUSEL)
+   8. ÇOKLU KIOSK TEMALARI (TEMA 1: KLASİK, TEMA 2: LİSTE, TEMA 3: CAROUSEL, TEMA 4: İKİLİ)
    =================================================================== */
+
+/* Tema 1: Klasik 4'lü Izgara & Harita Layout (Sol Kartlar Ferah, Sağ Harita Dengeli) */
+.kiosk-content-layout.layout-classic_grid {
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.85fr) !important;
+    gap: 0.75rem !important;
+    overflow: hidden;
+}
+
+/* Klasik 4'lü Izgara Kartı Özel Optimizasyonu (22" Küçük TV'lerde İsim ve Telefonun Taşmasını Önler) */
+.pharmacy-card.classic-grid-card {
+    padding: clamp(0.45rem, 0.8vh, 0.75rem) clamp(0.55rem, 0.8vw, 0.85rem) !important;
+    gap: 0.45rem !important;
+}
+
+.pharmacy-card.classic-grid-card .card-left-info {
+    padding-right: 0.35rem !important;
+    gap: 0.2rem !important;
+}
+
+.classic-qr-box {
+    width: 84px !important;
+    min-width: 84px !important;
+    padding: 0.35rem 0.4rem !important;
+    border-radius: var(--radius-sm) !important;
+}
+
+.classic-qr-img-wrap {
+    width: 66px !important;
+    height: 66px !important;
+    padding: 3px !important;
+}
 
 /* Tema 2: Canlı Yol & Navigasyon Rota Layout */
 .kiosk-content-layout.layout-animated_route {
