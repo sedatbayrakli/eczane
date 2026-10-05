@@ -341,6 +341,45 @@ def init_db():
             db.session.commit()
             print("[BİLGİ] İlayda Eczanesi ve bağlı TV cihazları başarıyla geri yüklendi.")
 
+        # Uzaktaki Canlı TV Cihazı ve Eczanesinin Restorasyonu (ECZ-A762-8FCE)
+        prod_eczane = Pharmacy.query.filter_by(license_key="ECZ-A762-8FCE").first()
+        if not prod_eczane:
+            import json
+            prod_eczane = Pharmacy(
+                name="Canlı TV Eczanesi",
+                city="İstanbul",
+                district="Bahçelievler",
+                latitude=41.000752,
+                longitude=28.837577,
+                license_key="ECZ-A762-8FCE",
+                expires_at=datetime(2027, 10, 1, 0, 0, 0),
+                is_active=True,
+                max_devices=5,
+                theme="classic_grid",
+                screen_scale="auto",
+                ticker_text="Eczanemiz halk sağlığı için hizmetinizdedir."
+            )
+            db.session.add(prod_eczane)
+            db.session.flush()
+
+            # Uzaktaki Dreamstar TV Cihazı
+            dev_dreamstar = KioskDevice(
+                pharmacy_id=prod_eczane.id,
+                device_name="DREAMSTAR TV",
+                device_token="tv-hw-43CB4B290239CAC7",
+                mac_address="4A:43:CB:4B:29:02",
+                local_ip="192.168.2.119",
+                screen_resolution="960x540",
+                screen_scale="auto",
+                theme="classic_grid",
+                theme_settings="{}",
+                is_approved=True,
+                approved_at=datetime.now()
+            )
+            db.session.add(dev_dreamstar)
+            db.session.commit()
+            print("[BİLGİ] Uzaktaki canlı TV ekranı (ECZ-A762-8FCE) başarıyla geri yüklendi.")
+
         # Global sistem ayarlarını başlat (yoksa varsayılan kayıt oluşturur)
         try:
             SystemSetting.get_settings()
