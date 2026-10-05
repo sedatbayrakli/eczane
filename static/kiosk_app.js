@@ -871,18 +871,18 @@ function haritaPinleriniCiz(kendiEczane, nobetciler, seciliIndex = null, tumIsim
         const kendiIsimFormatli = turkceIsimStandartlastir(kendiEczane.name);
         const originIcon = L.divIcon({
             className: 'custom-leaflet-marker',
-            html: `<div class="origin-marker-pin" title="${escapeHtml(kendiIsimFormatli)}">⭐</div>`,
+            html: `<div class="origin-marker-pin" title="Buradasınız: ${escapeHtml(kendiIsimFormatli)}">⭐</div>`,
             iconSize: [32, 32],
             iconAnchor: [16, 16]
         });
 
         const originMarker = L.marker([kendiEczane.latitude, kendiEczane.longitude], { icon: originIcon })
             .bindPopup(`<b>⭐ ${escapeHtml(kendiIsimFormatli)}</b><br><small>Buradasınız</small>`)
-            .bindTooltip(`⭐ ${escapeHtml(kendiIsimFormatli)}`, {
+            .bindTooltip(`⭐ Buradasınız (${escapeHtml(kendiIsimFormatli)})`, {
                 permanent: true,
                 direction: 'top',
                 className: 'kiosk-map-tooltip origin-tooltip',
-                offset: [0, -18]
+                offset: [0, -22]
             });
         mapMarkersGroup.addLayer(originMarker);
         koordinatNoktalari.push([kendiEczane.latitude, kendiEczane.longitude]);
@@ -894,17 +894,26 @@ function haritaPinleriniCiz(kendiEczane, nobetciler, seciliIndex = null, tumIsim
 
     // Nöbetçi Eczaneler Pinleri
     if (Array.isArray(nobetciler)) {
+        // Çakışmaları ve pinlerin kapanmasını önleyen 4 farklı yön ve dışarı itilmiş offset dağıtımı:
+        const yonSecimleri = [
+            { dir: 'top', offset: [0, -22] },
+            { dir: 'bottom', offset: [0, 22] },
+            { dir: 'left', offset: [-18, 0] },
+            { dir: 'right', offset: [18, 0] }
+        ];
+
         nobetciler.forEach((e, idx) => {
             if (e.enlem && e.boylam) {
                 const isSelected = (seciliIndex !== null && idx === seciliIndex);
                 const isTarget = isSelected || (seciliIndex === null && idx === 0);
                 const eczaneIsimFormatli = turkceIsimStandartlastir(e.isim);
+                const siraNo = idx + 1; // 1, 2, 3, 4 (Sol kartlarla birebir eşleşir)
 
-                // Sade ve şık eczane pini (Kafa karıştırıcı rakamlar kaldırıldı)
+                // Numaralı, son derece belirgin eczane pini (Kırmızı daire içinde 1, 2, 3, 4)
                 const dutyIcon = L.divIcon({
                     className: 'custom-leaflet-marker',
-                    html: `<div class="pulse-ring-pin ${isTarget ? 'active-focused-pin' : ''}" title="${escapeHtml(eczaneIsimFormatli)}">
-                             <span style="font-size: 11px; line-height: 1;">💊</span>
+                    html: `<div class="pulse-ring-pin ${isTarget ? 'active-focused-pin' : ''}" title="${siraNo}. ${escapeHtml(eczaneIsimFormatli)}">
+                             <span style="font-size: 13px; font-weight: 900; font-family: monospace;">${siraNo}</span>
                            </div>`,
                     iconSize: isTarget ? [36, 36] : [28, 28],
                     iconAnchor: isTarget ? [18, 18] : [14, 14]
@@ -912,7 +921,7 @@ function haritaPinleriniCiz(kendiEczane, nobetciler, seciliIndex = null, tumIsim
 
                 const popupHtml = `
                     <div style="font-family:Inter,sans-serif; color:#0f172a; font-size:12px;">
-                        <strong style="color:#b91c1c; font-size:13px;">${escapeHtml(eczaneIsimFormatli)}</strong><br>
+                        <strong style="color:#b91c1c; font-size:13px;">${siraNo}. ${escapeHtml(eczaneIsimFormatli)}</strong><br>
                         <span>${escapeHtml(e.adres || '')}</span><br>
                         <b style="color:#0284c7;">${escapeHtml(formatMesafeMetin(e.mesafe_metin || ''))}</b>
                     </div>
@@ -920,18 +929,16 @@ function haritaPinleriniCiz(kendiEczane, nobetciler, seciliIndex = null, tumIsim
 
                 const marker = L.marker([e.enlem, e.boylam], { icon: dutyIcon }).bindPopup(popupHtml);
 
-                // 1. Versiyon Izgara ve İkili Kartta tüm nöbetçi isimlerini haritada kalıcı göster
+                // Tüm nöbetçi isimlerini haritada kalıcı ve çakışmasız yönle göster
                 if (hepsiGosterilsin || isTarget) {
                     const tooltipClass = isTarget ? 'kiosk-map-tooltip target-tooltip' : 'kiosk-map-tooltip duty-tooltip';
-                    // Üst üste binmeleri önlemek için ardışık pinlerin etiketleri alt-üst zikzak açılır
-                    const tooltipDirection = (idx % 2 === 0) ? 'bottom' : 'top';
-                    const tooltipOffset = (idx % 2 === 0) ? [0, 18] : [0, -18];
+                    const secilenYon = yonSecimleri[idx % yonSecimleri.length];
 
-                    marker.bindTooltip(escapeHtml(eczaneIsimFormatli), {
+                    marker.bindTooltip(`<span class="map-tooltip-badge">${siraNo}</span>${escapeHtml(eczaneIsimFormatli)}`, {
                         permanent: true,
-                        direction: tooltipDirection,
+                        direction: secilenYon.dir,
                         className: tooltipClass,
-                        offset: tooltipOffset
+                        offset: secilenYon.offset
                     });
                 }
 
@@ -1119,8 +1126,9 @@ function eczaneKartiHtmlUret(eczane, index) {
 
             <!-- Eczane İsmi ve Adres -->
             <div class="card-address-block">
-                <h2 class="pharmacy-name-title" style="margin: 0.1rem 0; font-size: clamp(1.05rem, 1.25vw, 1.22rem); font-weight: 800; color: #ffffff; line-height: 1.18; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;" title="${escapeHtml(eczane.isim)}">
-                    ${escapeHtml(eczane.isim)}
+                <h2 class="pharmacy-name-title" style="margin: 0.1rem 0; font-size: clamp(1.05rem, 1.25vw, 1.22rem); font-weight: 800; color: #ffffff; line-height: 1.18; white-space: normal; display: flex; align-items: center; gap: 0.45rem;" title="${escapeHtml(eczane.isim)}">
+                    <span class="badge-map-number" title="Harita Pin No">${index + 1}</span>
+                    <span style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${escapeHtml(eczane.isim)}</span>
                 </h2>
                 <p class="card-address-text" style="font-size: 0.78rem; line-height: 1.24; margin: 0; color: #cbd5e1; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
                     ${escapeHtml(eczane.adres)}
@@ -1222,7 +1230,10 @@ function devOdakKartiHtmlUret(eczane, siraNo, toplamAdet, modAdi = 'NAVİGASYON'
             <div class="focus-details-col">
                 <div class="focus-address-card">
                     <div class="focus-pharmacy-name-row" style="display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 0.45rem; margin-bottom: 0.45rem; flex-wrap: wrap;">
-                        <h2 class="focus-title" style="margin: 0; font-size: 1.55rem; color: #fff; font-weight: 800;">${escapeHtml(eczane.isim)}</h2>
+                        <h2 class="focus-title" style="margin: 0; font-size: 1.55rem; color: #fff; font-weight: 800; display: flex; align-items: center; gap: 0.55rem;">
+                            <span class="badge-map-number" style="width: 28px; height: 28px; min-width: 28px; font-size: 0.95rem;">${siraNo + 1}</span>
+                            <span>${escapeHtml(eczane.isim)}</span>
+                        </h2>
                         ${eczane.semt ? `<span class="badge-semt" style="font-size: 0.88rem;">${escapeHtml(eczane.semt)}</span>` : ''}
                     </div>
                     <p class="focus-address-text">${escapeHtml(eczane.adres)}</p>
@@ -1262,7 +1273,10 @@ function ikiliEczaneKartiHtmlUret(eczane, siraNo) {
             <div class="dual-card-address-block">
                 <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; margin-bottom: 0.35rem; flex-wrap: wrap;">
                     <div style="display: flex; align-items: center; gap: 0.65rem; min-width: 0; flex-wrap: wrap;">
-                        <h2 class="dual-pharmacy-title" style="margin: 0;">${escapeHtml(eczane.isim)}</h2>
+                        <h2 class="dual-pharmacy-title" style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                            <span class="badge-map-number" style="width: 24px; height: 24px; min-width: 24px; font-size: 0.88rem;">${siraNo + 1}</span>
+                            <span>${escapeHtml(eczane.isim)}</span>
+                        </h2>
                         ${eczane.mesafe_metin ? `
                             <span class="badge-distance" style="font-size: 0.95rem; font-weight: 800; padding: 0.25rem 0.65rem; white-space: nowrap;">
                                 📍 ${escapeHtml(formatMesafeMetin(eczane.mesafe_metin))}
@@ -1558,9 +1572,9 @@ function dualSayfaGoster() {
         setTimeout(() => {
             kioskMap.invalidateSize();
             try {
-                kioskMap.flyToBounds(noktalar, { padding: [35, 35], maxZoom: 15, duration: 1.0 });
+                kioskMap.flyToBounds(noktalar, { padding: [45, 45], maxZoom: 16, duration: 1.0 });
             } catch (e) {
-                kioskMap.fitBounds(noktalar, { padding: [35, 35], maxZoom: 15 });
+                kioskMap.fitBounds(noktalar, { padding: [45, 45], maxZoom: 16 });
             }
         }, 100);
     }
@@ -1654,9 +1668,9 @@ function classicSayfaGoster() {
         setTimeout(() => {
             kioskMap.invalidateSize();
             try {
-                kioskMap.flyToBounds(noktalar, { padding: [45, 45], maxZoom: 15, duration: 1.0 });
+                kioskMap.flyToBounds(noktalar, { padding: [45, 45], maxZoom: 16, duration: 1.0 });
             } catch (e) {
-                kioskMap.fitBounds(noktalar, { padding: [45, 45], maxZoom: 15 });
+                kioskMap.fitBounds(noktalar, { padding: [45, 45], maxZoom: 16 });
             }
         }, 100);
     }

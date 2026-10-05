@@ -1673,48 +1673,88 @@ body.scale-4k {
     -webkit-backdrop-filter: blur(8px);
     border-radius: 6px !important;
     padding: 3px 8px !important;
-    font-family: var(--font-main, sans-serif) !important;
-    font-size: 0.74rem !important;
+    font-family: var(--font-sans, sans-serif) !important;
+    font-size: 0.76rem !important;
     font-weight: 800 !important;
     white-space: nowrap !important;
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5) !important;
     pointer-events: none;
     letter-spacing: 0.02em;
-    max-width: 175px;
+    max-width: 190px;
     overflow: hidden;
     text-overflow: ellipsis;
+    z-index: 50 !important;
 }
 
 /* Başlangıç Eczanemiz Etiketi (Mavi/Cyan Vurgu) */
 .leaflet-tooltip.origin-tooltip {
-    border: 1.5px solid rgba(56, 189, 248, 0.85) !important;
+    border: 1.5px solid rgba(56, 189, 248, 0.9) !important;
     color: #ffffff !important;
+    background: rgba(8, 47, 73, 0.95) !important;
+    box-shadow: 0 0 12px rgba(56, 189, 248, 0.4) !important;
 }
 
 .leaflet-tooltip.origin-tooltip::before {
-    border-top-color: rgba(56, 189, 248, 0.85) !important;
+    border-top-color: rgba(56, 189, 248, 0.9) !important;
 }
 
 /* Hedef Nöbetçi Eczane Etiketi (Kırmızı/Mercan Vurgu) */
 .leaflet-tooltip.target-tooltip {
-    background: rgba(30, 10, 10, 0.95) !important;
-    border: 1.5px solid rgba(239, 68, 68, 0.9) !important;
+    background: rgba(45, 10, 10, 0.96) !important;
+    border: 1.5px solid rgba(239, 68, 68, 0.95) !important;
     color: #fef2f2 !important;
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.4) !important;
 }
 
 .leaflet-tooltip.target-tooltip::before {
-    border-bottom-color: rgba(239, 68, 68, 0.9) !important;
+    border-bottom-color: rgba(239, 68, 68, 0.95) !important;
 }
 
 /* Genel Nöbetçi Eczane Harita Etiketi (1. Versiyon Izgara ve Çoklu Gösterim İçin) */
 .leaflet-tooltip.duty-tooltip {
-    background: rgba(15, 23, 42, 0.95) !important;
-    border: 1.5px solid rgba(248, 113, 113, 0.75) !important;
+    background: rgba(15, 23, 42, 0.96) !important;
+    border: 1.5px solid rgba(239, 68, 68, 0.75) !important;
     color: #ffffff !important;
 }
 
 .leaflet-tooltip.duty-tooltip::before {
-    border-bottom-color: rgba(248, 113, 113, 0.75) !important;
+    border-bottom-color: rgba(239, 68, 68, 0.75) !important;
+}
+
+/* Harita Etiketi İçi Sıra Numarası Rozeti */
+.map-tooltip-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    background: #ef4444;
+    color: #ffffff;
+    border-radius: 50%;
+    font-size: 0.68rem;
+    font-weight: 900;
+    font-family: var(--font-mono, monospace);
+    margin-right: 4px;
+    vertical-align: middle;
+}
+
+/* Kart Üzerindeki Eşleşen Sıra Numarası Rozeti */
+.badge-map-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+    background: #ef4444;
+    color: #ffffff;
+    border-radius: 50%;
+    font-size: 0.8rem;
+    font-weight: 900;
+    font-family: var(--font-mono, monospace);
+    border: 1.5px solid #ffffff;
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.6);
+    flex-shrink: 0;
 }
 
 
