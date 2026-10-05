@@ -1928,20 +1928,25 @@ function temaIcerikGorunurlukleriniUygula(ts) {
     // Harita parametrik olarak kapatıldığında 4'lü kart ızgarası haritanın yerini de kaplar (.no-map)
     const elMap = document.getElementById('kiosk-map-panel');
     const elLayout = document.getElementById('kiosk-layout');
-    let showMap = (ts.show_map !== false);
-    if (typeof _urlParamsInit !== 'undefined' && _urlParamsInit && _urlParamsInit.has('show_map')) {
-        const pMap = _urlParamsInit.get('show_map');
-        showMap = (pMap === '1' || pMap === 'true');
-    }
+    let showMap = (ts && ts.show_map !== undefined) ? (ts.show_map !== false) : true;
+    try {
+        const _uParams = new URLSearchParams(window.location.search);
+        if (_uParams.has('show_map')) {
+            const pMap = _uParams.get('show_map');
+            showMap = !(pMap === '0' || pMap === 'false' || pMap === 'no');
+        }
+    } catch (e) {}
 
     if (elMap && elLayout) {
         const aktifGorunum = aktifGorunumuBelirle();
         if (!showMap || aktifGorunum === 'list_view') {
             elMap.style.display = 'none';
             elLayout.classList.add('no-map');
+            document.body.classList.add('kiosk-no-map');
         } else {
             elMap.style.display = '';
             elLayout.classList.remove('no-map');
+            document.body.classList.remove('kiosk-no-map');
             if (kioskMap) {
                 setTimeout(() => {
                     kioskMap.invalidateSize();
@@ -2028,7 +2033,8 @@ function arayuzuGuncelle(veri, isOffline = false, savedTime = '') {
 
     document.body.dataset.theme = gorunum;
     if (elKioskLayout) {
-        elKioskLayout.className = `kiosk-content-layout layout-${gorunum}`;
+        const isNoMap = document.body.classList.contains('kiosk-no-map') || elKioskLayout.classList.contains('no-map');
+        elKioskLayout.className = `kiosk-content-layout layout-${gorunum}${isNoMap ? ' no-map' : ''}`;
     }
 
     // "Bu Gece Nöbetçiyiz" Vurgusu
@@ -2103,6 +2109,9 @@ function arayuzuGuncelle(veri, isOffline = false, savedTime = '') {
         } else {
             uyariDurumunuAyarla(false);
         }
+
+        // Görünürlük ayarlarını (show_map, show_qr vb.) son haliyle DOM'a garanti olarak uygula
+        temaIcerikGorunurlukleriniUygula(veri.pharmacy ? veri.pharmacy.theme_settings : null);
     }
 }
 
@@ -2133,6 +2142,15 @@ async function kioskVerileriniGetir() {
     }
     if (prevScale) {
         apiAdresi += `&preview_scale=${encodeURIComponent(prevScale)}`;
+    }
+    if (urlParams && urlParams.has('show_map')) {
+        apiAdresi += `&show_map=${encodeURIComponent(urlParams.get('show_map'))}`;
+    }
+    if (urlParams && urlParams.has('zoom')) {
+        apiAdresi += `&zoom=${encodeURIComponent(urlParams.get('zoom'))}`;
+    }
+    if (urlParams && urlParams.has('margin')) {
+        apiAdresi += `&margin=${encodeURIComponent(urlParams.get('margin'))}`;
     }
 
     try {

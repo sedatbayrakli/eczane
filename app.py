@@ -1389,6 +1389,7 @@ def api_kiosk_data():
     # Dinamik ölçekleme ve Güvenli Alan parametreleri (Tek otorite: cihaz_ekran_olcegi)
     url_zoom = request.args.get("zoom") or request.args.get("scale")
     url_margin = request.args.get("margin") or request.args.get("padding") or request.args.get("safe_area") or request.args.get("safeAreaMargin")
+    url_show_map = request.args.get("show_map")
     
     cihaz_scale = url_zoom or cihaz_ekran_olcegi or "1.0"
     cihaz_safe_margin = url_margin or (cihaz_tema_ayarlari.get("safeAreaMargin") if isinstance(cihaz_tema_ayarlari, dict) else 0)
@@ -1396,6 +1397,8 @@ def api_kiosk_data():
     if isinstance(cihaz_tema_ayarlari, dict):
         cihaz_tema_ayarlari["scale"] = cihaz_scale
         cihaz_tema_ayarlari["safeAreaMargin"] = cihaz_safe_margin
+        if url_show_map is not None:
+            cihaz_tema_ayarlari["show_map"] = not (url_show_map.lower() in ("0", "false", "no", "off"))
 
     # Manuel test veya otomatik tespit kontrolü
     nihai_nobet_durumu = eczane.nobetci_mi()

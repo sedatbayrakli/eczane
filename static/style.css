@@ -953,6 +953,70 @@ body.kiosk-mode {
     overflow: hidden;
 }
 
+/* Harita Kaldırıldığında / Kapatıldığında: 4'lü Kare Kartlar Haritanın Yerini de Kullanarak Tüm Ekrana Yayılır */
+.kiosk-content-layout.no-map,
+.kiosk-content-layout.layout-classic_grid.no-map,
+body.kiosk-no-map .kiosk-content-layout,
+body.kiosk-no-map .kiosk-content-layout.layout-classic_grid {
+    grid-template-columns: 1fr !important;
+}
+
+.kiosk-content-layout.no-map .kiosk-map-panel,
+.kiosk-content-layout.layout-classic_grid.no-map .kiosk-map-panel,
+body.kiosk-no-map .kiosk-map-panel {
+    display: none !important;
+}
+
+.kiosk-content-layout.layout-classic_grid.no-map .pharmacy-grid-container,
+body.kiosk-no-map .layout-classic_grid .pharmacy-grid-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-template-rows: repeat(2, minmax(0, 1fr)) !important;
+    gap: clamp(0.75rem, 1.4vh, 1.35rem) clamp(0.85rem, 1.5vw, 1.6rem) !important;
+    height: 100% !important;
+    padding: 0.2rem 0 !important;
+}
+
+.kiosk-content-layout.layout-classic_grid.no-map .pharmacy-card.classic-grid-card,
+body.kiosk-no-map .layout-classic_grid .pharmacy-card.classic-grid-card {
+    padding: clamp(0.75rem, 1.3vh, 1.25rem) clamp(0.9rem, 1.3vw, 1.4rem) !important;
+    gap: 0.8rem !important;
+    height: 100% !important;
+    box-sizing: border-box !important;
+}
+
+.kiosk-content-layout.layout-classic_grid.no-map .pharmacy-card.classic-grid-card .pharmacy-name-title,
+body.kiosk-no-map .layout-classic_grid .pharmacy-card.classic-grid-card .pharmacy-name-title {
+    font-size: clamp(1.25rem, 1.6vw, 1.65rem) !important;
+    line-height: 1.2 !important;
+}
+
+.kiosk-content-layout.layout-classic_grid.no-map .pharmacy-card.classic-grid-card .card-address-text,
+body.kiosk-no-map .layout-classic_grid .pharmacy-card.classic-grid-card .card-address-text {
+    font-size: clamp(0.85rem, 1.05vw, 1.1rem) !important;
+    -webkit-line-clamp: 3 !important;
+    line-height: 1.3 !important;
+}
+
+.kiosk-content-layout.layout-classic_grid.no-map .pharmacy-card.classic-grid-card .phone-number-display,
+body.kiosk-no-map .layout-classic_grid .pharmacy-card.classic-grid-card .phone-number-display {
+    font-size: clamp(1.05rem, 1.25vw, 1.35rem) !important;
+}
+
+.kiosk-content-layout.layout-classic_grid.no-map .classic-qr-box,
+body.kiosk-no-map .layout-classic_grid .classic-qr-box {
+    width: 110px !important;
+    min-width: 110px !important;
+    padding: 0.5rem 0.6rem !important;
+}
+
+.kiosk-content-layout.layout-classic_grid.no-map .classic-qr-img-wrap,
+body.kiosk-no-map .layout-classic_grid .classic-qr-img-wrap {
+    width: 90px !important;
+    height: 90px !important;
+}
+
 /* Klasik 4'lü Izgara Kartı Özel Optimizasyonu (22" Küçük TV'lerde İsim ve Telefonun Taşmasını Önler) */
 .pharmacy-card.classic-grid-card {
     padding: clamp(0.45rem, 0.8vh, 0.75rem) clamp(0.55rem, 0.8vw, 0.85rem) !important;
