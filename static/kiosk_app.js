@@ -1923,6 +1923,32 @@ function temaIcerikGorunurlukleriniUygula(ts) {
     if (landmarkBar && ts.show_landmark === false) {
         landmarkBar.style.display = 'none';
     }
+
+    // Harita Paneli Görünürlüğü (show_map)
+    // Harita parametrik olarak kapatıldığında 4'lü kart ızgarası haritanın yerini de kaplar (.no-map)
+    const elMap = document.getElementById('kiosk-map-panel');
+    const elLayout = document.getElementById('kiosk-layout');
+    let showMap = (ts.show_map !== false);
+    if (typeof _urlParamsInit !== 'undefined' && _urlParamsInit && _urlParamsInit.has('show_map')) {
+        const pMap = _urlParamsInit.get('show_map');
+        showMap = (pMap === '1' || pMap === 'true');
+    }
+
+    if (elMap && elLayout) {
+        const aktifGorunum = aktifGorunumuBelirle();
+        if (!showMap || aktifGorunum === 'list_view') {
+            elMap.style.display = 'none';
+            elLayout.classList.add('no-map');
+        } else {
+            elMap.style.display = '';
+            elLayout.classList.remove('no-map');
+            if (kioskMap) {
+                setTimeout(() => {
+                    kioskMap.invalidateSize();
+                }, 100);
+            }
+        }
+    }
 }
 
 

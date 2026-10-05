@@ -1410,6 +1410,13 @@
                                 <div class="form-section-title">
                                     <span>🗺️ Harita ve TV Çerçeve Güvenliği</span>
                                 </div>
+                                <div class="form-group" style="margin-bottom: 0.75rem; background: rgba(56,189,248,0.08); padding: 0.55rem 0.75rem; border-radius: 8px; border: 1px solid rgba(56,189,248,0.25);">
+                                    <label style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.88rem; color: #38bdf8; cursor: pointer; margin-bottom: 0;">
+                                        <input type="checkbox" id="ts-show-map" checked style="width: 19px; height: 19px; accent-color: #38bdf8;">
+                                        <span><strong>🗺️ Harita Panelini Göster</strong></span>
+                                    </label>
+                                    <small style="color: #94a3b8; font-size: 0.73rem; margin-left: 1.85rem; display: block;">Kapatıldığında harita gizlenir ve 4'lü nöbetçi kartları ekranın tamamına yayılarak haritanın yerini de kaplar.</small>
+                                </div>
                                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.65rem;">
                                     <div class="form-group" style="margin-bottom: 0;">
                                         <label>🛡️ Güvenli Alan (Margin)</label>
@@ -2493,6 +2500,7 @@
             document.getElementById('ts-map-zoom').value = ayar.map_zoom || 14;
 
             // Görünürlük ve Koruma Kontrolleri
+            document.getElementById('ts-show-map').checked = (ayar.show_map !== false);
             document.getElementById('ts-show-countdown').checked = (ayar.show_countdown !== false);
             document.getElementById('ts-show-qr').checked = (ayar.show_qr !== false);
             document.getElementById('ts-show-route').checked = (ayar.show_route !== false);
@@ -2530,6 +2538,7 @@
             document.getElementById('ts-map-zoom').value = devSettings.map_zoom || 14;
 
             // Görünürlük ve Koruma Kontrolleri
+            document.getElementById('ts-show-map').checked = (devSettings.show_map !== false);
             document.getElementById('ts-show-countdown').checked = (devSettings.show_countdown !== false);
             document.getElementById('ts-show-qr').checked = (devSettings.show_qr !== false);
             document.getElementById('ts-show-route').checked = (devSettings.show_route !== false);
@@ -2553,6 +2562,7 @@
                 ticker_speed_px: parseInt(document.getElementById('ts-ticker-speed').value, 10) || 55,
                 safeAreaMargin: parseInt(document.getElementById('ts-safe-area-margin').value, 10) || 0,
                 map_zoom: parseInt(document.getElementById('ts-map-zoom').value, 10) || 14,
+                show_map: document.getElementById('ts-show-map').checked,
                 show_countdown: document.getElementById('ts-show-countdown').checked,
                 show_qr: document.getElementById('ts-show-qr').checked,
                 show_route: document.getElementById('ts-show-route').checked,

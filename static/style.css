@@ -765,9 +765,47 @@ body.kiosk-mode {
     overflow: hidden;
 }
 
-/* Eğer harita gizlenirse kartlar tam genişlik kaplar */
+/* Harita Kaldırıldığında / Gizlendiğinde 4'lü Kare Kartlar Haritanın Yerini de Kullanır */
 .kiosk-content-layout.no-map {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
+}
+
+.kiosk-content-layout.no-map .kiosk-map-panel {
+    display: none !important;
+}
+
+/* Tema 1 (Klasik 4'lü Izgara) Haritasız Tam Ekran Görünümü */
+.kiosk-content-layout.layout-classic_grid.no-map .pharmacy-grid-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    grid-template-rows: repeat(2, 1fr) !important;
+    gap: clamp(0.75rem, 1.4vh, 1.35rem) clamp(0.85rem, 1.5vw, 1.5rem) !important;
+    height: 100% !important;
+}
+
+.kiosk-content-layout.layout-classic_grid.no-map .pharmacy-card.classic-grid-card {
+    padding: clamp(0.75rem, 1.3vh, 1.25rem) clamp(0.9rem, 1.3vw, 1.4rem) !important;
+}
+
+.kiosk-content-layout.layout-classic_grid.no-map .pharmacy-card.classic-grid-card .pharmacy-name-title {
+    font-size: clamp(1.25rem, 1.6vw, 1.65rem) !important;
+}
+
+.kiosk-content-layout.layout-classic_grid.no-map .pharmacy-card.classic-grid-card .card-address-text {
+    font-size: clamp(0.85rem, 1.05vw, 1.05rem) !important;
+    -webkit-line-clamp: 3 !important;
+}
+
+.kiosk-content-layout.layout-classic_grid.no-map .classic-qr-box {
+    width: 110px !important;
+    min-width: 110px !important;
+    padding: 0.5rem 0.6rem !important;
+}
+
+.kiosk-content-layout.layout-classic_grid.no-map .classic-qr-img-wrap {
+    width: 90px !important;
+    height: 90px !important;
 }
 
 .kiosk-map-panel {
