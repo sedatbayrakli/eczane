@@ -1869,9 +1869,7 @@ function arayuzuGuncelle(veri, isOffline = false, savedTime = '') {
 
         // TV / Mi Box Ekran Çözünürlüğü, Dinamik Zoom ve Güvenli Alan Ayarını Uygula
         const tsSettings = veri.pharmacy.theme_settings || {};
-        const seciliScale = (tsSettings.scale !== undefined && tsSettings.scale !== null) 
-            ? tsSettings.scale 
-            : (veri.pharmacy.scale || veri.pharmacy.screen_scale || 'auto');
+        const seciliScale = veri.pharmacy.scale || veri.pharmacy.screen_scale || tsSettings.scale || '1.0';
         const seciliSafeMargin = (tsSettings.safeAreaMargin !== undefined && tsSettings.safeAreaMargin !== null) 
             ? tsSettings.safeAreaMargin 
             : (veri.pharmacy.safeAreaMargin || 0);
@@ -2354,8 +2352,8 @@ function ekranOlceginiUygula(scaleAyar = 'auto', safeAreaAyar = null) {
         }
     }
 
-    // Güvenlik sınırları (Zoom: %50 - %150, Margin: 0 - 100px)
-    hedefZoom = Math.max(0.5, Math.min(1.5, hedefZoom));
+    // Güvenlik sınırları (Zoom: %40 - %200, Margin: 0 - 100px)
+    hedefZoom = Math.max(0.4, Math.min(2.0, hedefZoom));
     hedefMargin = Math.max(0, Math.min(100, hedefMargin));
 
     // 3. CSS Zoom / Scale Uygulama (Tam ekranı doldurarak orantılı ölçekler)

@@ -944,6 +944,11 @@ def admin_edit_single_device(eczane_id, device_id):
         cihaz.theme = yeni_tema
     if yeni_olcek:
         cihaz.screen_scale = yeni_olcek
+        # theme_settings içindeki eski tekil scale kilitlerini temizle (Tek otorite screen_scale)
+        ts = cihaz.get_theme_settings()
+        if isinstance(ts, dict) and "scale" in ts:
+            ts.pop("scale", None)
+            cihaz.set_theme_settings(ts)
     if yeni_mac:
         cihaz.mac_address = yeni_mac
 
@@ -990,6 +995,7 @@ def admin_save_device_theme_settings(eczane_id, device_id):
 
     ayarlar = veri.get("theme_settings", {})
     if isinstance(ayarlar, dict):
+        ayarlar.pop("scale", None)  # TV Ekran Ölçeği artık cihaz kartındaki ana alandan yönetilir
         cihaz.set_theme_settings(ayarlar)
 
     db.session.commit()
@@ -1380,11 +1386,11 @@ def api_kiosk_data():
     if preview_scale:
         cihaz_ekran_olcegi = preview_scale
 
-    # Dinamik ölçekleme ve Güvenli Alan parametreleri
+    # Dinamik ölçekleme ve Güvenli Alan parametreleri (Tek otorite: cihaz_ekran_olcegi)
     url_zoom = request.args.get("zoom") or request.args.get("scale")
     url_margin = request.args.get("margin") or request.args.get("padding") or request.args.get("safe_area") or request.args.get("safeAreaMargin")
     
-    cihaz_scale = url_zoom or (cihaz_tema_ayarlari.get("scale") if isinstance(cihaz_tema_ayarlari, dict) else None) or cihaz_ekran_olcegi
+    cihaz_scale = url_zoom or cihaz_ekran_olcegi or "1.0"
     cihaz_safe_margin = url_margin or (cihaz_tema_ayarlari.get("safeAreaMargin") if isinstance(cihaz_tema_ayarlari, dict) else 0)
 
     if isinstance(cihaz_tema_ayarlari, dict):

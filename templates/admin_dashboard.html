@@ -1405,22 +1405,12 @@
                                 </div>
                             </div>
 
-                            <!-- 3. Harita & Canlı Rota Parametreleri -->
+                            <!-- 3. Harita & Güvenli Alan Parametreleri -->
                             <div class="form-section-card" style="margin-bottom: 0;">
                                 <div class="form-section-title">
-                                    <span>🗺️ Harita ve Ekran Boyutlandırma</span>
+                                    <span>🗺️ Harita ve TV Çerçeve Güvenliği</span>
                                 </div>
                                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.65rem;">
-                                    <div class="form-group" style="margin-bottom: 0;">
-                                        <label>📺 Ekran Ölçeği (Zoom)</label>
-                                        <select id="ts-scale" class="form-control">
-                                            <option value="1.0" selected>FHD 1080p (%100)</option>
-                                            <option value="0.88">22" Küçük TV (%88 - Önerilen)</option>
-                                            <option value="0.85">HD 720p (%85)</option>
-                                            <option value="0.80">Mi Box (%80)</option>
-                                            <option value="1.30">4K Dev Ekran (%130)</option>
-                                        </select>
-                                    </div>
                                     <div class="form-group" style="margin-bottom: 0;">
                                         <label>🛡️ Güvenli Alan (Margin)</label>
                                         <select id="ts-safe-area-margin" class="form-control">
@@ -1432,17 +1422,20 @@
                                             <option value="30">30px (Maksimum)</option>
                                         </select>
                                     </div>
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label>🗺️ Harita Başlangıç Yakınlaştırma</label>
+                                        <select id="ts-map-zoom" class="form-control">
+                                            <option value="13">13 - Geniş İlçe Çerçevesi</option>
+                                            <option value="14" selected>14 - Standart İlçe Görünümü</option>
+                                            <option value="15">15 - Yakın Odak</option>
+                                            <option value="16">16 - Detaylı Sokak</option>
+                                        </select>
+                                    </div>
                                 </div>
-                                <div class="form-group" style="margin-bottom: 0.65rem;">
-                                    <label>Harita Başlangıç Yakınlaştırma (Zoom)</label>
-                                    <select id="ts-map-zoom" class="form-control">
-                                        <option value="13">13 - Geniş İlçe Çerçevesi</option>
-                                        <option value="14" selected>14 - Standart İlçe Görünümü</option>
-                                        <option value="15">15 - Yakın Mahalle Odaklı</option>
-                                        <option value="16">16 - Detaylı Cadde / Sokak Odaklı</option>
-                                    </select>
-                                </div>
-                                <div class="form-group" style="margin-bottom: 0; background: rgba(0,0,0,0.25); padding: 0.5rem 0.65rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
+                                <span style="font-size: 0.73rem; color: #64748b; display: block; line-height: 1.3;">
+                                    💡 TV Ekran Ölçeği (Zoom) ayarını doğrudan ana ekrandaki TV Cihaz kartından manuel yüzde (%) olarak belirleyebilirsiniz.
+                                </span>
+                                <div class="form-group" style="margin-top: 0.65rem; margin-bottom: 0; background: rgba(0,0,0,0.25); padding: 0.5rem 0.65rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
                                     <label style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.84rem; color: #e2e8f0; cursor: pointer; margin-bottom: 0;">
                                         <input type="checkbox" id="ts-show-route" checked style="width: 18px; height: 18px; accent-color: #38bdf8;">
                                         <span><strong>Haritada Canlı Yürüyüş Rotası Çiz (OSRM)</strong></span>
@@ -1705,7 +1698,38 @@
                             ? '<span class="heartbeat-dot dot-online" style="display:inline-block; width:11px; height:11px;" title="Cihaz Çevrimiçi"></span>' 
                             : '<span class="heartbeat-dot dot-offline" style="display:inline-block; width:11px; height:11px;" title="Cihaz Çevrimdışı"></span>';
 
-                        const scaleVal = d.screen_scale || 'auto';
+                        // Standart ölçek mi yoksa manuel yüzde mi ayrıştır
+                        const rawScale = String(d.screen_scale || '1.0').trim();
+                        let standardOptionVal = '1.0';
+                        let customPercentVal = 100;
+                        let isCustom = false;
+
+                        if (rawScale === 'auto' || rawScale === '1.0' || rawScale === '1' || rawScale === '100' || rawScale === '1080p') {
+                            standardOptionVal = '1.0';
+                            customPercentVal = 100;
+                        } else if (rawScale === '0.88' || rawScale === '88') {
+                            standardOptionVal = '0.88';
+                            customPercentVal = 88;
+                        } else if (rawScale === '0.85' || rawScale === '85' || rawScale === '720p') {
+                            standardOptionVal = '0.85';
+                            customPercentVal = 85;
+                        } else if (rawScale === '0.80' || rawScale === '0.8' || rawScale === '80' || rawScale === 'compact') {
+                            standardOptionVal = '0.80';
+                            customPercentVal = 80;
+                        } else if (rawScale === '1.30' || rawScale === '1.3' || rawScale === '130' || rawScale === '4k') {
+                            standardOptionVal = '1.30';
+                            customPercentVal = 130;
+                        } else {
+                            standardOptionVal = 'custom';
+                            isCustom = true;
+                            const num = parseFloat(rawScale);
+                            if (!isNaN(num) && num > 0) {
+                                customPercentVal = (num <= 2) ? Math.round(num * 100) : Math.round(num);
+                            } else {
+                                customPercentVal = 100;
+                            }
+                        }
+
                         const devTheme = d.theme || eczane.theme || 'classic_grid';
 
                         const approvalBadge = d.is_approved
@@ -1788,16 +1812,28 @@
                                 <!-- 3. TV Ölçeği / Çözünürlük -->
                                 <div class="device-info-box">
                                     <div class="device-field-label">📺 TV Ölçeği / Çözünürlük</div>
-                                    <select id="dev-scale-${d.id}" class="form-control" style="font-size: 0.8rem; height: 34px; min-height: 34px; line-height: 32px; padding: 0 0.5rem; background: rgba(0,0,0,0.4); border-color: rgba(255,255,255,0.15);">
-                                        <option value="auto" ${scaleVal === 'auto' ? 'selected' : ''}>🖥️ Otomatik TV</option>
-                                        <option value="0.88" ${scaleVal === '0.88' ? 'selected' : ''}>📺 22" Küçük TV (%88)</option>
-                                        <option value="compact" ${scaleVal === 'compact' ? 'selected' : ''}>📺 Mi Box (%80)</option>
-                                        <option value="720p" ${scaleVal === '720p' ? 'selected' : ''}>📺 720p HD (%85)</option>
-                                        <option value="1080p" ${scaleVal === '1080p' ? 'selected' : ''}>📺 1080p FHD (%100)</option>
-                                        <option value="4k" ${scaleVal === '4k' ? 'selected' : ''}>🌟 4K Vitrin (%130)</option>
+                                    <select id="dev-scale-${d.id}" class="form-control" onchange="cihazScaleDegisti(${d.id})" style="font-size: 0.8rem; height: 34px; min-height: 34px; line-height: 32px; padding: 0 0.5rem; background: rgba(0,0,0,0.4); border-color: rgba(255,255,255,0.15);">
+                                        <option value="1.0" ${standardOptionVal === '1.0' ? 'selected' : ''}>🖥️ Otomatik / FHD (%100)</option>
+                                        <option value="0.88" ${standardOptionVal === '0.88' ? 'selected' : ''}>📺 22" Küçük TV (%88)</option>
+                                        <option value="0.85" ${standardOptionVal === '0.85' ? 'selected' : ''}>📺 720p HD (%85)</option>
+                                        <option value="0.80" ${standardOptionVal === '0.80' ? 'selected' : ''}>📺 Mi Box (%80)</option>
+                                        <option value="1.30" ${standardOptionVal === '1.30' ? 'selected' : ''}>🌟 4K Dev Ekran (%130)</option>
+                                        <option value="custom" ${isCustom ? 'selected' : ''}>✏️ Özel Yüzde Gir (%...)</option>
                                     </select>
+
+                                    <!-- Manuel Özel Yüzde Giriş Kutusu (Örn: %77) -->
+                                    <div id="dev-custom-scale-box-${d.id}" style="display: ${isCustom ? 'flex' : 'none'}; align-items: center; gap: 0.4rem; margin-top: 0.35rem; background: rgba(56, 189, 248, 0.08); padding: 0.25rem 0.45rem; border-radius: 6px; border: 1px solid rgba(56, 189, 248, 0.3);">
+                                        <span style="font-size: 0.82rem; font-weight: 800; color: #38bdf8;">%</span>
+                                        <input type="number" id="dev-custom-scale-input-${d.id}" min="40" max="200" step="1" 
+                                            value="${customPercentVal}" 
+                                            class="form-control" 
+                                            style="font-size: 0.82rem; height: 28px; line-height: 26px; padding: 0 0.4rem; width: 68px; text-align: center; font-weight: 700; background: rgba(0,0,0,0.6); border-color: #38bdf8; color: #ffffff;" 
+                                            placeholder="77">
+                                        <span style="font-size: 0.72rem; color: #94a3b8;">(Örn: 77)</span>
+                                    </div>
+
                                     <span style="font-size: 0.72rem; color: #64748b; margin-top: 0.25rem; display: block; line-height: 1.3;">
-                                        TV tarayıcısındaki taşmaları önleyen ölçek oranı.
+                                        Ekrana tam sığdırmak için zoom ölçeği.
                                     </span>
                                 </div>
                             </div>
@@ -1819,6 +1855,21 @@
                         <p style="font-size: 0.85rem; color: #cbd5e1;">${escapeHtml(err.message)}</p>
                     </div>
                 `;
+            }
+        }
+
+        // Cihaz Ölçek Seçimi Değiştiğinde Özel Yüzde Inputunu Aç/Kapa
+        function cihazScaleDegisti(deviceId) {
+            const sel = document.getElementById(`dev-scale-${deviceId}`);
+            const box = document.getElementById(`dev-custom-scale-box-${deviceId}`);
+            if (sel && box) {
+                if (sel.value === 'custom') {
+                    box.style.display = 'flex';
+                    const inp = document.getElementById(`dev-custom-scale-input-${deviceId}`);
+                    if (inp) inp.focus();
+                } else {
+                    box.style.display = 'none';
+                }
             }
         }
 
@@ -1848,7 +1899,20 @@
             if (!nameInput || !scaleSelect) return;
 
             const deviceName = nameInput.value.trim();
-            const screenScale = scaleSelect.value;
+            let screenScale = scaleSelect.value;
+            
+            // Eğer özel yüzde seçildiyse input kutusundan yüzde değerini al
+            if (screenScale === 'custom') {
+                const customInput = document.getElementById(`dev-custom-scale-input-${deviceId}`);
+                const customVal = customInput ? parseFloat(customInput.value) : 100;
+                if (!isNaN(customVal) && customVal >= 40 && customVal <= 200) {
+                    // Örn: 77 -> 0.77
+                    screenScale = (customVal / 100).toFixed(2);
+                } else {
+                    alert('Lütfen %40 ile %200 arasında geçerli bir ölçek yüzdesi girin (Örn: 77).');
+                    return;
+                }
+            }
             const theme = themeSelect ? themeSelect.value : 'classic_grid';
 
             const formData = new FormData();
@@ -1863,7 +1927,8 @@
                     body: formData
                 });
                 if (res.ok) {
-                    alert(`✅ '${deviceName}' cihaz ayarları (tema, ölçek, isim) başarıyla kaydedildi!`);
+                    const yuzdeMetin = Math.round(parseFloat(screenScale) * 100);
+                    alert(`✅ '${deviceName}' cihaz ayarları (Ölçek: %${yuzdeMetin}) başarıyla kaydedildi!`);
                     cihazYonetimModalAc(eczaneId);
                 } else {
                     alert('Ayarlar kaydedilirken hata oluştu.');
@@ -2424,7 +2489,6 @@
             document.getElementById('ts-carousel-interval').value = ayar.carousel_interval_sec || 10;
             document.getElementById('ts-autorotate-interval').value = ayar.auto_rotate_minutes || 60;
             document.getElementById('ts-ticker-speed').value = ayar.ticker_speed_px || 55;
-            document.getElementById('ts-scale').value = String(ayar.scale || 1.0);
             document.getElementById('ts-safe-area-margin').value = String(ayar.safeAreaMargin !== undefined ? ayar.safeAreaMargin : 0);
             document.getElementById('ts-map-zoom').value = ayar.map_zoom || 14;
 
@@ -2462,17 +2526,6 @@
             document.getElementById('ts-carousel-interval').value = devSettings.carousel_interval_sec || 10;
             document.getElementById('ts-autorotate-interval').value = devSettings.auto_rotate_minutes || 60;
             document.getElementById('ts-ticker-speed').value = devSettings.ticker_speed_px || 55;
-            
-            // TV Ekran Ölçeği & Güvenli Alan
-            let devScalePreset = devSettings.scale;
-            if (!devScalePreset) {
-                if (dev.screen_scale === 'compact') devScalePreset = 0.8;
-                else if (dev.screen_scale === '720p') devScalePreset = 0.85;
-                else if (dev.screen_scale === '0.88') devScalePreset = 0.88;
-                else if (dev.screen_scale === '4k') devScalePreset = 1.3;
-                else devScalePreset = 1.0;
-            }
-            document.getElementById('ts-scale').value = String(devScalePreset);
             document.getElementById('ts-safe-area-margin').value = String(devSettings.safeAreaMargin !== undefined ? devSettings.safeAreaMargin : 0);
             document.getElementById('ts-map-zoom').value = devSettings.map_zoom || 14;
 
@@ -2498,7 +2551,6 @@
                 carousel_interval_sec: parseInt(document.getElementById('ts-carousel-interval').value, 10) || 10,
                 auto_rotate_minutes: parseInt(document.getElementById('ts-autorotate-interval').value, 10) || 60,
                 ticker_speed_px: parseInt(document.getElementById('ts-ticker-speed').value, 10) || 55,
-                scale: parseFloat(document.getElementById('ts-scale').value) || 1.0,
                 safeAreaMargin: parseInt(document.getElementById('ts-safe-area-margin').value, 10) || 0,
                 map_zoom: parseInt(document.getElementById('ts-map-zoom').value, 10) || 14,
                 show_countdown: document.getElementById('ts-show-countdown').checked,
