@@ -38,8 +38,8 @@
 })();
 
 const KIOSK_AYARLAR = {
-    POLLING_ARALIGI_MS: 15 * 60 * 1000, // 15 dakikada bir veri tazeleme
-    HEARTBEAT_ARALIGI_MS: 15 * 1000,    // 15 saniyede bir hafif canlılık ve komut dinleme sinyali
+    POLLING_ARALIGI_MS: 15 * 60 * 1000, // 15 dakikada bir tam veri tazeleme
+    HEARTBEAT_ARALIGI_MS: 10 * 1000,    // 10 saniyede bir hafif canlılık, ayar senkronizasyonu ve komut dinleme sinyali
     HATA_TEKRAR_DENE_MS: 60 * 1000,     // Ağ kesintisinde 60 saniyede bir tekrar deneme
     SAAT_ARALIGI_MS: 1000,              // Saniyede bir saat güncelleme
     GECE_RELOAD_SAATI: 5,               // Her gece 05:00'te bellek temizliği için yenileme
@@ -2290,9 +2290,77 @@ async function kioskVerileriniGetir() {
     }
 }
 
+let sonUygulananConfigJson = '';
+
 /**
- * TV Kiosk Ekranının Canlılık Sinyalini (Heartbeat) Gönderir (5 saniyede bir)
- * Sunucudan gelen komutları (Cihaz Tanımlama / Identify) anında yakalar.
+ * Admin panelinden veya Cihaz Parametrelerinden yapılan anlık değişiklikleri
+ * (Ölçek, Tema, Harita Kapatma, Güvenli Alan, Kayan Yazı vb.) 10 saniye içinde TV ekranına yansıtır.
+ */
+function anlikAyarGuncellemesiniUygula(cfg) {
+    if (!cfg) return;
+    const cfgJson = JSON.stringify(cfg);
+    if (cfgJson === sonUygulananConfigJson) {
+        return; // Herhangi bir değişiklik yoksa işlem yapma
+    }
+    sonUygulananConfigJson = cfgJson;
+
+    // 1. Tema Değişikliği (Classic Grid, Focus Hero, Dual View vb.)
+    if (cfg.theme && cfg.theme !== aktifTema) {
+        console.log(`[Anlık Ayar] Tema değişti: ${aktifTema} -> ${cfg.theme}`);
+        aktifTema = cfg.theme;
+        kioskVerileriniGetir();
+        return;
+    }
+
+    // 2. Ekran Ölçeği & Güvenli Alan Değişikliği
+    const seciliScale = cfg.scale || cfg.screen_scale || 'auto';
+    const seciliMargin = (cfg.safeAreaMargin !== undefined && cfg.safeAreaMargin !== null) ? cfg.safeAreaMargin : 0;
+    ekranOlceginiUygula(seciliScale, seciliMargin);
+
+    // 3. Kayan Yazı (Ticker) Değişikliği
+    if (cfg.ticker_text !== undefined && elTickerText) {
+        const duyuruMetni = cfg.ticker_text || 'Eczanemiz halk sağlığı için hizmetinizdedir.';
+        const sabitNobetDuyurusu = '⏰ Nöbet Saatleri: 19:00 — 09:00 (Sabaha kadar kesintisiz açıktır)';
+        elTickerText.textContent = `${duyuruMetni}   •   ${sabitNobetDuyurusu}`;
+    }
+
+    // 4. Tema Parametreleri (Harita show_map, sayaç, karusel süresi vb.)
+    if (cfg.theme_settings) {
+        const ts = cfg.theme_settings;
+        window._kioskThemeSettings = ts;
+        if (ts.carousel_interval_sec && ts.carousel_interval_sec > 0) {
+            const sn = (ts.carousel_interval_sec === 10) ? 15 : ts.carousel_interval_sec;
+            KIOSK_AYARLAR.SLAYT_SURESI_MS = sn * 1000;
+        }
+        if (ts.ticker_speed_px) {
+            KIOSK_AYARLAR.TICKER_SPEED_PX = ts.ticker_speed_px;
+            tickerHiziniVePozisyonunuAyarla(ts.ticker_speed_px);
+        }
+        if (ts.anti_burn_in !== undefined) {
+            KIOSK_AYARLAR.ANTI_BURN_IN = ts.anti_burn_in;
+            antiBurnInModunuUygula(ts.anti_burn_in !== false);
+        }
+        temaIcerikGorunurlukleriniUygula(ts);
+    }
+
+    // 5. Bellekteki son geçerli veri nesnesini de güncelle
+    if (sonGecerliVeri && sonGecerliVeri.pharmacy) {
+        sonGecerliVeri.pharmacy.theme = cfg.theme || sonGecerliVeri.pharmacy.theme;
+        sonGecerliVeri.pharmacy.scale = cfg.scale || cfg.screen_scale || sonGecerliVeri.pharmacy.scale;
+        sonGecerliVeri.pharmacy.screen_scale = cfg.screen_scale || sonGecerliVeri.pharmacy.screen_scale;
+        sonGecerliVeri.pharmacy.safeAreaMargin = seciliMargin;
+        if (cfg.theme_settings) {
+            sonGecerliVeri.pharmacy.theme_settings = cfg.theme_settings;
+        }
+        if (cfg.ticker_text !== undefined) {
+            sonGecerliVeri.pharmacy.ticker_text = cfg.ticker_text;
+        }
+    }
+}
+
+/**
+ * TV Kiosk Ekranının Canlılık Sinyalini (Heartbeat) Gönderir (10 saniyede bir)
+ * Sunucudan gelen komutları (Identify) ve anlık ayar değişikliklerini (Ölçek, Harita, Tema) yakalar.
  */
 async function kioskHeartbeatPing() {
     try {
@@ -2307,6 +2375,9 @@ async function kioskHeartbeatPing() {
             const data = await resp.json();
             if (data && data.identify && data.identify.active) {
                 cihazTanimlamaGoster(data.identify);
+            }
+            if (data && data.config) {
+                anlikAyarGuncellemesiniUygula(data.config);
             }
         }
     } catch (e) {

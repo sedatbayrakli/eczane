@@ -1503,12 +1503,35 @@ def api_kiosk_ping():
         aktif_cihaz.identify_until = None
         db.session.commit()
 
+    # Ekranın bekletilmeden anında güncellenmesi için hafif config paketi (Admin veya Cihaz ayarları anında ekrana düşer)
+    cihaz_temasi = eczane.theme or "classic_grid"
+    cihaz_ekran_olcegi = eczane.screen_scale or "auto"
+    cihaz_tema_ayarlari = eczane.get_theme_settings()
+
+    if aktif_cihaz:
+        cihaz_temasi = aktif_cihaz.get_theme()
+        if aktif_cihaz.screen_scale and aktif_cihaz.screen_scale != "auto":
+            cihaz_ekran_olcegi = aktif_cihaz.screen_scale
+        cihaz_tema_ayarlari = aktif_cihaz.get_theme_settings()
+
+    cihaz_safe_margin = (cihaz_tema_ayarlari.get("safeAreaMargin") if isinstance(cihaz_tema_ayarlari, dict) else 0)
+
+    config_bilgisi = {
+        "theme": cihaz_temasi,
+        "screen_scale": cihaz_ekran_olcegi,
+        "scale": cihaz_ekran_olcegi,
+        "safeAreaMargin": cihaz_safe_margin,
+        "theme_settings": cihaz_tema_ayarlari,
+        "ticker_text": eczane.ticker_text or ""
+    }
+
     return jsonify({
         "success": True,
         "online": True,
         "pharmacy_id": eczane.id,
         "device_id": aktif_cihaz.id if aktif_cihaz else None,
         "identify": identify_bilgisi,
+        "config": config_bilgisi,
         "server_time": datetime.now().strftime("%H:%M:%S")
     })
 
