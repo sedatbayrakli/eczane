@@ -1092,14 +1092,28 @@ body.kiosk-mode {
     image-rendering: pixelated;
 }
 
-/* Seçili Odak Pini Vurgusu */
+/* Seçili Odak Pini Vurgusu (Büyüyen Pin ve Parlama) */
 .pulse-ring-pin.active-focused-pin {
-    width: 36px;
-    height: 36px;
+    width: 38px;
+    height: 38px;
     background: #dc2626;
-    border-color: #fef08a;
-    box-shadow: 0 0 25px rgba(239, 68, 68, 1), 0 0 10px #f59e0b;
+    border-color: #00d2ff;
+    box-shadow: 0 0 25px rgba(0, 210, 255, 0.85), 0 0 14px rgba(239, 68, 68, 1);
     z-index: 1000 !important;
+    transform: scale(1.15);
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* 10 Saniyelik Sıralı Döngüde Aktif Kart Vurgusu (Sol kırmızı çizgi korunur, diğer 3 kenar parlak mavi çerçeve + glow) */
+.pharmacy-card.active-carousel-card,
+.dual-pharmacy-card.active-carousel-card {
+    border-top: 2px solid #00d2ff !important;
+    border-right: 2px solid #00d2ff !important;
+    border-bottom: 2px solid #00d2ff !important;
+    border-left: 5px solid #ef4444 !important;
+    box-shadow: 0 0 22px rgba(0, 210, 255, 0.45), 0 10px 28px rgba(0, 0, 0, 0.5) !important;
+    transform: scale(1.015);
+    transition: all 0.3s ease;
 }
 
 .pin-selected-star {
@@ -1686,39 +1700,41 @@ body.scale-4k {
     z-index: 50 !important;
 }
 
-/* Başlangıç Eczanemiz Etiketi (Mavi/Cyan Vurgu) */
+/* Başlangıç Eczanemiz Etiketi (Mavi/Cyan Vurgu - Sabit Konum "⭐ Buradasınız") */
 .leaflet-tooltip.origin-tooltip {
-    border: 1.5px solid rgba(56, 189, 248, 0.9) !important;
+    border: 2px solid #38bdf8 !important;
     color: #ffffff !important;
     background: rgba(8, 47, 73, 0.95) !important;
-    box-shadow: 0 0 12px rgba(56, 189, 248, 0.4) !important;
+    box-shadow: 0 0 16px rgba(56, 189, 248, 0.6) !important;
+    font-size: 0.82rem !important;
+    font-weight: 800 !important;
+    padding: 4px 10px !important;
+    border-radius: 9999px !important;
 }
 
 .leaflet-tooltip.origin-tooltip::before {
-    border-top-color: rgba(56, 189, 248, 0.9) !important;
+    border-top-color: #38bdf8 !important;
 }
 
-/* Hedef Nöbetçi Eczane Etiketi (Kırmızı/Mercan Vurgu) */
-.leaflet-tooltip.target-tooltip {
-    background: rgba(45, 10, 10, 0.96) !important;
-    border: 1.5px solid rgba(239, 68, 68, 0.95) !important;
-    color: #fef2f2 !important;
-    box-shadow: 0 0 12px rgba(239, 68, 68, 0.4) !important;
-}
-
-.leaflet-tooltip.target-tooltip::before {
-    border-bottom-color: rgba(239, 68, 68, 0.95) !important;
-}
-
-/* Genel Nöbetçi Eczane Harita Etiketi (1. Versiyon Izgara ve Çoklu Gösterim İçin) */
-.leaflet-tooltip.duty-tooltip {
+/* Harita Üzerindeki Aktif Nöbetçi Eczane Mesafe Etiketi (Temiz, Sadece Mesafe, Mavi Vurgulu) */
+.leaflet-tooltip.target-distance-tooltip {
     background: rgba(15, 23, 42, 0.96) !important;
-    border: 1.5px solid rgba(239, 68, 68, 0.75) !important;
+    border: 2px solid #00d2ff !important;
     color: #ffffff !important;
+    font-family: var(--font-sans, sans-serif) !important;
+    font-size: 0.88rem !important;
+    font-weight: 800 !important;
+    padding: 4px 12px !important;
+    border-radius: 9999px !important;
+    box-shadow: 0 0 18px rgba(0, 210, 255, 0.55), 0 4px 14px rgba(0, 0, 0, 0.5) !important;
+    white-space: nowrap !important;
+    letter-spacing: 0.02em;
+    pointer-events: none;
+    z-index: 100 !important;
 }
 
-.leaflet-tooltip.duty-tooltip::before {
-    border-bottom-color: rgba(239, 68, 68, 0.75) !important;
+.leaflet-tooltip.target-distance-tooltip::before {
+    border-top-color: #00d2ff !important;
 }
 
 /* Harita Etiketi İçi Sıra Numarası Rozeti */
