@@ -836,6 +836,27 @@ function haritayiIlkKezOlustur() {
 }
 
 /**
+ * Eczane İsmini Türkçeye Uygun Baş Harfleri Büyük, Diğerleri Küçük (Title Case) Formatına Dönüştürür.
+ * Örnek: "İLAYDA ECZANESİ" -> "İlayda Eczanesi"
+ * Örnek: "ÇINAR ECZANESİ" -> "Çınar Eczanesi"
+ * Örnek: "ŞİFA ECZANESİ" -> "Şifa Eczanesi"
+ */
+function turkceIsimStandartlastir(metin) {
+    if (!metin || typeof metin !== 'string') return '';
+    const temiz = metin.trim().replace(/\s+/g, ' ');
+    return temiz.toLocaleLowerCase('tr-TR').split(' ').map(kelime => {
+        if (!kelime) return '';
+        const match = kelime.match(/[a-zA-ZçÇğĞıİöÖşŞüÜ]/);
+        if (!match) return kelime;
+        const idx = match.index;
+        const onEk = kelime.slice(0, idx);
+        const ilkHarf = match[0].toLocaleUpperCase('tr-TR');
+        const kalan = kelime.slice(idx + 1);
+        return onEk + ilkHarf + kalan;
+    }).join(' ');
+}
+
+/**
  * Haritadaki Pinleri Çizer
  */
 function haritaPinleriniCiz(kendiEczane, nobetciler, seciliIndex = null, tumIsimleriGoster = false) {
@@ -847,16 +868,17 @@ function haritaPinleriniCiz(kendiEczane, nobetciler, seciliIndex = null, tumIsim
 
     // Kendi Eczanemiz Pini (Mavi Parlayan Pin)
     if (kendiEczane && kendiEczane.latitude && kendiEczane.longitude) {
+        const kendiIsimFormatli = turkceIsimStandartlastir(kendiEczane.name);
         const originIcon = L.divIcon({
             className: 'custom-leaflet-marker',
-            html: `<div class="origin-marker-pin" title="${escapeHtml(kendiEczane.name)}">⭐</div>`,
+            html: `<div class="origin-marker-pin" title="${escapeHtml(kendiIsimFormatli)}">⭐</div>`,
             iconSize: [32, 32],
             iconAnchor: [16, 16]
         });
 
         const originMarker = L.marker([kendiEczane.latitude, kendiEczane.longitude], { icon: originIcon })
-            .bindPopup(`<b>⭐ ${escapeHtml(kendiEczane.name)}</b><br><small>Buradasınız</small>`)
-            .bindTooltip(`⭐ ${escapeHtml(kendiEczane.name)}`, {
+            .bindPopup(`<b>⭐ ${escapeHtml(kendiIsimFormatli)}</b><br><small>Buradasınız</small>`)
+            .bindTooltip(`⭐ ${escapeHtml(kendiIsimFormatli)}`, {
                 permanent: true,
                 direction: 'top',
                 className: 'kiosk-map-tooltip origin-tooltip',
@@ -876,11 +898,12 @@ function haritaPinleriniCiz(kendiEczane, nobetciler, seciliIndex = null, tumIsim
             if (e.enlem && e.boylam) {
                 const isSelected = (seciliIndex !== null && idx === seciliIndex);
                 const isTarget = isSelected || (seciliIndex === null && idx === 0);
+                const eczaneIsimFormatli = turkceIsimStandartlastir(e.isim);
 
                 // Sade ve şık eczane pini (Kafa karıştırıcı rakamlar kaldırıldı)
                 const dutyIcon = L.divIcon({
                     className: 'custom-leaflet-marker',
-                    html: `<div class="pulse-ring-pin ${isTarget ? 'active-focused-pin' : ''}" title="${escapeHtml(e.isim)}">
+                    html: `<div class="pulse-ring-pin ${isTarget ? 'active-focused-pin' : ''}" title="${escapeHtml(eczaneIsimFormatli)}">
                              <span style="font-size: 11px; line-height: 1;">💊</span>
                            </div>`,
                     iconSize: isTarget ? [36, 36] : [28, 28],
@@ -889,7 +912,7 @@ function haritaPinleriniCiz(kendiEczane, nobetciler, seciliIndex = null, tumIsim
 
                 const popupHtml = `
                     <div style="font-family:Inter,sans-serif; color:#0f172a; font-size:12px;">
-                        <strong style="color:#b91c1c; font-size:13px;">${escapeHtml(e.isim)}</strong><br>
+                        <strong style="color:#b91c1c; font-size:13px;">${escapeHtml(eczaneIsimFormatli)}</strong><br>
                         <span>${escapeHtml(e.adres || '')}</span><br>
                         <b style="color:#0284c7;">${escapeHtml(formatMesafeMetin(e.mesafe_metin || ''))}</b>
                     </div>
@@ -904,7 +927,7 @@ function haritaPinleriniCiz(kendiEczane, nobetciler, seciliIndex = null, tumIsim
                     const tooltipDirection = (idx % 2 === 0) ? 'bottom' : 'top';
                     const tooltipOffset = (idx % 2 === 0) ? [0, 18] : [0, -18];
 
-                    marker.bindTooltip(escapeHtml(e.isim), {
+                    marker.bindTooltip(escapeHtml(eczaneIsimFormatli), {
                         permanent: true,
                         direction: tooltipDirection,
                         className: tooltipClass,
@@ -1405,7 +1428,7 @@ function slaytGoster() {
     if (showRoute) {
         // Tema 3 (Rotası Açık): Canlı Yol & Navigasyon Rota
         const rotaPrefix = isOfflineModAktif ? '💾 ÇEVRİMDIŞI HARİTA & KONUM' : 'CANLI HARİTA & YOL TARİFİ';
-        if (elMapPanelTitle) elMapPanelTitle.textContent = `${rotaPrefix} (${seciliEczane.isim})`;
+        if (elMapPanelTitle) elMapPanelTitle.textContent = `${rotaPrefix} (${turkceIsimStandartlastir(seciliEczane.isim)})`;
         elPharmacyGrid.innerHTML = devOdakKartiHtmlUret(seciliEczane, slaytIndex, guncelEczaneler.length, 'YOL TARİFİ');
         
         haritaPinleriniCiz(guncelKendiEczane, guncelEczaneler, slaytIndex);
@@ -1413,7 +1436,7 @@ function slaytGoster() {
 
     } else {
         // Tema 3 (Rotasız Temiz Vitrin): Vitrin Carousel & Dev Odak Kartı
-        if (elMapPanelTitle) elMapPanelTitle.textContent = `BÖLGE NÖBETÇİ HARİTASI (${seciliEczane.isim})`;
+        if (elMapPanelTitle) elMapPanelTitle.textContent = `BÖLGE NÖBETÇİ HARİTASI (${turkceIsimStandartlastir(seciliEczane.isim)})`;
         elPharmacyGrid.innerHTML = devOdakKartiHtmlUret(seciliEczane, slaytIndex, guncelEczaneler.length, 'VİTRİN');
         
         // Önceki rotayı temizle
