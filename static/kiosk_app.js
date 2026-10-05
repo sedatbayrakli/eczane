@@ -1888,39 +1888,59 @@ function manuelListSayfayaGit(index) {
 
 
 /**
+ * O anki aktif ekrana/temaya ait parametrik ayarları döndürür.
+ * Temaya özel (ts.themes[aktifTema]) ayar varsa onu, yoksa genel (ts) ayarlarını uygular.
+ */
+function getAktifTemaAyarlari(ts) {
+    if (!ts) ts = window._kioskThemeSettings || {};
+    const aktifGorunum = aktifGorunumuBelirle();
+    const temaOzel = (ts.themes && ts.themes[aktifGorunum]) ? ts.themes[aktifGorunum] : {};
+    return Object.assign({}, ts, temaOzel);
+}
+
+/**
  * Kiosk Ekran Teması Parametrik Görünürlük Ayarlarını DOM'a Uygular
  */
 function temaIcerikGorunurlukleriniUygula(ts) {
     if (!ts) ts = window._kioskThemeSettings;
     if (!ts) return;
 
+    // O an ekranda çalışan aktif temaya özel ayarları harmanla
+    const ayar = getAktifTemaAyarlari(ts);
+
+    // Temaya özel karusel / slayt geçiş süresi varsa güncelle
+    if (ayar.carousel_interval_sec && ayar.carousel_interval_sec > 0) {
+        const sn = (ayar.carousel_interval_sec === 10) ? 15 : ayar.carousel_interval_sec;
+        KIOSK_AYARLAR.SLAYT_SURESI_MS = sn * 1000;
+    }
+
     // Nöbet Bitimi Sayacı (show_countdown)
     const countdownEls = document.querySelectorAll('.duty-countdown-frame, .duty-live-countdown');
     countdownEls.forEach(el => {
-        el.style.display = (ts.show_countdown === false) ? 'none' : '';
+        el.style.display = (ayar.show_countdown === false) ? 'none' : '';
     });
 
     // QR Kod Bölümü (show_qr)
     const qrCols = document.querySelectorAll('.focus-qr-col, .pharmacy-qr, .qr-section');
     qrCols.forEach(el => {
-        el.style.display = (ts.show_qr === false) ? 'none' : '';
+        el.style.display = (ayar.show_qr === false) ? 'none' : '';
     });
 
     // Ulaşım / Seyahat Süreleri (show_travel_times)
     const travelBoxes = document.querySelectorAll('.travel-modes-box');
     travelBoxes.forEach(el => {
-        el.style.display = (ts.show_travel_times === false) ? 'none' : '';
+        el.style.display = (ayar.show_travel_times === false) ? 'none' : '';
     });
 
     // İlçe Nöbetçi Sayacı (show_district_counter)
     const counterPill = document.querySelector('.pharmacy-counter');
     if (counterPill) {
-        counterPill.style.display = (ts.show_district_counter === false) ? 'none' : '';
+        counterPill.style.display = (ayar.show_district_counter === false) ? 'none' : '';
     }
 
     // Yol Tarifi / Landmark Bandı (show_landmark)
     const landmarkBar = document.getElementById('map-panel-landmark-bar');
-    if (landmarkBar && ts.show_landmark === false) {
+    if (landmarkBar && ayar.show_landmark === false) {
         landmarkBar.style.display = 'none';
     }
 
@@ -1928,7 +1948,7 @@ function temaIcerikGorunurlukleriniUygula(ts) {
     // Harita parametrik olarak kapatıldığında 4'lü kart ızgarası haritanın yerini de kaplar (.no-map)
     const elMap = document.getElementById('kiosk-map-panel');
     const elLayout = document.getElementById('kiosk-layout');
-    let showMap = (ts && ts.show_map !== undefined) ? (ts.show_map !== false) : true;
+    let showMap = (ayar && ayar.show_map !== undefined) ? (ayar.show_map !== false) : true;
     try {
         const _uParams = new URLSearchParams(window.location.search);
         if (_uParams.has('show_map')) {

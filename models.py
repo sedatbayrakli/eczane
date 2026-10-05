@@ -88,6 +88,80 @@ class KioskDevice(db.Model):
         """Bu cihaza ekranda tanımlama sinyali gönderir."""
         self.identify_until = datetime.now() + timedelta(seconds=saniye)
 
+def _deep_merge_dict(target: dict, source: dict) -> dict:
+    """İç içe geçmiş sözlükleri (nested dict) birbirini ezmeden derinlemesine harmanlar."""
+    if not isinstance(target, dict) or not isinstance(source, dict):
+        return source
+    for k, v in source.items():
+        if k in target and isinstance(target[k], dict) and isinstance(v, dict):
+            _deep_merge_dict(target[k], v)
+        else:
+            target[k] = v
+    return target
+
+
+def get_varsayilan_tema_ayarlari() -> dict:
+    """Tüm temalar ve genel sistem için varsayılan ekran parametrelerini üretir."""
+    return {
+        "carousel_interval_sec": 15,
+        "auto_rotate_minutes": 60,
+        "map_zoom": 14,
+        "show_map": True,
+        "show_countdown": True,
+        "show_qr": True,
+        "show_route": True,
+        "show_travel_times": False,
+        "show_district_counter": True,
+        "show_landmark": True,
+        "anti_burn_in": True,
+        "ticker_speed_px": 55,
+        "scale": 1.0,
+        "safeAreaMargin": 0,
+        "themes": {
+            "classic_grid": {
+                "show_map": True,
+                "show_countdown": True,
+                "show_qr": True,
+                "show_route": True,
+                "show_travel_times": False,
+                "show_district_counter": True,
+                "show_landmark": True,
+                "carousel_interval_sec": 15
+            },
+            "focus_carousel": {
+                "show_map": True,
+                "show_countdown": True,
+                "show_qr": True,
+                "show_route": True,
+                "show_travel_times": False,
+                "show_district_counter": True,
+                "show_landmark": True,
+                "carousel_interval_sec": 15
+            },
+            "dual_card": {
+                "show_map": True,
+                "show_countdown": True,
+                "show_qr": True,
+                "show_route": True,
+                "show_travel_times": False,
+                "show_district_counter": True,
+                "show_landmark": True,
+                "carousel_interval_sec": 15
+            },
+            "list_view": {
+                "show_map": False,
+                "show_countdown": True,
+                "show_qr": True,
+                "show_route": False,
+                "show_travel_times": False,
+                "show_district_counter": True,
+                "show_landmark": True,
+                "carousel_interval_sec": 15
+            }
+        }
+    }
+
+
     def is_identify_active(self) -> bool:
         """Tanımlama sinyalinin halen aktif olup olmadığını kontrol eder."""
         return bool(self.identify_until and self.identify_until > datetime.now())
@@ -101,33 +175,18 @@ class KioskDevice(db.Model):
         return "classic_grid"
 
     def get_theme_settings(self) -> dict:
-        """Cihaza özel tema parametrelerini döndürür (varsayılanlarla harmanlanmış)."""
+        """Cihaza özel tema parametrelerini döndürür (varsayılanlarla ve eczane ayarlarıyla harmanlanmış)."""
         import json
-        varsayilan = {
-            "carousel_interval_sec": 15,
-            "auto_rotate_minutes": 60,
-            "map_zoom": 14,
-            "show_map": True,
-            "show_countdown": True,
-            "show_qr": True,
-            "show_route": True,
-            "show_travel_times": False,
-            "show_district_counter": True,
-            "show_landmark": True,
-            "anti_burn_in": True,
-            "ticker_speed_px": 55,
-            "scale": 1.0,
-            "safeAreaMargin": 0
-        }
+        varsayilan = get_varsayilan_tema_ayarlari()
         # Önce eczanenin global parametrelerini temel al
         if self.pharmacy:
-            varsayilan.update(self.pharmacy.get_theme_settings())
+            _deep_merge_dict(varsayilan, self.pharmacy.get_theme_settings())
         # Cihaza özel ayarlar varsa üzerine yaz
         if self.theme_settings:
             try:
                 kayitli = json.loads(self.theme_settings)
                 if isinstance(kayitli, dict):
-                    varsayilan.update(kayitli)
+                    _deep_merge_dict(varsayilan, kayitli)
             except Exception:
                 pass
         return varsayilan
@@ -137,7 +196,7 @@ class KioskDevice(db.Model):
         import json
         guncel = self.get_theme_settings()
         if isinstance(ayarlar, dict):
-            guncel.update(ayarlar)
+            _deep_merge_dict(guncel, ayarlar)
         self.theme_settings = json.dumps(guncel, ensure_ascii=False)
 
     def to_dict(self) -> dict:
@@ -474,28 +533,13 @@ class Pharmacy(db.Model):
     def get_theme_settings(self) -> dict:
         """Kiosk ekran teması parametrik ayarlarını döndürür (varsayılanlarla harmanlanmış)."""
         import json
-        varsayilan = {
-            "carousel_interval_sec": 15,
-            "auto_rotate_minutes": 60,
-            "map_zoom": 14,
-            "show_map": True,
-            "show_countdown": True,
-            "show_qr": True,
-            "show_route": True,
-            "show_travel_times": False,
-            "show_district_counter": True,
-            "show_landmark": True,
-            "anti_burn_in": True,
-            "ticker_speed_px": 55,
-            "scale": 1.0,
-            "safeAreaMargin": 0
-        }
+        varsayilan = get_varsayilan_tema_ayarlari()
         if not self.theme_settings:
             return varsayilan
         try:
             kayitli = json.loads(self.theme_settings)
             if isinstance(kayitli, dict):
-                varsayilan.update(kayitli)
+                _deep_merge_dict(varsayilan, kayitli)
         except Exception:
             pass
         return varsayilan
@@ -505,7 +549,7 @@ class Pharmacy(db.Model):
         import json
         guncel = self.get_theme_settings()
         if isinstance(ayarlar, dict):
-            guncel.update(ayarlar)
+            _deep_merge_dict(guncel, ayarlar)
         self.theme_settings = json.dumps(guncel, ensure_ascii=False)
 
     def __repr__(self):

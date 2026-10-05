@@ -1352,13 +1352,16 @@
                             <span>📺 Aktif Ekran Teması</span>
                         </div>
                         <div class="form-group" style="margin-bottom: 0;">
-                            <select id="ts-theme-select" class="form-control" style="font-weight: 700; font-size: 0.95rem; height: 42px; border-color: rgba(56, 189, 248, 0.45); background: rgba(15, 23, 42, 0.9);">
+                            <select id="ts-theme-select" class="form-control" onchange="modalTemaSecimiDegisti(this.value)" style="font-weight: 700; font-size: 0.95rem; height: 42px; border-color: rgba(56, 189, 248, 0.45); background: rgba(15, 23, 42, 0.9);">
                                 <option value="classic_grid">1. Versiyon: Klasik 4'lü Izgara & Harita (4'ten Fazlaysa Sayfalamalı)</option>
                                 <option value="list_view">2. Versiyon: Liste Görünümü (Haritasız Tam Ekran Liste)</option>
                                 <option value="focus_carousel">3. Versiyon: Vitrin Carousel & Dev Odak Kartı</option>
                                 <option value="dual_card">4. Versiyon: İkili Dev Kart & Harita (2 Eczane)</option>
                                 <option value="auto_rotate">5. Versiyon: Karma Mod (Zaman Ayarlı Otomatik Dönüşüm)</option>
                             </select>
+                        </div>
+                        <div id="ts-theme-info-badge" style="margin-top: 0.65rem; font-size: 0.78rem; color: #38bdf8; background: rgba(56, 189, 248, 0.1); border: 1px dashed rgba(56, 189, 248, 0.35); padding: 0.45rem 0.75rem; border-radius: 6px; display: flex; align-items: center; gap: 0.4rem;">
+                            ⚙️ Aşağıdaki harita ve bileşen kontrolleri seçili temaya özeldir. Farklı bir tema seçtiğinizde o temanın parametrelerini bağımsız olarak düzenleyebilirsiniz.
                         </div>
                     </div>
 
@@ -2476,9 +2479,97 @@
         }
 
         // ==========================================
-        // Kiosk Ekran Teması Parametrik Ayar Fonksiyonları
+        // Kiosk Ekran Teması Parametrik Ayar Fonksiyonları (Temaya Özel Bağımsız Ayarlar)
         // ==========================================
         let aktifTemaEczaneAdi = '';
+        let aktifModalTemaAyarlari = {};
+        let aktifDuzenlenenTema = 'classic_grid';
+
+        // Temanın form alanlarını yükler (Harita, Sayaç, QR, Rota, Slayt süresi vb.)
+        function temaFormAlanlariniYukle(temaAdi) {
+            const tObj = (aktifModalTemaAyarlari.themes && aktifModalTemaAyarlari.themes[temaAdi]) || {};
+
+            document.getElementById('ts-show-map').checked = (tObj.show_map !== undefined) ? (tObj.show_map !== false) : (temaAdi !== 'list_view');
+            document.getElementById('ts-show-countdown').checked = (tObj.show_countdown !== false);
+            document.getElementById('ts-show-qr').checked = (tObj.show_qr !== false);
+            document.getElementById('ts-show-route').checked = (tObj.show_route !== false);
+            document.getElementById('ts-show-travel-times').checked = (tObj.show_travel_times === true);
+            document.getElementById('ts-show-district-counter').checked = (tObj.show_district_counter !== false);
+            document.getElementById('ts-show-landmark').checked = (tObj.show_landmark !== false);
+            document.getElementById('ts-carousel-interval').value = tObj.carousel_interval_sec || 15;
+
+            // Bilgi rozetini güncelle
+            const temaSelect = document.getElementById('ts-theme-select');
+            const seciliOptionMetni = (temaSelect && temaSelect.options[temaSelect.selectedIndex]) 
+                ? temaSelect.options[temaSelect.selectedIndex].text 
+                : temaAdi;
+            const badge = document.getElementById('ts-theme-info-badge');
+            if (badge) {
+                badge.innerHTML = `⚙️ Şu an <strong>${seciliOptionMetni}</strong> için parametreleri düzenliyorsunuz. Aşağıdaki harita ve içerik tercihleri bu ekrana özel kaydedilir.`;
+            }
+        }
+
+        // Açık olan temanın formdaki seçimlerini bellekteki themes[temaAdi] nesnesine kaydeder
+        function temaFormDegerleriniHafizayaAl(temaAdi) {
+            if (!aktifModalTemaAyarlari.themes) aktifModalTemaAyarlari.themes = {};
+            if (!aktifModalTemaAyarlari.themes[temaAdi]) aktifModalTemaAyarlari.themes[temaAdi] = {};
+
+            const tObj = aktifModalTemaAyarlari.themes[temaAdi];
+            tObj.show_map = document.getElementById('ts-show-map').checked;
+            tObj.show_countdown = document.getElementById('ts-show-countdown').checked;
+            tObj.show_qr = document.getElementById('ts-show-qr').checked;
+            tObj.show_route = document.getElementById('ts-show-route').checked;
+            tObj.show_travel_times = document.getElementById('ts-show-travel-times').checked;
+            tObj.show_district_counter = document.getElementById('ts-show-district-counter').checked;
+            tObj.show_landmark = document.getElementById('ts-show-landmark').checked;
+            tObj.carousel_interval_sec = parseInt(document.getElementById('ts-carousel-interval').value, 10) || 15;
+        }
+
+        // Kullanıcı üstteki "Aktif Ekran Teması" dropdown'ından seçim değiştirdiğinde
+        function modalTemaSecimiDegisti(yeniTema) {
+            // Önce mevcut ekranın ayarlarını hafızaya al
+            temaFormDegerleriniHafizayaAl(aktifDuzenlenenTema);
+            // Yeni temayı aktif yap ve onun ayarlarını forma yükle
+            aktifDuzenlenenTema = yeniTema;
+            temaFormAlanlariniYukle(yeniTema);
+        }
+
+        function temaModalAyarlariniHazirla(mevcutTema, mevcutAyarlar) {
+            aktifDuzenlenenTema = mevcutTema || 'classic_grid';
+            aktifModalTemaAyarlari = JSON.parse(JSON.stringify(mevcutAyarlar || {}));
+            if (!aktifModalTemaAyarlari.themes) {
+                aktifModalTemaAyarlari.themes = {};
+            }
+
+            const bilinenTemalar = ['classic_grid', 'list_view', 'focus_carousel', 'dual_card', 'auto_rotate'];
+            bilinenTemalar.forEach(t => {
+                if (!aktifModalTemaAyarlari.themes[t]) {
+                    aktifModalTemaAyarlari.themes[t] = {
+                        show_map: (t === 'list_view') ? false : (aktifModalTemaAyarlari.show_map !== false),
+                        show_countdown: (aktifModalTemaAyarlari.show_countdown !== false),
+                        show_qr: (aktifModalTemaAyarlari.show_qr !== false),
+                        show_route: (aktifModalTemaAyarlari.show_route !== false),
+                        show_travel_times: (aktifModalTemaAyarlari.show_travel_times === true),
+                        show_district_counter: (aktifModalTemaAyarlari.show_district_counter !== false),
+                        show_landmark: (aktifModalTemaAyarlari.show_landmark !== false),
+                        carousel_interval_sec: aktifModalTemaAyarlari.carousel_interval_sec || 15
+                    };
+                }
+            });
+
+            // Global Parametreler
+            document.getElementById('ts-autorotate-interval').value = aktifModalTemaAyarlari.auto_rotate_minutes || 60;
+            document.getElementById('ts-ticker-speed').value = aktifModalTemaAyarlari.ticker_speed_px || 55;
+            document.getElementById('ts-safe-area-margin').value = String(aktifModalTemaAyarlari.safeAreaMargin !== undefined ? aktifModalTemaAyarlari.safeAreaMargin : 0);
+            document.getElementById('ts-map-zoom').value = aktifModalTemaAyarlari.map_zoom || 14;
+            document.getElementById('ts-anti-burn-in').checked = (aktifModalTemaAyarlari.anti_burn_in !== false);
+
+            // Tema Dropdown'ı
+            document.getElementById('ts-theme-select').value = aktifDuzenlenenTema;
+
+            // Seçili temanın parametrelerini forma yükle
+            temaFormAlanlariniYukle(aktifDuzenlenenTema);
+        }
 
         // Eczane Genel Tema Ayarları Modalını Açma
         function temaAyarlariModalAc(eczaneId, eczaneAdi, mevcutTema, mevcutAyarlar) {
@@ -2488,27 +2579,7 @@
             document.getElementById('theme-modal-title').textContent = '🎨 Kiosk Ekran Teması & Parametreleri (Genel)';
             document.getElementById('theme-modal-subtitle').textContent = aktifTemaEczaneAdi;
 
-            // Tema Seçimi
-            document.getElementById('ts-theme-select').value = mevcutTema || 'classic_grid';
-
-            // Parametreler
-            const ayar = mevcutAyarlar || {};
-            document.getElementById('ts-carousel-interval').value = ayar.carousel_interval_sec || 15;
-            document.getElementById('ts-autorotate-interval').value = ayar.auto_rotate_minutes || 60;
-            document.getElementById('ts-ticker-speed').value = ayar.ticker_speed_px || 55;
-            document.getElementById('ts-safe-area-margin').value = String(ayar.safeAreaMargin !== undefined ? ayar.safeAreaMargin : 0);
-            document.getElementById('ts-map-zoom').value = ayar.map_zoom || 14;
-
-            // Görünürlük ve Koruma Kontrolleri
-            document.getElementById('ts-show-map').checked = (ayar.show_map !== false);
-            document.getElementById('ts-show-countdown').checked = (ayar.show_countdown !== false);
-            document.getElementById('ts-show-qr').checked = (ayar.show_qr !== false);
-            document.getElementById('ts-show-route').checked = (ayar.show_route !== false);
-            document.getElementById('ts-show-travel-times').checked = (ayar.show_travel_times !== false);
-            document.getElementById('ts-show-district-counter').checked = (ayar.show_district_counter !== false);
-            document.getElementById('ts-show-landmark').checked = (ayar.show_landmark !== false);
-            document.getElementById('ts-anti-burn-in').checked = (ayar.anti_burn_in !== false);
-
+            temaModalAyarlariniHazirla(mevcutTema, mevcutAyarlar);
             modalAc('modal-theme-settings');
         }
 
@@ -2526,27 +2597,10 @@
             document.getElementById('theme-modal-title').textContent = '🎨 TV Ekran Teması & Parametreleri';
             document.getElementById('theme-modal-subtitle').textContent = `Cihaz: ${devName} (${dev.mac_address || dev.local_ip || 'TV'})`;
 
-            // Tema Seçimi (Cihazın yerel select elementindeki güncel değeri varsa öncelikli al)
             const rowSelect = document.getElementById(`dev-theme-${deviceId}`);
-            document.getElementById('ts-theme-select').value = rowSelect ? rowSelect.value : (devTheme || 'classic_grid');
+            const seciliTema = rowSelect ? rowSelect.value : (devTheme || 'classic_grid');
 
-            // Parametreler
-            document.getElementById('ts-carousel-interval').value = devSettings.carousel_interval_sec || 15;
-            document.getElementById('ts-autorotate-interval').value = devSettings.auto_rotate_minutes || 60;
-            document.getElementById('ts-ticker-speed').value = devSettings.ticker_speed_px || 55;
-            document.getElementById('ts-safe-area-margin').value = String(devSettings.safeAreaMargin !== undefined ? devSettings.safeAreaMargin : 0);
-            document.getElementById('ts-map-zoom').value = devSettings.map_zoom || 14;
-
-            // Görünürlük ve Koruma Kontrolleri
-            document.getElementById('ts-show-map').checked = (devSettings.show_map !== false);
-            document.getElementById('ts-show-countdown').checked = (devSettings.show_countdown !== false);
-            document.getElementById('ts-show-qr').checked = (devSettings.show_qr !== false);
-            document.getElementById('ts-show-route').checked = (devSettings.show_route !== false);
-            document.getElementById('ts-show-travel-times').checked = (devSettings.show_travel_times !== false);
-            document.getElementById('ts-show-district-counter').checked = (devSettings.show_district_counter !== false);
-            document.getElementById('ts-show-landmark').checked = (devSettings.show_landmark !== false);
-            document.getElementById('ts-anti-burn-in').checked = (devSettings.anti_burn_in !== false);
-
+            temaModalAyarlariniHazirla(seciliTema, devSettings);
             modalAc('modal-theme-settings');
         }
 
@@ -2556,21 +2610,26 @@
             const deviceId = document.getElementById('theme-device-id').value;
             const yeniTema = document.getElementById('ts-theme-select').value;
 
-            const theme_settings = {
-                carousel_interval_sec: parseInt(document.getElementById('ts-carousel-interval').value, 10) || 15,
-                auto_rotate_minutes: parseInt(document.getElementById('ts-autorotate-interval').value, 10) || 60,
-                ticker_speed_px: parseInt(document.getElementById('ts-ticker-speed').value, 10) || 55,
-                safeAreaMargin: parseInt(document.getElementById('ts-safe-area-margin').value, 10) || 0,
-                map_zoom: parseInt(document.getElementById('ts-map-zoom').value, 10) || 14,
-                show_map: document.getElementById('ts-show-map').checked,
-                show_countdown: document.getElementById('ts-show-countdown').checked,
-                show_qr: document.getElementById('ts-show-qr').checked,
-                show_route: document.getElementById('ts-show-route').checked,
-                show_travel_times: document.getElementById('ts-show-travel-times').checked,
-                show_district_counter: document.getElementById('ts-show-district-counter').checked,
-                show_landmark: document.getElementById('ts-show-landmark').checked,
-                anti_burn_in: document.getElementById('ts-anti-burn-in').checked
-            };
+            // Formdaki son ekran ayarlarını hafızaya al
+            temaFormDegerleriniHafizayaAl(aktifDuzenlenenTema);
+
+            // Genel parametreleri güncelle
+            aktifModalTemaAyarlari.carousel_interval_sec = parseInt(document.getElementById('ts-carousel-interval').value, 10) || 15;
+            aktifModalTemaAyarlari.auto_rotate_minutes = parseInt(document.getElementById('ts-autorotate-interval').value, 10) || 60;
+            aktifModalTemaAyarlari.ticker_speed_px = parseInt(document.getElementById('ts-ticker-speed').value, 10) || 55;
+            aktifModalTemaAyarlari.safeAreaMargin = parseInt(document.getElementById('ts-safe-area-margin').value, 10) || 0;
+            aktifModalTemaAyarlari.map_zoom = parseInt(document.getElementById('ts-map-zoom').value, 10) || 14;
+            aktifModalTemaAyarlari.anti_burn_in = document.getElementById('ts-anti-burn-in').checked;
+
+            // Seçili temanın ayarlarını üst seviyeye de yansıt (geriye dönük uyumluluk)
+            const seciliTemaAyar = (aktifModalTemaAyarlari.themes && aktifModalTemaAyarlari.themes[yeniTema]) || {};
+            aktifModalTemaAyarlari.show_map = (seciliTemaAyar.show_map !== undefined) ? seciliTemaAyar.show_map : document.getElementById('ts-show-map').checked;
+            aktifModalTemaAyarlari.show_countdown = (seciliTemaAyar.show_countdown !== undefined) ? seciliTemaAyar.show_countdown : document.getElementById('ts-show-countdown').checked;
+            aktifModalTemaAyarlari.show_qr = (seciliTemaAyar.show_qr !== undefined) ? seciliTemaAyar.show_qr : document.getElementById('ts-show-qr').checked;
+            aktifModalTemaAyarlari.show_route = (seciliTemaAyar.show_route !== undefined) ? seciliTemaAyar.show_route : document.getElementById('ts-show-route').checked;
+            aktifModalTemaAyarlari.show_travel_times = (seciliTemaAyar.show_travel_times !== undefined) ? seciliTemaAyar.show_travel_times : document.getElementById('ts-show-travel-times').checked;
+            aktifModalTemaAyarlari.show_district_counter = (seciliTemaAyar.show_district_counter !== undefined) ? seciliTemaAyar.show_district_counter : document.getElementById('ts-show-district-counter').checked;
+            aktifModalTemaAyarlari.show_landmark = (seciliTemaAyar.show_landmark !== undefined) ? seciliTemaAyar.show_landmark : document.getElementById('ts-show-landmark').checked;
 
             const btn = document.getElementById('btn-save-theme-settings');
             const eskiIcerik = btn.innerHTML;
@@ -2587,13 +2646,13 @@
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
                         theme: yeniTema,
-                        theme_settings: theme_settings
+                        theme_settings: aktifModalTemaAyarlari
                     })
                 });
                 const data = await resp.json();
                 if (data.success) {
                     modalKapat('modal-theme-settings');
-                    alert(`✅ ${aktifTemaEczaneAdi} ekran teması ve parametreleri başarıyla kaydedildi!\nTV ekranı anında yeni parametreleri uygulayacaktır.`);
+                    alert(`✅ ${aktifTemaEczaneAdi} ekran teması ve ekrana özel parametreleri başarıyla kaydedildi!\nTV ekranı anında yeni parametreleri uygulayacaktır.`);
                     if (deviceId) {
                         // Cihaz tablosunu tazele
                         cihazYonetimModalAc(eczaneId);
