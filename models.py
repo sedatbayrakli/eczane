@@ -37,57 +37,6 @@ class AdminUser(db.Model):
         return f"<AdminUser {self.username}>"
 
 
-class KioskDevice(db.Model):
-    """
-    Lisansa bağlı TV, Android Box (Mi Box) veya kiosk ekranı cihaz modeli.
-    Tek bir lisansa birden fazla ekranın (Örn: Vitrin TV, Kasa Arkası TV) bağlanabilmesini sağlar.
-    """
-    __tablename__ = "kiosk_devices"
-
-    id = db.Column(db.Integer, primary_key=True)
-    pharmacy_id = db.Column(db.Integer, db.ForeignKey("pharmacies.id", ondelete="CASCADE"), nullable=False)
-    device_token = db.Column(db.String(128), unique=True, nullable=False)
-    mac_address = db.Column(db.String(64), nullable=True, index=True) # Cihaz MAC / Donanım Parmak İzi
-    local_ip = db.Column(db.String(64), nullable=True)               # Cihaz Yerel Ağ IP Adresi (192.168.x.x)
-    device_name = db.Column(db.String(100), default="TV Ekranı")
-    ip_address = db.Column(db.String(64), nullable=True)              # Dış / Ağ IP Adresi
-    screen_resolution = db.Column(db.String(50), nullable=True)       # Örn: "1920x1080", "1280x720"
-    screen_scale = db.Column(db.String(20), default="auto", nullable=False) # 'auto', 'compact', '720p', '1080p', '4k'
-    theme = db.Column(db.String(50), nullable=True)                          # 'classic_grid', 'animated_route', 'focus_carousel', 'dual_card', 'auto_rotate'
-    theme_settings = db.Column(db.Text, nullable=True)                       # Cihaza özel tema parametreleri (JSON)
-    identify_until = db.Column(db.DateTime, nullable=True)            # Ekranda tanımlama / parlatma sinyali süresi
-    is_approved = db.Column(db.Boolean, default=True, nullable=False) # Yönetici tarafından lisans aktif edildi mi?
-    approved_at = db.Column(db.DateTime, nullable=True)               # Lisansın aktif edildiği tarih
-    user_agent = db.Column(db.String(256), nullable=True)
-    last_ping = db.Column(db.DateTime, nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    def is_online(self, tolerans_dakika: int = 5) -> bool:
-        """Cihazın son 5 dakika içinde ping atıp atmadığını kontrol eder."""
-        if not self.last_ping:
-            return False
-        return (datetime.now() - self.last_ping) <= timedelta(minutes=tolerans_dakika)
-
-    def ekran_cevrimici_mi(self, tolerans_dakika: int = 5) -> bool:
-        """Cihazın canlılık durumunu kontrol eder (is_online alias)."""
-        return self.is_online(tolerans_dakika)
-
-    def son_sinyal_metni(self) -> str:
-        """Cihazın son ping sinyalinin ne kadar önce geldiğini döner."""
-        if not self.last_ping:
-            return "Sinyal yok"
-        toplam_sn = max(0, int((datetime.now() - self.last_ping).total_seconds()))
-        if toplam_sn < 60:
-            return f"{toplam_sn} sn önce"
-        elif toplam_sn < 3600:
-            return f"{toplam_sn // 60} dk önce"
-        else:
-            return f"{toplam_sn // 3600} sa önce"
-
-    def cihazi_tanimla(self, saniye: int = 25):
-        """Bu cihaza ekranda tanımlama sinyali gönderir."""
-        self.identify_until = datetime.now() + timedelta(seconds=saniye)
-
 def _deep_merge_dict(target: dict, source: dict) -> dict:
     """İç içe geçmiş sözlükleri (nested dict) birbirini ezmeden derinlemesine harmanlar."""
     if not isinstance(target, dict) or not isinstance(source, dict):
@@ -161,6 +110,57 @@ def get_varsayilan_tema_ayarlari() -> dict:
         }
     }
 
+
+class KioskDevice(db.Model):
+    """
+    Lisansa bağlı TV, Android Box (Mi Box) veya kiosk ekranı cihaz modeli.
+    Tek bir lisansa birden fazla ekranın (Örn: Vitrin TV, Kasa Arkası TV) bağlanabilmesini sağlar.
+    """
+    __tablename__ = "kiosk_devices"
+
+    id = db.Column(db.Integer, primary_key=True)
+    pharmacy_id = db.Column(db.Integer, db.ForeignKey("pharmacies.id", ondelete="CASCADE"), nullable=False)
+    device_token = db.Column(db.String(128), unique=True, nullable=False)
+    mac_address = db.Column(db.String(64), nullable=True, index=True) # Cihaz MAC / Donanım Parmak İzi
+    local_ip = db.Column(db.String(64), nullable=True)               # Cihaz Yerel Ağ IP Adresi (192.168.x.x)
+    device_name = db.Column(db.String(100), default="TV Ekranı")
+    ip_address = db.Column(db.String(64), nullable=True)              # Dış / Ağ IP Adresi
+    screen_resolution = db.Column(db.String(50), nullable=True)       # Örn: "1920x1080", "1280x720"
+    screen_scale = db.Column(db.String(20), default="auto", nullable=False) # 'auto', 'compact', '720p', '1080p', '4k'
+    theme = db.Column(db.String(50), nullable=True)                          # 'classic_grid', 'animated_route', 'focus_carousel', 'dual_card', 'auto_rotate'
+    theme_settings = db.Column(db.Text, nullable=True)                       # Cihaza özel tema parametreleri (JSON)
+    identify_until = db.Column(db.DateTime, nullable=True)            # Ekranda tanımlama / parlatma sinyali süresi
+    is_approved = db.Column(db.Boolean, default=True, nullable=False) # Yönetici tarafından lisans aktif edildi mi?
+    approved_at = db.Column(db.DateTime, nullable=True)               # Lisansın aktif edildiği tarih
+    user_agent = db.Column(db.String(256), nullable=True)
+    last_ping = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def is_online(self, tolerans_dakika: int = 5) -> bool:
+        """Cihazın son 5 dakika içinde ping atıp atmadığını kontrol eder."""
+        if not self.last_ping:
+            return False
+        return (datetime.now() - self.last_ping) <= timedelta(minutes=tolerans_dakika)
+
+    def ekran_cevrimici_mi(self, tolerans_dakika: int = 5) -> bool:
+        """Cihazın canlılık durumunu kontrol eder (is_online alias)."""
+        return self.is_online(tolerans_dakika)
+
+    def son_sinyal_metni(self) -> str:
+        """Cihazın son ping sinyalinin ne kadar önce geldiğini döner."""
+        if not self.last_ping:
+            return "Sinyal yok"
+        toplam_sn = max(0, int((datetime.now() - self.last_ping).total_seconds()))
+        if toplam_sn < 60:
+            return f"{toplam_sn} sn önce"
+        elif toplam_sn < 3600:
+            return f"{toplam_sn // 60} dk önce"
+        else:
+            return f"{toplam_sn // 3600} sa önce"
+
+    def cihazi_tanimla(self, saniye: int = 25):
+        """Bu cihaza ekranda tanımlama sinyali gönderir."""
+        self.identify_until = datetime.now() + timedelta(seconds=saniye)
 
     def is_identify_active(self) -> bool:
         """Tanımlama sinyalinin halen aktif olup olmadığını kontrol eder."""
