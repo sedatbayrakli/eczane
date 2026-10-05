@@ -1013,6 +1013,60 @@ function yedekDuzCizgiCiz(startLat, startLng, endLat, endLng) {
 
 
 /**
+ * Yol Tarifi / Önemli Nokta (Landmark) Metnini Standartlaştırır:
+ * - Tamamı büyük harf gelen verileri Türkçeye uygun Baş Harfleri Büyük (Title Case) formatına küçültür
+ * - Gereksiz boşlukları temizler
+ */
+function turkceTarifStandartlastir(metin) {
+    if (!metin || typeof metin !== 'string') return '';
+    let temiz = metin.trim().replace(/\s+/g, ' ');
+    const buyukSayisi = (temiz.match(/[A-ZÇĞİÖŞÜ]/g) || []).length;
+    const harfSayisi = (temiz.match(/[a-zA-ZçÇğĞıİöÖşŞüÜ]/g) || []).length;
+    if (harfSayisi > 0 && (buyukSayisi / harfSayisi) > 0.5) {
+        temiz = temiz.toLocaleLowerCase('tr-TR').split(' ').map(kelime => {
+            if (!kelime) return '';
+            const m = kelime.match(/[a-zA-ZçÇğĞıİöÖşŞüÜ]/);
+            if (!m) return kelime;
+            const idx = m.index;
+            return kelime.slice(0, idx) + kelime.charAt(idx).toLocaleUpperCase('tr-TR') + kelime.slice(idx + 1);
+        }).join(' ');
+    }
+    return temiz;
+}
+
+/**
+ * Yol Tarifi için Kayan Yazı (Marquee Ticker - Duyuru Hızında ~50-55 px/sn) HTML'i Üretir
+ */
+function yolTarifiBadgeHtmlUret(yolTarifi, ekStil = '') {
+    if (!yolTarifi || !yolTarifi.trim()) return '';
+    const normalizeMetin = turkceTarifStandartlastir(yolTarifi);
+    const escaped = escapeHtml(normalizeMetin);
+    
+    // 20 karakterden uzunsa kayan yazı moduna geç
+    const isLong = normalizeMetin.length > 20;
+    // Süre hesabı: Duyuru hızıyla uyumlu (her karakter ~0.24 saniye, minimum 8 saniye)
+    const animDuration = Math.max(8, Math.round(normalizeMetin.length * 0.24));
+
+    if (isLong) {
+        return `
+        <div class="card-landmark-box has-marquee" style="${ekStil}" title="${escaped}">
+            <span class="card-landmark-icon">📍</span>
+            <div class="landmark-ticker-container">
+                <span class="landmark-ticker-text is-marquee" style="animation-duration: ${animDuration}s;">
+                    ${escaped}
+                </span>
+            </div>
+        </div>`;
+    } else {
+        return `
+        <div class="card-landmark-box" style="${ekStil}" title="${escaped}">
+            <span class="card-landmark-icon">📍</span>
+            <span class="landmark-ticker-text">${escaped}</span>
+        </div>`;
+    }
+}
+
+/**
  * 6. ŞABLONLAR: Klasik Kart, Dev Odak Kartı ve İkili Kart
  */
 
@@ -1026,13 +1080,7 @@ function eczaneKartiHtmlUret(eczane, index) {
         ? `<span class="badge-distance" style="font-size: 0.82rem; font-weight: 800; background: rgba(56, 189, 248, 0.14); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35); padding: 0.15rem 0.5rem; border-radius: 9999px; display: inline-flex; align-items: center; gap: 0.25rem;">📍 ${escapeHtml(formatMesafeMetin(eczane.mesafe_metin))}</span>` 
         : '';
 
-    const yolTarifiHtml = eczane.yol_tarifi 
-        ? `
-        <div class="card-landmark-box" style="padding: 0.15rem 0.45rem; font-size: 0.76rem; margin-top: 0.15rem;">
-            <span class="card-landmark-icon" style="font-size: 0.85rem;">📍</span>
-            <span>${escapeHtml(eczane.yol_tarifi)}</span>
-        </div>` 
-        : '';
+    const yolTarifiHtml = yolTarifiBadgeHtmlUret(eczane.yol_tarifi);
 
     const qrKodUrl = eczane.qr_kod_url || `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(eczane.rota_linki || eczane.harita_linki)}`;
 
@@ -1182,13 +1230,7 @@ function ikiliEczaneKartiHtmlUret(eczane, siraNo) {
     const arabaMetin = eczane.araba_metin || (eczane.mesafe_metre ? `~${Math.max(1, Math.round(eczane.mesafe_metre / 500))} dk` : '');
     const yurumeMetin = eczane.yurume_metin || (eczane.mesafe_metre ? `~${Math.max(1, Math.round(eczane.mesafe_metre / 75))} dk` : '');
 
-    const yolTarifiHtml = eczane.yol_tarifi 
-        ? `
-        <div class="card-landmark-box" style="margin-top: 0.2rem;">
-            <span class="card-landmark-icon">📍</span>
-            <span>${escapeHtml(eczane.yol_tarifi)}</span>
-        </div>` 
-        : '';
+    const yolTarifiHtml = yolTarifiBadgeHtmlUret(eczane.yol_tarifi, 'margin-top: 0.15rem;');
 
     return `
     <article class="dual-pharmacy-card animate-fade-in" data-id="${eczane.id}">
@@ -1665,7 +1707,7 @@ function listeEczaneKartiHtmlUret(e, globalIdx) {
                     <!-- 3. Satır: Eczane Yol Tarifi (Uzun tariflerin sıkışmaması için alt satırda) -->
                     ${yolTarifi ? `
                         <div class="list-card-landmark-row">
-                            <span class="list-card-landmark">🧭 ${yolTarifi}</span>
+                            <span class="list-card-landmark">🧭 ${escapeHtml(turkceTarifStandartlastir(e.yol_tarifi))}</span>
                         </div>
                     ` : ''}
                 </div>
