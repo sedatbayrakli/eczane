@@ -484,6 +484,7 @@ body.kiosk-mode {
     overflow: hidden;
     white-space: nowrap;
     position: relative;
+    direction: ltr;
     mask-image: linear-gradient(to right, transparent 0%, black 5px, black calc(100% - 5px), transparent 100%);
     -webkit-mask-image: linear-gradient(to right, transparent 0%, black 5px, black calc(100% - 5px), transparent 100%);
 }
@@ -491,6 +492,7 @@ body.kiosk-mode {
 .landmark-ticker-text {
     display: inline-block;
     white-space: nowrap;
+    direction: ltr;
 }
 
 .landmark-ticker-text.is-marquee {
@@ -498,6 +500,7 @@ body.kiosk-mode {
     padding-left: 100%;
     animation: landmarkMarquee linear infinite;
     will-change: transform;
+    direction: ltr;
 }
 
 @keyframes landmarkMarquee {
@@ -692,6 +695,7 @@ body.kiosk-mode {
     overflow: hidden;
     white-space: nowrap;
     position: relative;
+    direction: ltr;
 }
 
 .ticker-content {
@@ -703,6 +707,7 @@ body.kiosk-mode {
     will-change: transform;
     animation: marqueeTicker 55s linear infinite;
     transform: translate3d(0, 0, 0);
+    direction: ltr;
 }
 
 @keyframes marqueeTicker {

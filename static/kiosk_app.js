@@ -1704,10 +1704,10 @@ function listeEczaneKartiHtmlUret(e, globalIdx) {
                         <span class="list-card-address">📍 ${adres}</span>
                     </div>
 
-                    <!-- 3. Satır: Eczane Yol Tarifi (Uzun tariflerin sıkışmaması için alt satırda) -->
+                    <!-- 3. Satır: Eczane Yol Tarifi (Uzun tariflerin sıkışmaması için standart kayan yazı rozeti) -->
                     ${yolTarifi ? `
                         <div class="list-card-landmark-row">
-                            <span class="list-card-landmark">🧭 ${escapeHtml(turkceTarifStandartlastir(e.yol_tarifi))}</span>
+                            ${yolTarifiBadgeHtmlUret(e.yol_tarifi)}
                         </div>
                     ` : ''}
                 </div>
