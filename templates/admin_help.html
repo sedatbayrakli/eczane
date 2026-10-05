@@ -320,42 +320,49 @@
             </div>
         </section>
 
-        <!-- 2. BÖLÜM: Mi Box ve TV Çözünürlük Ayarları -->
+        <!-- 2. BÖLÜM: Mi Box ve TV Çözünürlük & Güvenli Alan Ayarları -->
         <section class="guide-card">
-            <h2>📺 Mi Box ve TV Ölçekleme / Çözünürlük Ayarları</h2>
-            <p>TV ekranlarında taşma olmaması ve yazıların uzaktan kusursuz okunması için cihaza özel ölçekleme seçenekleri sunulmuştur:</p>
+            <h2>📺 Mi Box ve TV Ölçekleme / Çözünürlük & Güvenli Alan</h2>
+            <p>TV ekranlarında taşma olmaması, kenar boşluklarının kusursuz oturması ve yazıların uzaktan rahatça okunması için merkezi ölçekleme seçenekleri sunulmuştur:</p>
 
             <ul class="feature-list">
                 <li>
+                    <span class="icon">✏️</span>
+                    <div>
+                        <strong>Manuel Özel Yüzde Girişi (%77, %82, %95 vb.):</strong>
+                        Hazır ölçeklerin dışında televizyonunuzun veya monitörünüzün kasasına tam milimetrik oturması için dilediğiniz özel yüzdeyi manuel olarak girebilirsiniz (Örn: <code>%77</code>).
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🛡️</span>
+                    <div>
+                        <strong>TV Çerçeve Güvenli Alanı (Safe Area Margin):</strong>
+                        Bazı televizyon panelleri görüntünün kenarlarını 5-15 piksel kırpabilir (Overscan). Güvenli Alan ayarı ile içeriği <code>0px - 30px</code> arasında içe doğru güvenli sınıra çekebilirsiniz.
+                    </div>
+                </li>
+                <li>
                     <span class="icon">🖥️</span>
                     <div>
-                        <strong>Mi Box / Android Box (Kompakt - %80):</strong>
-                        Mi Box ve Android kutularda TV tarayıcıları bazen aşırı yakınlaştırma yapabilir. Admin panelindeki Cihazlar menüsünden ölçeği <code>Mi Box (%80)</code> seçtiğinizde tüm kutular ekrana mükemmel sığar, sıfır taşma sağlanır.
-                    </div>
-                </li>
-                <li>
-                    <span class="icon">📺</span>
-                    <div>
-                        <strong>Full HD (1080p - %100) & HD (720p - %85):</strong>
-                        Standart LED/LCD TV ekranları için tasarlanmış doğal çözünürlük ölçeğidir.
-                    </div>
-                </li>
-                <li>
-                    <span class="icon">🌟</span>
-                    <div>
-                        <strong>4K Vitrin Ekranı (%130):</strong>
-                        Büyük boyutlu 4K vitrin televizyonlarında yazıların ve karekodların cadde/kaldırımdan devasa boyutta okunabilmesini sağlar.
+                        <strong>Hazır Ön Tanımlı Oranlar:</strong>
+                        <code>Mi Box / Kompakt (%80)</code>, <code>HD (%85)</code>, <code>Full HD 1080p (%100)</code> ve <code>4K Vitrin TV (%130)</code> hazır seçenekleriyle tek tıkla standart oranları uygulayabilirsiniz.
                     </div>
                 </li>
             </ul>
         </section>
 
-        <!-- 3. BÖLÜM: Çoklu Cihaz ve Donanım Tanımlama -->
+        <!-- 3. BÖLÜM: Çoklu Cihaz, TV Tanımlama ve 10sn Anlık Senkronizasyon -->
         <section class="guide-card">
-            <h2>🔔 Çoklu Cihaz Yönetimi & TV Tanımlama Sinyali</h2>
+            <h2>🔔 Çoklu Cihaz Yönetimi & 10 Saniyelik Anında Senkronizasyon</h2>
             <p>Bir eczanede birden fazla ekran olduğunda (Örn: 1 Vitrin TV, 1 Kasa Arkası TV, 1 Danışma Monitörü):</p>
 
             <ul class="feature-list">
+                <li>
+                    <span class="icon">⚡</span>
+                    <div>
+                        <strong>10 Saniyelik Anında Senkronizasyon (Heartbeat):</strong>
+                        Admin panelinden veya cihaz ayarlarından tema, harita, ölçek (% zoom), güvenli alan veya kayan yazı değiştirdiğinizde TV ekranının yenilenmesi için 15 dakika beklemeniz gerekmez. Ekran <strong>en geç 10 saniye içinde</strong> yeni ayarları otomatik uygular.
+                    </div>
+                </li>
                 <li>
                     <span class="icon">🏷️</span>
                     <div>
@@ -368,19 +375,13 @@
                         <strong>Ekranda Göster / Tanımla Butonu:</strong> Hangi cihazın hangi fiziksel ekrana ait olduğunu anlamak için listedeki <strong>🔔</strong> butonuna bastığınız anda, hedef TV ekranında 25 saniye boyunca parlayan bir tanımlama bildirimi (<code>CİHAZ #ID</code>) gösterilir.
                     </div>
                 </li>
-                <li>
-                    <span class="icon">⚡</span>
-                    <div>
-                        <strong>Canlılık Testi (Heartbeat):</strong> TV ekranlarının internete bağlı olup olmadığını görmek için panodaki <strong>⚡ Canlılık Testi Yap</strong> butonuna basabilirsiniz. Çevrimiçi cihazlar parlak yeşil (🟢), çevrimdışı olanlar parlak kırmızı (🔴) olarak güncellenir.
-                    </div>
-                </li>
             </ul>
         </section>
 
-        <!-- 4. BÖLÜM: Kiosk Ekran Temaları & Gelişmiş Parametreler -->
+        <!-- 4. BÖLÜM: Kiosk Ekran Temaları & Temaya Özel Bağımsız Parametreler -->
         <section class="guide-card">
-            <h2>🎨 Kiosk Ekran Temaları & Cihaz Bazlı Parametreler</h2>
-            <p>Sistemde temalar artık <strong>cihaz (ekran) bazında</strong> seçilebilir. Her TV cihazınız için vitrin veya iç mekan gereksinimlerine göre bağımsız tema ve parametre belirleyebilirsiniz:</p>
+            <h2>🎨 Kiosk Ekran Temaları & Temaya / Ekrana Özel Bağımsız Parametreler</h2>
+            <p>Sistemde temalar artık <strong>hem cihaz hem de tema bazında bağımsız parametrelerle</strong> çalışır. Her ekran görünümü için harita ve bileşen tercihlerini ayrı ayrı özelleştirebilirsiniz:</p>
 
             <table class="themes-table">
                 <thead>
@@ -392,39 +393,49 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <td><strong>1. Klasik 4'lü Izgara</strong></td>
-                        <td>Sol tarafta nöbetçi kartları, sağ tarafta harita. <strong>Harita üzerinde bölgedeki tüm nöbetçi eczanelerin isimleri kalıcı etiketlerle</strong> gösterilir.</td>
-                        <td>Aynı anda çok sayıda nöbetçiyi tek ekranda ve haritada eksiksiz görmek isteyen eczaneler.</td>
+                        <td><strong>1. Klasik 4'lü Izgara & Harita</strong></td>
+                        <td>
+                            Sol tarafta nöbetçi kartları, sağ tarafta harita. 
+                            <strong>15 saniyelik sıralı döngü</strong> ile sıradaki kart parlak mavi çerçeveyle vurgulanır, haritada o eczanenin pini büyüyüp üzerinde mesafe etiketi (örn. "597 mt") belirir. Kendi eczaneniz <strong>⭐ Buradasınız</strong> olarak sabit kalır.
+                            <br><small style="color: #38bdf8;">💡 Harita kapatıldığında 4 kart haritanın yerini de kaplayarak 2x2 tam ekrana yayılır.</small>
+                        </td>
+                        <td>Aynı anda çok sayıda nöbetçiyi tek ekranda ve harita desteğiyle göstermek isteyen eczaneler.</td>
                     </tr>
                     <tr>
-                        <td><strong>2. Canlı Yol & Navigasyon</strong></td>
-                        <td>Canlı rota animasyonu ve modern alt sayfalama bandı (<code>📄 Nöbetçi Eczane 1 / 4</code>). Nöbetçiler arası otomatik yumuşak geçiş.</td>
-                        <td>Cadde vitrinlerinde yayaların dikkatini çeken dinamik navigasyon ekranı.</td>
+                        <td><strong>2. Liste Görünümü</strong></td>
+                        <td>Haritasız, tam ekran sade ve okunaklı nöbetçi eczane listesi. 4'ten fazla nöbetçi olduğunda otomatik sayfalanır.</td>
+                        <td>Harita istemeyen, doğrudan büyük yazı ve tam ekran liste hedefleyen ekranlar.</td>
                     </tr>
                     <tr>
-                        <td><strong>3. Vitrin Carousel</strong></td>
-                        <td>Büyük puntolu dev nöbetçi kartı, alt sayfalama bandı ve harita odaklama animasyonu.</td>
-                        <td>Uzaktan veya araçtan geçenlerin kolayca okuyabilmesi için dev yazılar.</td>
+                        <td><strong>3. Vitrin Carousel & Dev Odak</strong></td>
+                        <td>Büyük puntolu dev odak kartı, sokak/cadde yürüyüş rotası (OSRM) ve harita odaklama animasyonu. 15 saniyede bir sıradaki nöbetçiye geçer.</td>
+                        <td>Cadde vitrinlerinde uzaktan veya araçtan geçenlerin kolayca okuyabilmesi için idealdir.</td>
                     </tr>
                     <tr>
-                        <td><strong>4. İkili Dev Kart</strong></td>
-                        <td>2'den fazla nöbetçi olduğunda <strong>otomatik 2'şerli sayfalama</strong> (1. ve 2. nöbetçi, ardından 3. ve 4. nöbetçi). Harita o an ekranda görünen nöbetçilere odaklanır ve isimlerini gösterir.</td>
-                        <td>Sade, kalabalıktan uzak ve devasa puntolarla hızlı yönlendirme isteyen vitrinler.</td>
+                        <td><strong>4. İkili Dev Kart & Harita</strong></td>
+                        <td>2'den fazla nöbetçi olduğunda <strong>otomatik 2'şerli sayfalama</strong>. Harita o an ekranda görünen nöbetçilere odaklanır.</td>
+                        <td>Sade, kalabalıktan uzak ve devasa puntolarla yönlendirme isteyen vitrinler.</td>
                     </tr>
                     <tr>
-                        <td><strong>5. Karma Mod (Saatlik)</strong></td>
-                        <td>Zaman ayarlı otomatik dönüşüm (1 &rarr; 2 &rarr; 3 &rarr; 4). Her periyotta temayı otomatik yeniler.</td>
-                        <td>Vitrin ekranında sürekli hareketlilik ve modern görünüm sağlar.</td>
+                        <td><strong>5. Karma Mod (Saatlik Dönüşüm)</strong></td>
+                        <td>Zaman ayarlı otomatik dönüşüm (1 &rarr; 2 &rarr; 3 &rarr; 4). Her periyotta temayı ve o temanın özel parametrelerini otomatik devreye sokar.</td>
+                        <td>Vitrin ekranında sürekli hareketlilik ve farklı ekran formatları sunmak isteyenler.</td>
                     </tr>
                 </tbody>
             </table>
 
             <div style="margin-top: 1.5rem; padding-top: 1.2rem; border-top: 1px solid var(--border-color);">
-                <h3 style="font-size: 1.05rem; color: var(--color-accent); margin-bottom: 0.5rem;">⚙️ Ekran Parametreleri & Pikselleri Koruma Modu (Anti-Burn-In)</h3>
+                <h3 style="font-size: 1.05rem; color: var(--color-accent); margin-bottom: 0.5rem;">⚙️ Ekrana / Temaya Özel Bağımsız Ayar Yönetimi</h3>
                 <p style="font-size: 0.88rem; color: #cbd5e1; line-height: 1.6; margin-bottom: 0.8rem;">
-                    Admin panelinde <strong>Kiosk &rarr; ⚙️ Cihazlar &rarr; ⚙️ Ekran Parametreleri</strong> butonuna basarak her ekran için bağımsız ayarlar yapabilirsiniz:
+                    Admin panelindeki tema ayarları modalında üstten seçtiğiniz her temanın kendi bağımsız parametre hafızası bulunur:
                 </p>
                 <ul class="feature-list" style="margin-top: 0.5rem;">
+                    <li>
+                        <span class="icon">🗺️</span>
+                        <div>
+                            <strong>Bağımsız Harita Kontrolü:</strong> Örneğin <em>Klasik 4'lü Izgara</em> ekranında haritayı kapatıp kartları tam ekrana yayabilir, <em>Vitrin Carousel (Tekli Kart)</em> ekranında ise haritayı ve rotayı açık bırakabilirsiniz.
+                        </div>
+                    </li>
                     <li>
                         <span class="icon">🛡️</span>
                         <div>
@@ -434,13 +445,13 @@
                     <li>
                         <span class="icon">📢</span>
                         <div>
-                            <strong>Kayan Yazı Hızı (Ticker Speed):</strong> Yaşlı vatandaşların cadde/kaldırımdan rahatça okuyabilmesi için ideal hız <strong>50-60 px/sn</strong> olarak ayarlanabilir.
+                            <strong>Kayan Yazı Hızı (Ticker Speed):</strong> Yaşlı vatandaşların cadde/kaldırımdan rahatça okuyabilmesi için ideal hız <strong>50-60 px/sn</strong> olarak ayarlanabilir. Cümlenin başı önce gelecek şekilde soldan sağa doğal akış sağlar.
                         </div>
                     </li>
                     <li>
                         <span class="icon">⏱️</span>
                         <div>
-                            <strong>Slayt & Geçiş Zamanlaması:</strong> Nöbetçi kartlarının ekranda kalma süresi (5 sn - 30 sn) ve karma mod saat periyodu tek tıkla özelleştirilebilir.
+                            <strong>15 Saniyelik Sıralı Döngü:</strong> Kartlar ve harita pinleri arasında 15 saniyede bir akıcı döngü yapılır.
                         </div>
                     </li>
                 </ul>
