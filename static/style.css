@@ -75,21 +75,31 @@ body,
     --safe-area-left: 0px;
 }
 
+html {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
 body.kiosk-mode {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
     overflow: hidden;
-    width: 100vw;
-    height: 100vh;
+    width: 100%;
+    height: 100%;
 }
 
 /* Tam Ekran Kiosk Kapsayıcısı (TV ve Mi Box Tam Ekranı Doldurur) */
 .dashboard-wrapper {
     display: flex;
     flex-direction: column;
-    width: 100vw;
-    height: 100vh;
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 100%;
+    min-height: 100%;
     padding: calc(0.65rem + var(--safe-area-top, 0px)) 
              calc(0.85rem + var(--safe-area-right, 0px)) 
              calc(0.65rem + var(--safe-area-bottom, 0px)) 
