@@ -12,44 +12,10 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
+    <link rel="stylesheet" href="/static/admin_sidebar.css?v=1.0">
     <style>
-        /* Sayfa kaydırmasını açık tut */
-        html, body {
-            height: auto !important;
-            min-height: 100vh !important;
-            overflow-y: auto !important;
-            overflow-x: hidden !important;
-            width: 100% !important;
-        }
-
-        :root {
-            --bg-body: #0b0f19;
-            --bg-card: rgba(17, 24, 39, 0.85);
-            --border-color: rgba(255, 255, 255, 0.08);
-            --border-hover: rgba(255, 255, 255, 0.18);
-            --color-primary: #ef4444;
-            --color-accent: #38bdf8;
-            --color-success: #10b981;
-            --color-warning: #f59e0b;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-        }
-
-        body {
-            background-color: var(--bg-body);
-            background-image: 
-                radial-gradient(circle at 10% 15%, rgba(16, 185, 129, 0.05) 0%, transparent 40%),
-                radial-gradient(circle at 85% 85%, rgba(56, 189, 248, 0.05) 0%, transparent 40%);
-            color: var(--text-main);
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            min-height: 100vh;
-            margin: 0;
-            padding: 1.5rem;
-            box-sizing: border-box;
-        }
-
-        .container {
-            max-width: 1240px;
+        .duty-container {
+            max-width: 1300px;
             margin: 0 auto;
         }
 
@@ -583,39 +549,35 @@
             padding: 8px;
             margin: 1rem 0;
         }
-    </style>
 </head>
-<body>
+<body class="admin-body">
 
-    <div class="container">
+    <!-- Ortak Sol Menü (Sidebar) -->
+    {% include '_admin_sidebar.html' %}
 
-        <!-- Üst Gezinme Çubuğu -->
-        <header class="top-navbar">
-            <div class="brand">
-                <div class="brand-logo">🏥</div>
-                <div class="brand-text">
-                    <h1>Nöbetçi Eczane Sorgulama</h1>
-                    <p>İl, İlçe ve Tarih Bazlı Canlı Nöbetçi Listesi & Rota Servisi</p>
+    <!-- Ana İçerik Alanı -->
+    <main class="main-wrapper" id="main-content">
+        <!-- Mobil Header -->
+        <div class="mobile-header">
+            <button type="button" class="btn btn-secondary" onclick="toggleMobileSidebar()" style="padding: 0.4rem 0.7rem; font-size: 1.1rem;">
+                ☰
+            </button>
+            <div style="font-weight: 800; color: #fff; font-size: 1.05rem; display: flex; align-items: center; gap: 0.5rem;">
+                <span>🏥</span> Nöbetçi Eczaneler
+            </div>
+            <a href="/admin" class="btn btn-secondary" style="padding: 0.4rem 0.7rem; font-size: 0.8rem;">
+                ⬅️
+            </a>
+        </div>
+
+        <div class="duty-container">
+            <!-- Sayfa Başlığı -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.8rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-color); flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <h1 style="font-size: 1.4rem; font-weight: 800; margin: 0; color: #fff;">🏥 Nöbetçi Eczane Sorgulama & Rota Servisi</h1>
+                    <p style="margin: 0.3rem 0 0 0; color: var(--text-muted); font-size: 0.85rem;">İl, ilçe ve tarih bazlı canlı nöbetçi listesi, harita ve koordinat doğrulama</p>
                 </div>
             </div>
-            <div class="nav-actions">
-                <a href="/admin" class="btn btn-secondary">
-                    🏠 Eczaneler & Lisanslar
-                </a>
-                <a href="/admin/duty-pharmacies" class="btn btn-secondary" style="border-color: rgba(16, 185, 129, 0.4); color: #34d399; font-weight: 700;">
-                    🏥 Nöbetçi Eczaneler
-                </a>
-                <a href="/admin/settings" class="btn btn-secondary">
-                    ⚙️ Genel Ayarlar
-                </a>
-                <a href="/admin/help" class="btn btn-secondary">
-                    📖 Yardım
-                </a>
-                <a href="/admin/logout" class="btn btn-secondary">
-                    Çıkış Yap
-                </a>
-            </div>
-        </header>
 
         <!-- Filtreleme ve Arama Formu -->
         <section class="filter-card">
@@ -756,7 +718,8 @@
             <!-- JS ile dinamik render edilecek -->
         </section>
 
-    </div>
+        </div>
+    </main>
 
     <!-- QR Kod Modalı -->
     <div id="qr-modal" class="qr-modal" onclick="qrModalKapat()">

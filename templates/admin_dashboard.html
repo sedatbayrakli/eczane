@@ -787,83 +787,8 @@
 </head>
 <body>
 
-    <!-- Mobil Karartma Overlay -->
-    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleMobileSidebar()"></div>
-
-    <!-- Modern Açılır/Kapanır Sol Menü (Sidebar) -->
-    <aside class="sidebar" id="admin-sidebar">
-        <div>
-            <!-- Sidebar Başlık & Logo -->
-            <div class="sidebar-header">
-                <a href="/admin" class="sidebar-brand">
-                    <div class="sidebar-logo">E</div>
-                    <div class="sidebar-title">
-                        <h2>Eczane TV</h2>
-                        <span>Yönetim Konsolu</span>
-                    </div>
-                </a>
-                <button type="button" class="sidebar-toggle-btn" onclick="toggleSidebarCollapse()" title="Menüyü Daralt / Genişlet">
-                    ◀
-                </button>
-            </div>
-
-            <!-- Menü Linkleri -->
-            <ul class="sidebar-nav">
-                <li>
-                    <a href="/admin" class="nav-link-item active">
-                        <span class="nav-icon">📊</span>
-                        <span class="nav-text">Kontrol Paneli</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="/admin/duty-pharmacies" class="nav-link-item">
-                        <span class="nav-icon">🏥</span>
-                        <span class="nav-text">Nöbetçi Eczaneler</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="/admin/logs" class="nav-link-item">
-                        <span class="nav-icon">📜</span>
-                        <span class="nav-text">Cihaz Logları</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="/admin/whatsapp-logs" class="nav-link-item">
-                        <span class="nav-icon">💬</span>
-                        <span class="nav-text">WhatsApp Günlüğü</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="/admin/settings" class="nav-link-item">
-                        <span class="nav-icon">⚙️</span>
-                        <span class="nav-text">Genel Ayarlar</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="/admin/profile" class="nav-link-item">
-                        <span class="nav-icon">👤</span>
-                        <span class="nav-text">Yönetici Profili</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="/admin/help" class="nav-link-item">
-                        <span class="nav-icon">📖</span>
-                        <span class="nav-text">Yardım & Kılavuz</span>
-                    </a>
-                </li>
-            </ul>
-        </div>
-
-        <!-- Sidebar Alt Bar (Yeni Kurum & Çıkış) -->
-        <div class="sidebar-footer">
-            <button type="button" class="btn btn-primary" onclick="yeniEczaneModalAc()" style="width: 100%; justify-content: center; padding: 0.65rem 0.5rem; font-size: 0.85rem;">
-                <span>➕</span> <span class="nav-text">Yeni Kurum Ekle</span>
-            </button>
-            <a href="/admin/logout" class="btn btn-secondary" style="width: 100%; justify-content: center; font-size: 0.82rem; padding: 0.5rem 0.5rem; color: #94a3b8;">
-                <span>🚪</span> <span class="nav-text">Çıkış Yap</span>
-            </a>
-        </div>
-    </aside>
+    <!-- Ortak Sol Menü (Sidebar) -->
+    {% include '_admin_sidebar.html' %}
 
     <!-- Ana İçerik Wrapper -->
     <main class="main-wrapper" id="main-content">

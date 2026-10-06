@@ -1,0 +1,229 @@
+/*
+===================================================================
+ Admin Paneli Ortak Sol Menü (Sidebar) & Responsive Layout Stilleri
+===================================================================
+*/
+
+:root {
+    --bg-body: #080c15;
+    --bg-card: rgba(17, 24, 39, 0.95);
+    --bg-hover: rgba(31, 41, 55, 0.8);
+    --border-color: rgba(255, 255, 255, 0.08);
+    --border-hover: rgba(255, 255, 255, 0.18);
+    --color-primary: #ef4444;
+    --color-success: #10b981;
+    --color-warning: #f59e0b;
+    --color-accent: #38bdf8;
+    --color-purple: #a855f7;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+}
+
+body.admin-body { 
+    background: var(--bg-body) !important; 
+    color: var(--text-main) !important; 
+    min-height: 100vh !important; 
+    margin: 0 !important;
+    padding: 0 !important;
+    display: flex !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    font-family: 'Plus Jakarta Sans', 'Inter', sans-serif !important;
+}
+
+/* Modern Açılır / Kapanır Sol Menü (Sidebar) */
+.sidebar {
+    width: 260px;
+    min-width: 260px;
+    background: rgba(13, 18, 30, 0.98);
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 1000;
+    transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(16px);
+    box-shadow: 4px 0 25px rgba(0,0,0,0.4);
+}
+
+.sidebar.collapsed {
+    width: 78px;
+    min-width: 78px;
+}
+
+.sidebar-header {
+    padding: 1.2rem 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    text-decoration: none;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.sidebar-logo {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #ef4444, #b91c1c);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    font-weight: 900;
+    color: #fff;
+    flex-shrink: 0;
+    box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
+}
+
+.sidebar-title {
+    display: flex;
+    flex-direction: column;
+    transition: opacity 0.2s;
+}
+.sidebar-title h2 { font-size: 1.05rem; font-weight: 800; color: #fff; margin: 0; }
+.sidebar-title span { font-size: 0.72rem; color: var(--text-muted); }
+.sidebar.collapsed .sidebar-title { display: none; }
+
+.sidebar-toggle-btn {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+.sidebar-toggle-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
+
+.sidebar-nav {
+    list-style: none;
+    padding: 1rem 0.6rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    overflow-y: auto;
+    flex: 1;
+    margin: 0;
+}
+
+.nav-link-item {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.75rem 0.9rem;
+    border-radius: 10px;
+    color: #cbd5e1;
+    text-decoration: none;
+    font-size: 0.88rem;
+    font-weight: 600;
+    transition: all 0.2s;
+    white-space: nowrap;
+    overflow: hidden;
+}
+.nav-link-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    transform: translateX(3px);
+}
+.nav-link-item.active {
+    background: linear-gradient(90deg, rgba(239, 68, 68, 0.2), rgba(239, 68, 68, 0.05));
+    color: #f87171;
+    border-left: 3px solid #ef4444;
+}
+.nav-link-item .nav-icon {
+    font-size: 1.25rem;
+    min-width: 26px;
+    text-align: center;
+    flex-shrink: 0;
+}
+.sidebar.collapsed .nav-text {
+    display: none;
+}
+
+.sidebar-footer {
+    padding: 1rem 0.8rem;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+/* Ana İçerik Konteyneri */
+.main-wrapper {
+    margin-left: 260px;
+    flex: 1;
+    width: calc(100% - 260px);
+    min-height: 100vh;
+    padding: 1.5rem 2rem 3rem 2rem;
+    transition: margin-left 0.28s cubic-bezier(0.4, 0, 0.2, 1), width 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    box-sizing: border-box;
+}
+.sidebar.collapsed ~ .main-wrapper {
+    margin-left: 78px;
+    width: calc(100% - 78px);
+}
+
+/* Mobil Header Bar */
+.mobile-header {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.8rem 1.2rem;
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border-color);
+    position: sticky;
+    top: 0;
+    z-index: 990;
+    backdrop-filter: blur(12px);
+    margin: -1.5rem -2rem 1.5rem -2rem;
+}
+
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    z-index: 995;
+}
+
+@media (max-width: 992px) {
+    body.admin-body { display: block !important; padding: 0 !important; }
+    .sidebar {
+        transform: translateX(-100%);
+        width: 270px !important;
+    }
+    .sidebar.mobile-open {
+        transform: translateX(0);
+    }
+    .sidebar-overlay.mobile-open {
+        display: block;
+    }
+    .main-wrapper {
+        margin-left: 0 !important;
+        width: 100% !important;
+        padding: 1rem !important;
+    }
+    .mobile-header {
+        display: flex;
+        margin: -1rem -1rem 1rem -1rem;
+    }
+}

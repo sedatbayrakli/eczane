@@ -324,7 +324,7 @@ def admin_profile():
         flash("Profil bilgileriniz başarıyla güncellendi!", "success")
         return redirect(url_for("admin_profile"))
 
-    return render_template("admin_profile.html", admin=admin)
+    return render_template("admin_profile.html", admin=admin, aktif_sayfa="profile")
 
 
 @app.route("/admin/logs")
@@ -357,7 +357,8 @@ def admin_logs():
         filtre_onem=filtre_onem,
         toplam_kayit=toplam_kayit,
         arkaplan_kayit=arkaplan_kayit,
-        whatsapp_kayit=whatsapp_kayit
+        whatsapp_kayit=whatsapp_kayit,
+        aktif_sayfa="logs"
     )
 
 
@@ -396,7 +397,8 @@ def admin_whatsapp_logs():
         yon=yon,
         toplam_giden=toplam_giden,
         toplam_gelen=toplam_gelen,
-        toplam_basarili=toplam_basarili
+        toplam_basarili=toplam_basarili,
+        aktif_sayfa="whatsapp"
     )
 
 
@@ -485,7 +487,8 @@ def admin_dashboard():
         aktif_sayi=aktif_sayi,
         cevrimici_sayi=cevrimici_sayi,
         bekleyen_onay_sayisi=bekleyen_onay_sayisi,
-        base_url=base_url
+        base_url=base_url,
+        aktif_sayfa="dashboard"
     )
 
 
@@ -1055,7 +1058,7 @@ def admin_api_device_health_check(eczane_id, device_id):
 @login_required
 def admin_help():
     """Sistemin kullanım kılavuzu, TV kurulumu ve özellikler rehberi sayfası."""
-    return render_template("admin_help.html")
+    return render_template("admin_help.html", aktif_sayfa="help")
 
 
 @app.route("/admin/duty-pharmacies")
@@ -1071,7 +1074,8 @@ def admin_duty_pharmacies():
         secili_il=il,
         secili_ilce=ilce,
         secili_tarih=tarih,
-        secili_kaynak=kaynak
+        secili_kaynak=kaynak,
+        aktif_sayfa="duty"
     )
 
 
@@ -1326,7 +1330,7 @@ def admin_settings():
 
         return redirect(url_for("admin_settings"))
 
-    return render_template("admin_settings.html", ayar=ayar)
+    return render_template("admin_settings.html", ayar=ayar, aktif_sayfa="settings")
 
 
 @app.route("/admin/api/whatsapp/test", methods=["POST"])

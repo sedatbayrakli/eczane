@@ -1,0 +1,114 @@
+<!-- Ortak Modern Sidebar Bileşeni -->
+<!-- Mobil Karartma Overlay -->
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleMobileSidebar()"></div>
+
+<!-- Modern Açılır/Kapanır Sol Menü (Sidebar) -->
+<aside class="sidebar" id="admin-sidebar">
+    <div>
+        <!-- Sidebar Başlık & Logo -->
+        <div class="sidebar-header">
+            <a href="/admin" class="sidebar-brand">
+                <div class="sidebar-logo">E</div>
+                <div class="sidebar-title">
+                    <h2>Eczane TV</h2>
+                    <span>Yönetim Konsolu</span>
+                </div>
+            </a>
+            <button type="button" class="sidebar-toggle-btn" onclick="toggleSidebarCollapse()" title="Menüyü Daralt / Genişlet">
+                ◀
+            </button>
+        </div>
+
+        <!-- Menü Linkleri -->
+        <ul class="sidebar-nav">
+            <li>
+                <a href="/admin" class="nav-link-item {% if aktif_sayfa == 'dashboard' %}active{% endif %}">
+                    <span class="nav-icon">📊</span>
+                    <span class="nav-text">Kontrol Paneli</span>
+                </a>
+            </li>
+            <li>
+                <a href="/admin/duty-pharmacies" class="nav-link-item {% if aktif_sayfa == 'duty' %}active{% endif %}">
+                    <span class="nav-icon">🏥</span>
+                    <span class="nav-text">Nöbetçi Eczaneler</span>
+                </a>
+            </li>
+            <li>
+                <a href="/admin/logs" class="nav-link-item {% if aktif_sayfa == 'logs' %}active{% endif %}">
+                    <span class="nav-icon">📜</span>
+                    <span class="nav-text">Cihaz Logları</span>
+                </a>
+            </li>
+            <li>
+                <a href="/admin/whatsapp-logs" class="nav-link-item {% if aktif_sayfa == 'whatsapp' %}active{% endif %}">
+                    <span class="nav-icon">💬</span>
+                    <span class="nav-text">WhatsApp Günlüğü</span>
+                </a>
+            </li>
+            <li>
+                <a href="/admin/settings" class="nav-link-item {% if aktif_sayfa == 'settings' %}active{% endif %}">
+                    <span class="nav-icon">⚙️</span>
+                    <span class="nav-text">Genel Ayarlar</span>
+                </a>
+            </li>
+            <li>
+                <a href="/admin/profile" class="nav-link-item {% if aktif_sayfa == 'profile' %}active{% endif %}">
+                    <span class="nav-icon">👤</span>
+                    <span class="nav-text">Yönetici Profili</span>
+                </a>
+            </li>
+            <li>
+                <a href="/admin/help" class="nav-link-item {% if aktif_sayfa == 'help' %}active{% endif %}">
+                    <span class="nav-icon">📖</span>
+                    <span class="nav-text">Yardım & Kılavuz</span>
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Sidebar Alt Bar -->
+    <div class="sidebar-footer">
+        <a href="/admin/logout" class="btn btn-secondary" style="width: 100%; justify-content: center; font-size: 0.85rem; padding: 0.55rem 0.5rem; color: #94a3b8; border-color: rgba(255,255,255,0.08); background: rgba(255,255,255,0.03);">
+            <span>🚪</span> <span class="nav-text">Çıkış Yap</span>
+        </a>
+    </div>
+</aside>
+
+<script>
+    // Ortak Sidebar Daraltma / Genişletme & Mobil Menü Kontrolleri
+    function toggleSidebarCollapse() {
+        const sb = document.getElementById('admin-sidebar');
+        const btn = document.querySelector('.sidebar-toggle-btn');
+        if (sb) {
+            sb.classList.toggle('collapsed');
+            const isCollapsed = sb.classList.contains('collapsed');
+            if (btn) btn.innerHTML = isCollapsed ? '▶' : '◀';
+            try {
+                localStorage.setItem('admin_sidebar_collapsed', isCollapsed ? '1' : '0');
+            } catch(e) {}
+        }
+    }
+
+    function toggleMobileSidebar() {
+        const sb = document.getElementById('admin-sidebar');
+        const ov = document.getElementById('sidebar-overlay');
+        if (sb && ov) {
+            sb.classList.toggle('mobile-open');
+            ov.classList.toggle('mobile-open');
+        }
+    }
+
+    // Sayfa yüklendiğinde kullanıcının son sidebar tercihini hatırla
+    document.addEventListener('DOMContentLoaded', () => {
+        try {
+            if (window.innerWidth > 992 && localStorage.getItem('admin_sidebar_collapsed') === '1') {
+                const sb = document.getElementById('admin-sidebar');
+                const btn = document.querySelector('.sidebar-toggle-btn');
+                if (sb) {
+                    sb.classList.add('collapsed');
+                    if (btn) btn.innerHTML = '▶';
+                }
+            }
+        } catch(e) {}
+    });
+</script>
