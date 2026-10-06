@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cihaz Olay & Canlılık Günlükleri | Nöbetçi Eczane TV</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-body: #0b0f19;
+            --bg-card: rgba(17, 24, 39, 0.85);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --color-primary: #ef4444;
+            --color-accent: #38bdf8;
+            --color-success: #10b981;
+            --color-warning: #f59e0b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            min-height: 100vh;
+            margin: 0;
+            padding: 1.5rem;
+            box-sizing: border-box;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .top-navbar {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            backdrop-filter: blur(12px);
+            border-radius: 16px;
+            padding: 1rem 1.6rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .brand-logo {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, #f59e0b, #ef4444);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
+        }
+
+        .brand-text h1 {
+            font-size: 1.25rem;
+            font-weight: 800;
+            margin: 0;
+            color: #fff;
+        }
+
+        .brand-text p {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin: 0.15rem 0 0 0;
+        }
+
+        .nav-actions {
+            display: flex;
+            gap: 0.8rem;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 0.55rem 1.1rem;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            border: 1px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+            border-color: var(--border-color);
+        }
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            border-color: rgba(239, 68, 68, 0.35);
+        }
+        .btn-danger:hover {
+            background: rgba(239, 68, 68, 0.35);
+        }
+
+        /* İstatistik Kartları */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .stat-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+        }
+
+        .stat-val {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: #fff;
+            margin: 0;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin: 0.1rem 0 0 0;
+        }
+
+        /* Filtreleme ve Tablo */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+
+        .filter-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .filter-pills {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .pill {
+            padding: 0.4rem 0.85rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-decoration: none;
+            color: var(--text-muted);
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-color);
+            transition: all 0.2s;
+        }
+        .pill.active {
+            background: rgba(56, 189, 248, 0.18);
+            color: #38bdf8;
+            border-color: rgba(56, 189, 248, 0.4);
+        }
+
+        .log-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        .log-table th {
+            text-align: left;
+            padding: 0.85rem 1rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            border-bottom: 1px solid var(--border-color);
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .log-table td {
+            padding: 0.9rem 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            vertical-align: middle;
+        }
+
+        .log-table tr:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.25rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+        .badge-warning { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); }
+        .badge-success { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35); }
+        .badge-danger { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.35); }
+        .badge-info { background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35); }
+
+        .time-cell {
+            font-family: 'JetBrains Mono', monospace;
+            color: #94a3b8;
+            font-size: 0.78rem;
+            white-space: nowrap;
+        }
+
+        .alert {
+            padding: 0.85rem 1.2rem;
+            border-radius: 10px;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        .alert-info { background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); color: #38bdf8; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Üst Gezinme -->
+        <div class="top-navbar">
+            <div class="brand">
+                <div class="brand-logo">📜</div>
+                <div class="brand-text">
+                    <h1>Cihaz Olay & Canlılık Günlükleri</h1>
+                    <p>TV Ekranlarının Arka Plana Düşme, Çevrimdışı Kalma ve WhatsApp Bildirim Raporları</p>
+                </div>
+            </div>
+            <div class="nav-actions">
+                <form action="/admin/logs/clear" method="POST" onsubmit="return confirm('Tüm log kayıtlarını temizlemek istediğinize emin misiniz?');" style="margin:0;">
+                    <button type="submit" class="btn btn-danger">🗑️ Günlükleri Temizle</button>
+                </form>
+                <a href="/admin" class="btn btn-secondary">⬅️ Kontrol Paneli</a>
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- İstatistikler -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">📋</div>
+                <div>
+                    <h3 class="stat-val">{{ toplam_kayit }}</h3>
+                    <p class="stat-label">Toplam Olay Kaydı</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24;">⚠️</div>
+                <div>
+                    <h3 class="stat-val">{{ arkaplan_kayit }}</h3>
+                    <p class="stat-label">Arka Plana Düşme Olayı</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background: rgba(16, 185, 129, 0.15); color: #34d399;">💬</div>
+                <div>
+                    <h3 class="stat-val">{{ whatsapp_kayit }}</h3>
+                    <p class="stat-label">WhatsApp Uyarısı İletildi</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tablo ve Filtreler -->
+        <div class="card">
+            <div class="filter-bar">
+                <div class="filter-pills">
+                    <a href="/admin/logs?type=all" class="pill {% if filtre_tur == 'all' %}active{% endif %}">Tümü</a>
+                    <a href="/admin/logs?type=background" class="pill {% if filtre_tur == 'background' %}active{% endif %}">⚠️ Arka Plan (Launcher)</a>
+                    <a href="/admin/logs?type=foreground" class="pill {% if filtre_tur == 'foreground' %}active{% endif %}">🟢 Tekrar Ön Plan</a>
+                    <a href="/admin/logs?type=offline" class="pill {% if filtre_tur == 'offline' %}active{% endif %}">🔴 Çevrimdışı</a>
+                </div>
+            </div>
+
+            {% if logs %}
+            <div style="overflow-x: auto;">
+                <table class="log-table">
+                    <thead>
+                        <tr>
+                            <th>ZAMAN</th>
+                            <th>DURUM</th>
+                            <th>KURUM & CİHAZ</th>
+                            <th>OLAY AÇIKLAMASI</th>
+                            <th>WHATSAPP</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in logs %}
+                        <tr>
+                            <td class="time-cell">{{ log.created_at.strftime('%d.%m.%Y %H:%M:%S') }}</td>
+                            <td>
+                                {% if log.severity == 'warning' %}
+                                    <span class="badge badge-warning">⚠️ {{ log.event_type }}</span>
+                                {% elif log.severity == 'danger' %}
+                                    <span class="badge badge-danger">🔴 {{ log.event_type }}</span>
+                                {% elif log.severity == 'success' %}
+                                    <span class="badge badge-success">🟢 {{ log.event_type }}</span>
+                                {% else %}
+                                    <span class="badge badge-info">ℹ️ {{ log.event_type }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <strong style="color: #fff;">{{ log.pharmacy.name if log.pharmacy else 'Genel' }}</strong>
+                                {% if log.device %}
+                                    <div style="color: #94a3b8; font-size: 0.78rem;">📺 {{ log.device.device_name }}</div>
+                                {% endif %}
+                            </td>
+                            <td style="color: #cbd5e1; max-width: 450px;">
+                                <div style="font-weight: 600; color: #fff; margin-bottom: 0.2rem;">{{ log.title }}</div>
+                                <div>{{ log.message }}</div>
+                            </td>
+                            <td>
+                                {% if log.whatsapp_sent %}
+                                    <span class="badge badge-success" title="WhatsApp mesajı başarıyla iletildi">✅ Gönderildi</span>
+                                {% else %}
+                                    <span style="color: #64748b; font-size: 0.78rem;">-</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div style="text-align: center; padding: 3rem 1rem; color: #64748b;">
+                <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🎉</div>
+                <h3 style="color: #e2e8f0; margin: 0;">Henüz kaydedilmiş bir anormallik veya olay yok</h3>
+                <p style="font-size: 0.85rem; margin-top: 0.3rem;">TV ekranları arka plana düştüğünde veya bağlantı koptuğunda burada listelenecektir.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+</body>
+</html>

@@ -23,6 +23,8 @@ class AdminUser(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
+    full_name = db.Column(db.String(120), nullable=True)     # Yönetici Ad Soyad
+    phone = db.Column(db.String(30), nullable=True)          # WhatsApp Bildirim Telefonu (Örn: 905xxxxxxxxx)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def sifre_belirle(self, sifre: str):
@@ -581,6 +583,15 @@ class SystemSetting(db.Model):
     heartbeat_tolerance_min = db.Column(db.Integer, default=5, nullable=False) # Çevrimdışı Sinyal Toleransı (dk)
     max_search_distance_km = db.Column(db.Integer, default=15, nullable=False) # Maksimum Nöbetçi Çemberi (km)
     map_theme = db.Column(db.String(50), default="cartodb_dark", nullable=False) # Harita Sağlayıcı Stili
+
+    # Evolution API WhatsApp Entegrasyon Ayarları
+    whatsapp_enabled = db.Column(db.Boolean, default=False, nullable=False)         # WhatsApp Bildirimleri Açık/Kapalı
+    evolution_api_url = db.Column(db.String(255), default="http://10.0.201.201:3800", nullable=True) # API URL
+    evolution_instance = db.Column(db.String(100), default="sedat2", nullable=True) # Instance Adı
+    evolution_instance_key = db.Column(db.String(255), default="CC3C74FD6208-4756-87F3-133CFA796603", nullable=True)
+    evolution_global_key = db.Column(db.String(255), default="16f54b4d7f24e095e8e88761f3bc993d863cafced9d6f99939824", nullable=True)
+    whatsapp_notify_admin = db.Column(db.Boolean, default=True, nullable=False)     # Admin'e WhatsApp bildirimi gitsin mi
+    whatsapp_notify_pharmacy = db.Column(db.Boolean, default=True, nullable=False)  # Kurum yetkilisine gitsin mi
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     @classmethod
@@ -608,6 +619,13 @@ class SystemSetting(db.Model):
             "heartbeat_tolerance_min": self.heartbeat_tolerance_min,
             "max_search_distance_km": self.max_search_distance_km,
             "map_theme": self.map_theme,
+            "whatsapp_enabled": self.whatsapp_enabled,
+            "evolution_api_url": self.evolution_api_url,
+            "evolution_instance": self.evolution_instance,
+            "evolution_instance_key": self.evolution_instance_key,
+            "evolution_global_key": self.evolution_global_key,
+            "whatsapp_notify_admin": self.whatsapp_notify_admin,
+            "whatsapp_notify_pharmacy": self.whatsapp_notify_pharmacy,
             "updated_at": self.updated_at.strftime("%d.%m.%Y %H:%M") if self.updated_at else None
         }
 
@@ -649,4 +667,41 @@ class TickerTemplate(db.Model):
                 db.session.commit()
             except Exception:
                 db.session.rollback()
+
+
+class DeviceLog(db.Model):
+    """
+    Kiosk cihazlarının canlı durum değişiklikleri, ekran arka plana düşme olayları,
+    çevrimdışı/çevrimiçi durumları ve WhatsApp bildirim kayıtları.
+    """
+    __tablename__ = "device_logs"
+
+    id = db.Column(db.Integer, primary_key=True)
+    pharmacy_id = db.Column(db.Integer, db.ForeignKey("pharmacies.id", ondelete="SET NULL"), nullable=True)
+    device_id = db.Column(db.Integer, db.ForeignKey("kiosk_devices.id", ondelete="SET NULL"), nullable=True)
+    event_type = db.Column(db.String(50), nullable=False) # 'background', 'foreground', 'offline', 'online', 'approved', 'system'
+    severity = db.Column(db.String(20), default="info", nullable=False) # 'info', 'warning', 'danger', 'success'
+    title = db.Column(db.String(120), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    details = db.Column(db.Text, nullable=True) # JSON ek detaylar (IP, MAC, pil, tarayıcı vs.)
+    whatsapp_sent = db.Column(db.Boolean, default=False, nullable=False) # WhatsApp bildirimi yollandı mı?
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+
+    pharmacy = db.relationship("Pharmacy", backref=db.backref("logs", lazy="dynamic"))
+    device = db.relationship("KioskDevice", backref=db.backref("logs", lazy="dynamic"))
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "pharmacy_id": self.pharmacy_id,
+            "pharmacy_name": self.pharmacy.name if self.pharmacy else "Bilinmiyor",
+            "device_id": self.device_id,
+            "device_name": self.device.device_name if self.device else "Bilinmiyor",
+            "event_type": self.event_type,
+            "severity": self.severity,
+            "title": self.title,
+            "message": self.message,
+            "whatsapp_sent": self.whatsapp_sent,
+            "created_at": self.created_at.strftime("%d.%m.%Y %H:%M:%S") if self.created_at else None
+        }
 

@@ -481,6 +481,70 @@
                 </div>
             </div>
 
+            <!-- 5. KART: Evolution API WhatsApp Bildirimleri -->
+            <div class="settings-card" style="border-color: rgba(16, 185, 129, 0.35); background: rgba(16, 185, 129, 0.04);">
+                <div class="card-header-custom">
+                    <span class="icon" style="background: rgba(16, 185, 129, 0.2); color: #34d399;">💬</span>
+                    <div>
+                        <h2>Evolution API WhatsApp Bildirim Entegrasyonu</h2>
+                        <p>TV ekranı arka plana düştüğünde, kapandığında veya çevrimdışı kaldığında anlık WhatsApp uyarısı gönderir.</p>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 1.2rem; display: flex; align-items: center; gap: 1rem; padding: 0.8rem 1rem; background: rgba(0,0,0,0.3); border-radius: 10px; border: 1px solid rgba(255,255,255,0.06);">
+                    <input type="checkbox" id="whatsapp_enabled" name="whatsapp_enabled" value="1" style="width: 20px; height: 20px; accent-color: #10b981; cursor: pointer;" {% if ayar.whatsapp_enabled %}checked{% endif %}>
+                    <label for="whatsapp_enabled" style="font-weight: 700; cursor: pointer; color: #34d399; font-size: 0.95rem; margin: 0;">
+                        🟢 WhatsApp Bildirim Servisini Aktif Et
+                    </label>
+                </div>
+
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label>Evolution API URL / Host</label>
+                        <input type="text" name="evolution_api_url" value="{{ ayar.evolution_api_url or 'http://10.0.201.201:3800' }}" class="form-control" placeholder="http://10.0.201.201:3800" required>
+                        <small>Evolution API erişim adresi veya IP'si.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Instance (Oturum) Adı</label>
+                        <input type="text" name="evolution_instance" value="{{ ayar.evolution_instance or 'sedat2' }}" class="form-control" placeholder="sedat2" required>
+                        <small>Evolution API panelinde QR okutulmuş aktif instance adı.</small>
+                    </div>
+                </div>
+
+                <div class="form-grid-2" style="margin-top: 1rem;">
+                    <div class="form-group">
+                        <label>Instance Key</label>
+                        <input type="text" name="evolution_instance_key" value="{{ ayar.evolution_instance_key or 'CC3C74FD6208-4756-87F3-133CFA796603' }}" class="form-control" placeholder="CC3C74FD6208-...">
+                        <small>Instance özel erişim anahtarı.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Global API Key (apikey)</label>
+                        <input type="text" name="evolution_global_key" value="{{ ayar.evolution_global_key or '16f54b4d7f24e095e8e88761f3bc993d863cafced9d6f99939824' }}" class="form-control" placeholder="16f54b4d7f24...">
+                        <small>Evolution API sunucu seviyesi global API anahtarı.</small>
+                    </div>
+                </div>
+
+                <div class="form-grid-2" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.06);">
+                    <div class="form-group" style="display: flex; align-items: center; gap: 0.75rem;">
+                        <input type="checkbox" id="whatsapp_notify_admin" name="whatsapp_notify_admin" value="1" style="width: 18px; height: 18px; accent-color: #38bdf8;" {% if ayar.whatsapp_notify_admin %}checked{% endif %}>
+                        <label for="whatsapp_notify_admin" style="font-size: 0.88rem; cursor: pointer; margin: 0;">Sistem Yöneticisine (Admin Profil Tel) Bildir</label>
+                    </div>
+
+                    <div class="form-group" style="display: flex; align-items: center; gap: 0.75rem;">
+                        <input type="checkbox" id="whatsapp_notify_pharmacy" name="whatsapp_notify_pharmacy" value="1" style="width: 18px; height: 18px; accent-color: #38bdf8;" {% if ayar.whatsapp_notify_pharmacy %}checked{% endif %}>
+                        <label for="whatsapp_notify_pharmacy" style="font-size: 0.88rem; cursor: pointer; margin: 0;">Eczane Yetkilisine (Eczacı Cep Tel) Bildir</label>
+                    </div>
+                </div>
+
+                <div style="margin-top: 1rem; display: flex; justify-content: flex-end;">
+                    <button type="button" class="btn btn-secondary" onclick="testWhatsappMesajiGonder()" style="border-color: rgba(52, 211, 153, 0.4); color: #34d399; font-size: 0.85rem; padding: 0.45rem 1rem;">
+                        ⚡ Test WhatsApp Mesajı Gönder
+                    </button>
+                </div>
+            </div>
+
             <!-- Kaydet Butonu -->
             <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1.5rem; margin-bottom: 3rem;">
                 <a href="/admin" class="btn btn-secondary">Vazgeç</a>
@@ -492,5 +556,30 @@
         </form>
     </div>
 
+    <script>
+    async function testWhatsappMesajiGonder() {
+        const tel = prompt("Test mesajı gönderilecek telefon numarasını giriniz (Örn: 905xxxxxxxxx veya 05xxxxxxxxx):");
+        if (!tel) return;
+
+        try {
+            const formData = new FormData();
+            formData.append('telefon', tel);
+            formData.append('mesaj', '🔔 Test Bildirimi: Nöbetçi Eczane TV Sistemi Evolution API entegrasyonu başarıyla çalışıyor!');
+
+            const resp = await fetch('/admin/api/whatsapp/test', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await resp.json();
+            if (data.success) {
+                alert("✅ Başarılı: " + data.message);
+            } else {
+                alert("❌ Hata: " + data.error);
+            }
+        } catch (e) {
+            alert("⚠️ Sunucu hatası: " + e.message);
+        }
+    }
+    </script>
 </body>
 </html>

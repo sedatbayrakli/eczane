@@ -629,17 +629,23 @@
             <a href="/admin/duty-pharmacies" class="btn btn-secondary" style="border-color: rgba(16, 185, 129, 0.4); color: #34d399;">
                 🏥 Nöbetçi Eczaneler
             </a>
-            <a href="/admin/help" class="btn btn-secondary" style="border-color: rgba(168, 85, 247, 0.4); color: #c084fc;">
-                📖 Yardım
+            <a href="/admin/logs" class="btn btn-secondary" style="border-color: rgba(245, 158, 11, 0.4); color: #fbbf24;" title="TV Ekranları Canlılık ve WhatsApp Logları">
+                📜 Cihaz Logları
             </a>
             <a href="/admin/settings" class="btn btn-secondary" style="border-color: rgba(56, 189, 248, 0.4); color: #38bdf8;">
                 ⚙️ Genel Ayarlar
             </a>
+            <a href="/admin/profile" class="btn btn-secondary" style="border-color: rgba(239, 68, 68, 0.4); color: #f87171;" title="Profil ve Şifre Değiştir">
+                👤 Profil
+            </a>
+            <a href="/admin/help" class="btn btn-secondary" style="border-color: rgba(168, 85, 247, 0.4); color: #c084fc;">
+                📖 Yardım
+            </a>
             <button class="btn btn-primary" onclick="yeniEczaneModalAc()">
                 ➕ Yeni Kurum Ekle
             </button>
-            <a href="/admin/logout" class="btn btn-secondary">
-                Çıkış Yap ({{ session.get('admin_username') }})
+            <a href="/admin/logout" class="btn btn-secondary" style="opacity: 0.85;">
+                Çıkış Yap
             </a>
         </div>
     </header>

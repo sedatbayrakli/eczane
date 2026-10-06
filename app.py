@@ -18,7 +18,11 @@ from flask import (
 )
 import requests
 
-from models import db, AdminUser, Pharmacy, KioskDevice, SystemSetting, TickerTemplate, lisans_anahtari_uret
+from models import (
+    db, AdminUser, Pharmacy, KioskDevice, SystemSetting, 
+    TickerTemplate, DeviceLog, lisans_anahtari_uret
+)
+from evolution_service import evolution_whatsapp_gonder, telefon_formatla
 from services.pharmacy_service import (
     nobetci_eczaneleri_getir,
     turkce_karakter_temizle,
@@ -150,6 +154,34 @@ def init_db():
                     if "last_visibility_change" not in mevcut_dev_kolonlar:
                         conn.execute(text("ALTER TABLE kiosk_devices ADD COLUMN last_visibility_change DATETIME"))
                     conn.commit()
+
+            if "admin_users" in tablolar:
+                mevcut_admin_kolonlar = [c["name"] for c in inspector.get_columns("admin_users")]
+                with db.engine.connect() as conn:
+                    if "full_name" not in mevcut_admin_kolonlar:
+                        conn.execute(text("ALTER TABLE admin_users ADD COLUMN full_name VARCHAR(120)"))
+                    if "phone" not in mevcut_admin_kolonlar:
+                        conn.execute(text("ALTER TABLE admin_users ADD COLUMN phone VARCHAR(30)"))
+                    conn.commit()
+
+            if "system_settings" in tablolar:
+                mevcut_sys_kolonlar = [c["name"] for c in inspector.get_columns("system_settings")]
+                with db.engine.connect() as conn:
+                    if "whatsapp_enabled" not in mevcut_sys_kolonlar:
+                        conn.execute(text("ALTER TABLE system_settings ADD COLUMN whatsapp_enabled BOOLEAN DEFAULT 0"))
+                    if "evolution_api_url" not in mevcut_sys_kolonlar:
+                        conn.execute(text("ALTER TABLE system_settings ADD COLUMN evolution_api_url VARCHAR(255) DEFAULT 'http://10.0.201.201:3800'"))
+                    if "evolution_instance" not in mevcut_sys_kolonlar:
+                        conn.execute(text("ALTER TABLE system_settings ADD COLUMN evolution_instance VARCHAR(100) DEFAULT 'sedat2'"))
+                    if "evolution_instance_key" not in mevcut_sys_kolonlar:
+                        conn.execute(text("ALTER TABLE system_settings ADD COLUMN evolution_instance_key VARCHAR(255) DEFAULT 'CC3C74FD6208-4756-87F3-133CFA796603'"))
+                    if "evolution_global_key" not in mevcut_sys_kolonlar:
+                        conn.execute(text("ALTER TABLE system_settings ADD COLUMN evolution_global_key VARCHAR(255) DEFAULT '16f54b4d7f24e095e8e88761f3bc993d863cafced9d6f99939824'"))
+                    if "whatsapp_notify_admin" not in mevcut_sys_kolonlar:
+                        conn.execute(text("ALTER TABLE system_settings ADD COLUMN whatsapp_notify_admin BOOLEAN DEFAULT 1"))
+                    if "whatsapp_notify_pharmacy" not in mevcut_sys_kolonlar:
+                        conn.execute(text("ALTER TABLE system_settings ADD COLUMN whatsapp_notify_pharmacy BOOLEAN DEFAULT 1"))
+                    conn.commit()
         except Exception as hata:
             print(f"[UYARI] Veritabanı kolon denetim hatası: {hata}")
 
@@ -242,6 +274,101 @@ def admin_logout():
     session.pop("admin_username", None)
     flash("Oturum kapatıldı.", "info")
     return redirect(url_for("admin_login"))
+
+
+@app.route("/admin/profile", methods=["GET", "POST"])
+@login_required
+def admin_profile():
+    """Admin kullanıcı profil bilgileri (isim, telefon, şifre değiştirme)."""
+    username = session.get("admin_username")
+    admin = AdminUser.query.filter_by(username=username).first()
+    if not admin:
+        admin = AdminUser.query.first()
+
+    if request.method == "POST":
+        full_name = request.form.get("full_name", "").strip()
+        phone = request.form.get("phone", "").strip()
+        yeni_kullanici_adi = request.form.get("username", "").strip()
+        mevcut_sifre = request.form.get("current_password", "").strip()
+        yeni_sifre = request.form.get("new_password", "").strip()
+        yeni_sifre_tekrar = request.form.get("new_password_confirm", "").strip()
+
+        admin.full_name = full_name
+        admin.phone = phone
+
+        if yeni_kullanici_adi and yeni_kullanici_adi != admin.username:
+            var_mi = AdminUser.query.filter_by(username=yeni_kullanici_adi).first()
+            if var_mi:
+                flash(f"'{yeni_kullanici_adi}' kullanıcı adı zaten kullanımda!", "danger")
+                return redirect(url_for("admin_profile"))
+            admin.username = yeni_kullanici_adi
+            session["admin_username"] = yeni_kullanici_adi
+
+        # Şifre değiştirme isteği var mı?
+        if yeni_sifre:
+            if not mevcut_sifre:
+                flash("Şifrenizi değiştirmek için mevcut şifrenizi girmelisiniz!", "danger")
+                return redirect(url_for("admin_profile"))
+            if not admin.sifre_kontrol(mevcut_sifre):
+                flash("Mevcut şifreniz hatalı!", "danger")
+                return redirect(url_for("admin_profile"))
+            if yeni_sifre != yeni_sifre_tekrar:
+                flash("Yeni şifreler birbiriyle eşleşmiyor!", "danger")
+                return redirect(url_for("admin_profile"))
+            if len(yeni_sifre) < 6:
+                flash("Yeni şifre en az 6 karakter olmalıdır!", "danger")
+                return redirect(url_for("admin_profile"))
+            admin.sifre_belirle(yeni_sifre)
+
+        db.session.commit()
+        flash("Profil bilgileriniz başarıyla güncellendi!", "success")
+        return redirect(url_for("admin_profile"))
+
+    return render_template("admin_profile.html", admin=admin)
+
+
+@app.route("/admin/logs")
+@login_required
+def admin_logs():
+    """TV Kiosk ekranları canlılık, arka plan ve WhatsApp bildirim kayıtları."""
+    filtre_tur = request.args.get("type", "all").strip()
+    filtre_onem = request.args.get("severity", "all").strip()
+    sayfa = request.args.get("page", 1, type=int)
+
+    sorgu = DeviceLog.query
+
+    if filtre_tur != "all":
+        sorgu = sorgu.filter_by(event_type=filtre_tur)
+    if filtre_onem != "all":
+        sorgu = sorgu.filter_by(severity=filtre_onem)
+
+    sorgu = sorgu.order_by(DeviceLog.created_at.desc())
+    logs_paginated = sorgu.paginate(page=sayfa, per_page=50, error_out=False)
+
+    toplam_kayit = DeviceLog.query.count()
+    arkaplan_kayit = DeviceLog.query.filter_by(event_type="background").count()
+    whatsapp_kayit = DeviceLog.query.filter_by(whatsapp_sent=True).count()
+
+    return render_template(
+        "admin_logs.html",
+        logs=logs_paginated.items,
+        pagination=logs_paginated,
+        filtre_tur=filtre_tur,
+        filtre_onem=filtre_onem,
+        toplam_kayit=toplam_kayit,
+        arkaplan_kayit=arkaplan_kayit,
+        whatsapp_kayit=whatsapp_kayit
+    )
+
+
+@app.route("/admin/logs/clear", methods=["POST"])
+@login_required
+def admin_logs_clear():
+    """Tüm cihaz log geçmişini temizler."""
+    DeviceLog.query.delete()
+    db.session.commit()
+    flash("Tüm cihaz olay ve WhatsApp kayıtları temizlendi.", "info")
+    return redirect(url_for("admin_logs"))
 
 
 @app.route("/admin")
@@ -737,6 +864,7 @@ def admin_api_health_check_devices():
                 "id": d.id,
                 "name": d.device_name,
                 "is_online": d_online,
+                "is_visible": d.is_screen_visible(),
                 "last_ping": d.last_ping.strftime("%H:%M:%S") if d.last_ping else None,
                 "local_ip": d.local_ip,
                 "ip": d.ip_address
@@ -1087,10 +1215,20 @@ def admin_settings():
             ayar.heartbeat_tolerance_min = max(1, tolerance)
             ayar.max_search_distance_km = max(1, max_dist)
             ayar.map_theme = map_theme or "cartodb_dark"
+
+            # Evolution API WhatsApp Ayarları
+            ayar.whatsapp_enabled = (request.form.get("whatsapp_enabled") == "1")
+            ayar.evolution_api_url = (request.form.get("evolution_api_url") or "").strip()
+            ayar.evolution_instance = (request.form.get("evolution_instance") or "").strip()
+            ayar.evolution_instance_key = (request.form.get("evolution_instance_key") or "").strip()
+            ayar.evolution_global_key = (request.form.get("evolution_global_key") or "").strip()
+            ayar.whatsapp_notify_admin = (request.form.get("whatsapp_notify_admin") == "1")
+            ayar.whatsapp_notify_pharmacy = (request.form.get("whatsapp_notify_pharmacy") == "1")
+
             ayar.updated_at = datetime.utcnow()
 
             db.session.commit()
-            flash("Sistem genel ayarları başarıyla güncellendi!", "success")
+            flash("Sistem genel ayarları ve WhatsApp yapılandırması başarıyla güncellendi!", "success")
         except Exception as e:
             db.session.rollback()
             flash(f"Ayarlar kaydedilirken hata oluştu: {str(e)}", "danger")
@@ -1098,6 +1236,24 @@ def admin_settings():
         return redirect(url_for("admin_settings"))
 
     return render_template("admin_settings.html", ayar=ayar)
+
+
+@app.route("/admin/api/whatsapp/test", methods=["POST"])
+@login_required
+def admin_api_whatsapp_test():
+    """Admin panelinden test WhatsApp mesajı gönderir."""
+    telefon = request.form.get("telefon", "").strip()
+    mesaj = request.form.get("mesaj", "🔔 Test Bildirimi: Evolution API bağlantısı başarılı!").strip()
+
+    if not telefon:
+        return jsonify({"success": False, "error": "Lütfen geçerli bir telefon numarası giriniz."}), 400
+
+    ayar = SystemSetting.get_settings()
+    basarili, sonuc = evolution_whatsapp_gonder(telefon, mesaj, ayar)
+    if basarili:
+        return jsonify({"success": True, "message": f"{telefon} numarasına test WhatsApp mesajı başarıyla gönderildi!"})
+    else:
+        return jsonify({"success": False, "error": sonuc}), 500
 
 
 @app.route("/admin/cache/clear", methods=["POST"])
@@ -1498,6 +1654,54 @@ def api_kiosk_ping():
                 print(f"[EKRAN DURUMU DEĞİŞTİ] {eczane.name} - Cihaz: {aktif_cihaz.device_name} ({aktif_cihaz.mac_address}) -> {eski_durum} ===> {yeni_durum}")
                 aktif_cihaz.is_visible = yeni_visible
                 aktif_cihaz.last_visibility_change = datetime.now()
+
+                # 1. DeviceLog tablosuna olay kaydı aç
+                log_sev = "warning" if not yeni_visible else "success"
+                log_type = "background" if not yeni_visible else "foreground"
+                log_baslik = f"⚠️ Ekran Arka Planda ({aktif_cihaz.device_name})" if not yeni_visible else f"🟢 Ekran Tekrar Yayında ({aktif_cihaz.device_name})"
+                log_mesaj = f"{eczane.name} bünyesindeki '{aktif_cihaz.device_name}' TV ekranı {eski_durum} halinden {yeni_durum} durumuna geçti. (MAC: {aktif_cihaz.mac_address or '-'}, IP: {aktif_cihaz.local_ip or client_ip or '-'})"
+                
+                yeni_log = DeviceLog(
+                    pharmacy_id=eczane.id,
+                    device_id=aktif_cihaz.id,
+                    event_type=log_type,
+                    severity=log_sev,
+                    title=log_baslik,
+                    message=log_mesaj,
+                    whatsapp_sent=False
+                )
+                db.session.add(yeni_log)
+
+                # 2. WhatsApp Bildirimi Gönderimi (Arka plana düşme veya kritik olaylarda)
+                try:
+                    s_ayar = SystemSetting.get_settings()
+                    if s_ayar.whatsapp_enabled:
+                        wa_mesaj = (
+                            f"🔔 *NÖBETÇİ ECZANE TV BİLDİRİMİ*\n\n"
+                            f"🏢 *Kurum:* {eczane.name}\n"
+                            f"📺 *Cihaz:* {aktif_cihaz.device_name}\n"
+                            f"⚠️ *Durum:* {yeni_durum}\n"
+                            f"🕒 *Zaman:* {datetime.now().strftime('%d.%m.%Y %H:%M:%S')}\n"
+                            f"ℹ️ *Açıklama:* {log_mesaj}\n\n"
+                            f"_Lütfen TV kumandasından TV Bro / Tarayıcı uygulamasını kontrol ediniz._"
+                        )
+                        mesaj_iletildi = False
+                        # Admin'e gönder
+                        if s_ayar.whatsapp_notify_admin:
+                            admin_usr = AdminUser.query.first()
+                            if admin_usr and admin_usr.phone:
+                                ok_adm, _ = evolution_whatsapp_gonder(admin_usr.phone, wa_mesaj, s_ayar)
+                                if ok_adm: mesaj_iletildi = True
+                        # Kurum yetkilisine gönder
+                        if s_ayar.whatsapp_notify_pharmacy and eczane.mobile_phone:
+                            ok_pha, _ = evolution_whatsapp_gonder(eczane.mobile_phone, wa_mesaj, s_ayar)
+                            if ok_pha: mesaj_iletildi = True
+                        
+                        if mesaj_iletildi:
+                            yeni_log.whatsapp_sent = True
+                except Exception as wa_err:
+                    print(f"[UYARI] WhatsApp bildirim hatası: {wa_err}")
+
             elif aktif_cihaz.is_visible is None:
                 aktif_cihaz.is_visible = yeni_visible
 
