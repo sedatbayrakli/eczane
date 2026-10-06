@@ -705,3 +705,35 @@ class DeviceLog(db.Model):
             "created_at": self.created_at.strftime("%d.%m.%Y %H:%M:%S") if self.created_at else None
         }
 
+
+class WhatsAppLog(db.Model):
+    """
+    Evolution API üzerinden gönderilen (giden) ve webhook ile alınan (gelen)
+    tüm WhatsApp mesajlarının ayrıntılı kayıt defteri.
+    """
+    __tablename__ = "whatsapp_logs"
+
+    id = db.Column(db.Integer, primary_key=True)
+    direction = db.Column(db.String(10), default="outgoing", nullable=False) # 'outgoing' (giden), 'incoming' (gelen)
+    phone = db.Column(db.String(30), nullable=False) # Alıcı veya Gönderici No (905xxxxxxxxx)
+    sender_name = db.Column(db.String(100), nullable=True) # WhatsApp Profil Adı (gelen mesajlar için)
+    message = db.Column(db.Text, nullable=False) # Mesaj içeriği
+    status = db.Column(db.String(30), default="sent", nullable=False) # 'sent', 'failed', 'delivered', 'read', 'received'
+    error_message = db.Column(db.Text, nullable=True) # Hata detayı
+    instance = db.Column(db.String(100), nullable=True) # Kullanılan Evolution instance
+    raw_response = db.Column(db.Text, nullable=True) # JSON raw payload
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "direction": self.direction,
+            "phone": self.phone,
+            "sender_name": self.sender_name or "-",
+            "message": self.message,
+            "status": self.status,
+            "error_message": self.error_message,
+            "created_at": self.created_at.strftime("%d.%m.%Y %H:%M:%S") if self.created_at else None
+        }
+
+

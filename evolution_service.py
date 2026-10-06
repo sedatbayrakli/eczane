@@ -60,6 +60,26 @@ def evolution_whatsapp_gonder(alici_telefon: str, mesaj: str, ayarlar=None) -> T
         }
 
         resp = requests.post(endpoint, json=payload, headers=headers, timeout=10)
+        
+        # Log kaydı oluştur
+        try:
+            from models import db, WhatsAppLog
+            log_durum = "sent" if resp.status_code in (200, 201) else "failed"
+            err_metin = None if resp.status_code in (200, 201) else f"HTTP {resp.status_code}: {resp.text[:300]}"
+            w_log = WhatsAppLog(
+                direction="outgoing",
+                phone=formatli_tel,
+                message=mesaj,
+                status=log_durum,
+                error_message=err_metin,
+                instance=instance,
+                raw_response=resp.text[:1000] if resp.text else None
+            )
+            db.session.add(w_log)
+            db.session.commit()
+        except Exception as db_err:
+            logger.warning(f"WhatsAppLog kaydetme hatası: {db_err}")
+
         if resp.status_code in (200, 201):
             return True, "WhatsApp mesajı başarıyla iletildi."
         else:
@@ -69,4 +89,18 @@ def evolution_whatsapp_gonder(alici_telefon: str, mesaj: str, ayarlar=None) -> T
 
     except Exception as e:
         logger.error(f"WhatsApp gönderim istisnası: {e}")
+        try:
+            from models import db, WhatsAppLog
+            w_log = WhatsAppLog(
+                direction="outgoing",
+                phone=telefon_formatla(alici_telefon) or alici_telefon or "-",
+                message=mesaj,
+                status="failed",
+                error_message=str(e),
+                instance=getattr(ayarlar, 'evolution_instance', 'sedat2')
+            )
+            db.session.add(w_log)
+            db.session.commit()
+        except Exception:
+            pass
         return False, str(e)

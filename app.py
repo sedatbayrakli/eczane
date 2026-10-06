@@ -20,7 +20,7 @@ import requests
 
 from models import (
     db, AdminUser, Pharmacy, KioskDevice, SystemSetting, 
-    TickerTemplate, DeviceLog, lisans_anahtari_uret
+    TickerTemplate, DeviceLog, WhatsAppLog, lisans_anahtari_uret
 )
 from evolution_service import evolution_whatsapp_gonder, telefon_formatla
 from services.pharmacy_service import (
@@ -369,6 +369,97 @@ def admin_logs_clear():
     db.session.commit()
     flash("Tüm cihaz olay ve WhatsApp kayıtları temizlendi.", "info")
     return redirect(url_for("admin_logs"))
+
+
+@app.route("/admin/whatsapp-logs")
+@login_required
+def admin_whatsapp_logs():
+    """Evolution API üzerinden giden ve webhook ile gelen tüm WhatsApp mesajları."""
+    yon = request.args.get("direction", "all").strip()
+    sayfa = request.args.get("page", 1, type=int)
+
+    sorgu = WhatsAppLog.query
+    if yon in ("outgoing", "incoming"):
+        sorgu = sorgu.filter_by(direction=yon)
+
+    sorgu = sorgu.order_by(WhatsAppLog.created_at.desc())
+    logs_paginated = sorgu.paginate(page=sayfa, per_page=50, error_out=False)
+
+    toplam_giden = WhatsAppLog.query.filter_by(direction="outgoing").count()
+    toplam_gelen = WhatsAppLog.query.filter_by(direction="incoming").count()
+    toplam_basarili = WhatsAppLog.query.filter_by(status="sent").count()
+
+    return render_template(
+        "admin_whatsapp_logs.html",
+        logs=logs_paginated.items,
+        pagination=logs_paginated,
+        yon=yon,
+        toplam_giden=toplam_giden,
+        toplam_gelen=toplam_gelen,
+        toplam_basarili=toplam_basarili
+    )
+
+
+@app.route("/admin/whatsapp-logs/clear", methods=["POST"])
+@login_required
+def admin_whatsapp_logs_clear():
+    """WhatsApp mesaj geçmişini temizler."""
+    WhatsAppLog.query.delete()
+    db.session.commit()
+    flash("Tüm WhatsApp mesaj geçmişi temizlendi.", "info")
+    return redirect(url_for("admin_whatsapp_logs"))
+
+
+@app.route("/webhooks/evolution", methods=["POST", "GET"])
+def webhook_evolution():
+    """
+    Evolution API Webhook Uç Noktası.
+    Gelen WhatsApp mesajlarını, teslimat raporlarını ve durum güncellemelerini yakalar ve kaydeder.
+    """
+    if request.method == "GET":
+        return jsonify({"status": "active", "service": "Eczane Kiosk Evolution Webhook"}), 200
+
+    try:
+        veri = request.get_json(force=True, silent=True) or {}
+        event = veri.get("event") or veri.get("type") or ""
+
+        # Gelen mesaj olayı: messages.upsert
+        if event == "messages.upsert" or "data" in veri:
+            data = veri.get("data") or {}
+            key = data.get("key") or {}
+            from_me = key.get("fromMe", False)
+            remote_jid = key.get("remoteJid", "")
+            tel_no = remote_jid.split("@")[0] if "@" in remote_jid else remote_jid
+            push_name = data.get("pushName") or ""
+
+            # Mesaj metnini ayıkla
+            msg_obj = data.get("message") or {}
+            metin = (
+                msg_obj.get("conversation") or 
+                msg_obj.get("extendedTextMessage", {}).get("text") or 
+                msg_obj.get("imageMessage", {}).get("caption") or 
+                ""
+            )
+
+            if metin and not from_me:
+                # Gelen müşteri/eczacı mesajı
+                yeni_gelen = WhatsAppLog(
+                    direction="incoming",
+                    phone=tel_no,
+                    sender_name=push_name,
+                    message=metin,
+                    status="received",
+                    instance=veri.get("instance"),
+                    raw_response=json.dumps(veri, ensure_ascii=False)[:1000]
+                )
+                db.session.add(yeni_gelen)
+                db.session.commit()
+                print(f"[WHATSAPP GELEN MESAJ] {push_name} ({tel_no}): {metin}")
+
+        return jsonify({"status": "received"}), 200
+    except Exception as e:
+        print(f"[WEBHOOK HATA] Evolution webhook işleme hatası: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 
 @app.route("/admin")
