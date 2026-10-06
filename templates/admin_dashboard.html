@@ -196,6 +196,11 @@
             box-shadow: 0 0 10px rgba(16, 185, 129, 0.8), 0 0 4px #34d399; 
             animation: pulseGlowDot 2s infinite ease-in-out;
         }
+        .dot-background { 
+            background: #f59e0b; 
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.8), 0 0 4px #fbbf24; 
+            animation: pulseGlowDot 1.5s infinite ease-in-out;
+        }
         .dot-offline { 
             background: #ef4444; 
             box-shadow: 0 0 8px rgba(239, 68, 68, 0.7);
@@ -1704,9 +1709,14 @@
                 } else {
                     let rowsHtml = '';
                     devices.forEach((d, idx) => {
-                        const onlineStatus = d.is_online 
-                            ? '<span class="heartbeat-dot dot-online" style="display:inline-block; width:11px; height:11px;" title="Cihaz Çevrimiçi"></span>' 
-                            : '<span class="heartbeat-dot dot-offline" style="display:inline-block; width:11px; height:11px;" title="Cihaz Çevrimdışı"></span>';
+                        let onlineStatus = '';
+                        if (!d.is_online) {
+                            onlineStatus = '<span class="heartbeat-dot dot-offline" style="display:inline-block; width:11px; height:11px;" title="Cihaz Çevrimdışı (Sinyal Yok)"></span>';
+                        } else if (d.is_visible === false) {
+                            onlineStatus = '<span class="heartbeat-dot dot-background" style="display:inline-block; width:11px; height:11px;" title="⚠️ TV Bro / Tarayıcı Arka Planda! Cihaz ana ekrana (Launcher) düşmüş olabilir."></span>';
+                        } else {
+                            onlineStatus = '<span class="heartbeat-dot dot-online" style="display:inline-block; width:11px; height:11px;" title="Cihaz Çevrimiçi ve Ekranda Yayında (Ön Planda)"></span>';
+                        }
 
                         // Standart ölçek mi yoksa manuel yüzde mi ayrıştır
                         const rawScale = String(d.screen_scale || '1.0').trim();
@@ -2176,18 +2186,29 @@
                 if (data.success && data.device) {
                     const d = data.device;
                     if (dotSpan) {
-                        dotSpan.innerHTML = d.is_online 
-                            ? '<span class="heartbeat-dot dot-online" style="display:inline-block; width:13px; height:13px;" title="Cihaz Çevrimiçi"></span>' 
-                            : '<span class="heartbeat-dot dot-offline" style="display:inline-block; width:13px; height:13px;" title="Cihaz Çevrimdışı"></span>';
+                        let dotClass = 'dot-offline';
+                        let dotTitle = 'Cihaz Çevrimdışı';
+                        if (d.is_online) {
+                            if (d.is_visible === false) {
+                                dotClass = 'dot-background';
+                                dotTitle = '⚠️ Arka Planda (TV Bro Ekranında Değil)';
+                            } else {
+                                dotClass = 'dot-online';
+                                dotTitle = 'Çevrimiçi ve Ekranda Yayında';
+                            }
+                        }
+                        dotSpan.innerHTML = `<span class="heartbeat-dot ${dotClass}" style="display:inline-block; width:13px; height:13px;" title="${dotTitle}"></span>`;
                     }
                     if (pingSpan) {
                         pingSpan.textContent = d.last_ping_ago || '-';
                     }
 
-                    if (d.is_online) {
-                        adminToastGoster(`🟢 <strong>${escapeHtml(d.name)}</strong> Çevrimiçi!<br><small style="color:#cbd5e1;">Son Sinyal: ${d.last_ping_ago} (Yerel: ${d.local_ip || '-'}, IP: ${d.ip || '-'})</small>`, 'success');
+                    if (!d.is_online) {
+                        adminToastGoster(`🔴 <strong>${escapeHtml(d.name)}</strong> Çevrimdışı!<br><small style="color:#fca5a5;">Sinyal yok (${d.last_ping_ago}). Cihaz kapalı veya interneti kesik.</small>`, 'danger');
+                    } else if (d.is_visible === false) {
+                        adminToastGoster(`🟡 <strong>${escapeHtml(d.name)}</strong> Arka Planda!<br><small style="color:#fde68a;">TV Bro veya tarayıcı arka planda çalışıyor, TV ekranı ana menüye (Launcher) düşmüş olabilir!</small>`, 'warning');
                     } else {
-                        adminToastGoster(`🔴 <strong>${escapeHtml(d.name)}</strong> Çevrimdışı!<br><small style="color:#fca5a5;">Sinyal yok (${d.last_ping_ago}).</small>`, 'danger');
+                        adminToastGoster(`🟢 <strong>${escapeHtml(d.name)}</strong> Çevrimiçi ve Ekranda Yayında!<br><small style="color:#cbd5e1;">Son Sinyal: ${d.last_ping_ago} (Yerel: ${d.local_ip || '-'}, IP: ${d.ip || '-'})</small>`, 'success');
                     }
 
                     if (btn) btn.innerHTML = '✅';

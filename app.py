@@ -145,6 +145,10 @@ def init_db():
                         conn.execute(text("ALTER TABLE kiosk_devices ADD COLUMN theme VARCHAR(50)"))
                     if "theme_settings" not in mevcut_dev_kolonlar:
                         conn.execute(text("ALTER TABLE kiosk_devices ADD COLUMN theme_settings TEXT"))
+                    if "is_visible" not in mevcut_dev_kolonlar:
+                        conn.execute(text("ALTER TABLE kiosk_devices ADD COLUMN is_visible BOOLEAN DEFAULT 1"))
+                    if "last_visibility_change" not in mevcut_dev_kolonlar:
+                        conn.execute(text("ALTER TABLE kiosk_devices ADD COLUMN last_visibility_change DATETIME"))
                     conn.commit()
         except Exception as hata:
             print(f"[UYARI] Veritabanı kolon denetim hatası: {hata}")
@@ -1008,6 +1012,7 @@ def admin_api_device_health_check(eczane_id, device_id):
             "id": cihaz.id,
             "name": cihaz.device_name,
             "is_online": cihaz.is_online(tolerans_dakika=tolerans),
+            "is_visible": cihaz.is_screen_visible(),
             "is_approved": cihaz.is_approved,
             "last_ping": cihaz.last_ping.strftime("%H:%M:%S") if cihaz.last_ping else None,
             "last_ping_ago": cihaz.son_sinyal_metni(),
@@ -1659,6 +1664,8 @@ def api_kiosk_ping():
     local_ip = request.args.get("local_ip", "").strip()
     client_ip = istemci_ip_al()
     resolution = request.args.get("res", "").strip()
+    vis_param = request.args.get("vis", "1").strip()
+    yeni_visible = (vis_param != "0" and vis_param.lower() != "false")
 
     aktif_cihaz = None
     if device_token or mac_addr:
@@ -1679,6 +1686,14 @@ def api_kiosk_ping():
             if client_ip: aktif_cihaz.ip_address = client_ip
             if local_ip: aktif_cihaz.local_ip = local_ip
             if resolution: aktif_cihaz.screen_resolution = resolution
+            if aktif_cihaz.is_visible != yeni_visible:
+                eski_durum = "Ön Planda (Açık)" if aktif_cihaz.is_visible else "Arka Planda (Gizli/Launcher)"
+                yeni_durum = "Ön Planda (Açık)" if yeni_visible else "Arka Planda (Gizli/Launcher)"
+                print(f"[EKRAN DURUMU DEĞİŞTİ] {eczane.name} - Cihaz: {aktif_cihaz.device_name} ({aktif_cihaz.mac_address}) -> {eski_durum} ===> {yeni_durum}")
+                aktif_cihaz.is_visible = yeni_visible
+                aktif_cihaz.last_visibility_change = datetime.now()
+            elif aktif_cihaz.is_visible is None:
+                aktif_cihaz.is_visible = yeni_visible
 
     eczane.last_ping = datetime.now()
     if client_ip: eczane.last_ip = client_ip

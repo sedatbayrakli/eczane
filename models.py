@@ -133,8 +133,14 @@ class KioskDevice(db.Model):
     is_approved = db.Column(db.Boolean, default=True, nullable=False) # Yönetici tarafından lisans aktif edildi mi?
     approved_at = db.Column(db.DateTime, nullable=True)               # Lisansın aktif edildiği tarih
     user_agent = db.Column(db.String(256), nullable=True)
+    is_visible = db.Column(db.Boolean, default=True, nullable=True)   # Ekran ön planda mı (TV Bro/Chrome aktif mi)?
+    last_visibility_change = db.Column(db.DateTime, nullable=True)   # Son görünürlük değişme zamanı
     last_ping = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def is_screen_visible(self) -> bool:
+        """Cihazın ekranının ön planda (visible) olup olmadığını kontrol eder."""
+        return self.is_visible is not False
 
     def is_online(self, tolerans_dakika: int = 5) -> bool:
         """Cihazın son 5 dakika içinde ping atıp atmadığını kontrol eder."""
@@ -216,6 +222,7 @@ class KioskDevice(db.Model):
             "approved_at": self.approved_at.strftime("%d.%m.%Y %H:%M") if self.approved_at else None,
             "identify_active": self.is_identify_active(),
             "is_online": self.is_online(),
+            "is_visible": self.is_screen_visible(),
             "last_ping": self.last_ping.strftime("%H:%M:%S") if self.last_ping else None,
             "last_ping_ago": self.son_sinyal_metni(),
             "created_at": self.created_at.strftime("%d.%m.%Y") if self.created_at else None

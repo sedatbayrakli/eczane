@@ -145,9 +145,15 @@ async function ekranWakeLockBaslat() {
 }
 
 document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') {
+    const isVisible = document.visibilityState === 'visible';
+    console.log(`[Kiosk] Sayfa görünürlük durumu değişti: ${document.visibilityState} (visible=${isVisible})`);
+    if (isVisible) {
         ekranWakeLockBaslat();
     }
+    // Görünürlük durumu değiştiğinde (arka plana düşünce veya öne gelince) anında sunucuya bildir
+    try {
+        kioskHeartbeatPing();
+    } catch(e) {}
 });
 
 
@@ -2388,7 +2394,8 @@ async function kioskHeartbeatPing() {
         const deviceMac = getOrCreateDeviceMac();
         const localIp = localStorage.getItem('kiosk_local_ip') || kioskLocalIP || '';
         const ekranCozunurluk = `${window.innerWidth}x${window.innerHeight}`;
-        const pingUrl = `/api/kiosk-ping?key=${encodeURIComponent(LISANS_KEY)}&device_token=${encodeURIComponent(deviceToken)}&mac=${encodeURIComponent(deviceMac)}&local_ip=${encodeURIComponent(localIp)}&res=${encodeURIComponent(ekranCozunurluk)}&_t=${Date.now()}`;
+        const isVisible = (typeof document !== 'undefined' && document.visibilityState) ? (document.visibilityState === 'visible' ? '1' : '0') : '1';
+        const pingUrl = `/api/kiosk-ping?key=${encodeURIComponent(LISANS_KEY)}&device_token=${encodeURIComponent(deviceToken)}&mac=${encodeURIComponent(deviceMac)}&local_ip=${encodeURIComponent(localIp)}&res=${encodeURIComponent(ekranCozunurluk)}&vis=${isVisible}&_t=${Date.now()}`;
 
         const resp = await fetch(pingUrl);
         if (resp.ok) {
