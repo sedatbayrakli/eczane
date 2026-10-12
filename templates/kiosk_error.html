@@ -183,6 +183,7 @@
 
             try {
                 localStorage.setItem('kiosk_license_key', kod);
+                document.cookie = "kiosk_license_key=" + encodeURIComponent(kod) + "; path=/; max-age=31536000; SameSite=Lax";
             } catch(err) {}
 
             // Doğrudan lisanslı kiosk adresine yönlendir
