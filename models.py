@@ -1,9 +1,16 @@
 from __future__ import annotations
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Tuple, Dict, Any, List, Optional
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
+
+# Türkiye Saat Dilimi (UTC+3)
+TZ_TR = timezone(timedelta(hours=3))
+
+def turkiye_saati() -> datetime:
+    """Türkiye yerel saatini (UTC+3, Europe/Istanbul) naive datetime olarak döner (SQLite/DB uyumlu)."""
+    return (datetime.now(timezone.utc) + timedelta(hours=3)).replace(tzinfo=None)
 
 db = SQLAlchemy()
 
@@ -25,7 +32,7 @@ class AdminUser(db.Model):
     password_hash = db.Column(db.String(256), nullable=False)
     full_name = db.Column(db.String(120), nullable=True)     # Yönetici Ad Soyad
     phone = db.Column(db.String(30), nullable=True)          # WhatsApp Bildirim Telefonu (Örn: 905xxxxxxxxx)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=turkiye_saati)
 
     def sifre_belirle(self, sifre: str):
         """Düz metin şifreyi güvenli hash'e dönüştürür."""
@@ -143,7 +150,7 @@ class KioskDevice(db.Model):
     last_screenshot_at = db.Column(db.DateTime, nullable=True)                  # Ekran görüntüsü alınma zamanı
     last_background_alert_at = db.Column(db.DateTime, nullable=True)            # Son arka plan WhatsApp bildirim zamanı (Spam filtresi)
     last_offline_alert_at = db.Column(db.DateTime, nullable=True)               # Son çevrimdışı WhatsApp bildirim zamanı (Spam filtresi)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=turkiye_saati)
 
     def is_screen_visible(self) -> bool:
         """Cihazın ekranının ön planda (visible) olup olmadığını kontrol eder."""
@@ -153,7 +160,7 @@ class KioskDevice(db.Model):
         """Cihazın son 5 dakika içinde ping atıp atmadığını kontrol eder."""
         if not self.last_ping:
             return False
-        return (datetime.now() - self.last_ping) <= timedelta(minutes=tolerans_dakika)
+        return (turkiye_saati() - self.last_ping) <= timedelta(minutes=tolerans_dakika)
 
     def ekran_cevrimici_mi(self, tolerans_dakika: int = 5) -> bool:
         """Cihazın canlılık durumunu kontrol eder (is_online alias)."""
@@ -163,7 +170,7 @@ class KioskDevice(db.Model):
         """Cihazın son ping sinyalinin ne kadar önce geldiğini döner."""
         if not self.last_ping:
             return "Sinyal yok"
-        toplam_sn = max(0, int((datetime.now() - self.last_ping).total_seconds()))
+        toplam_sn = max(0, int((turkiye_saati() - self.last_ping).total_seconds()))
         if toplam_sn < 60:
             return f"{toplam_sn} sn önce"
         elif toplam_sn < 3600:
@@ -173,11 +180,11 @@ class KioskDevice(db.Model):
 
     def cihazi_tanimla(self, saniye: int = 25):
         """Bu cihaza ekranda tanımlama sinyali gönderir."""
-        self.identify_until = datetime.now() + timedelta(seconds=saniye)
+        self.identify_until = turkiye_saati() + timedelta(seconds=saniye)
 
     def is_identify_active(self) -> bool:
         """Tanımlama sinyalinin halen aktif olup olmadığını kontrol eder."""
-        return bool(self.identify_until and self.identify_until > datetime.now())
+        return bool(self.identify_until and self.identify_until > turkiye_saati())
 
     def get_theme(self) -> str:
         """Cihaza özel tanımlı tema yoksa eczanenin varsayılan temasını döndürür."""
@@ -297,20 +304,20 @@ class Pharmacy(db.Model):
 
     # TV Ekranı Canlılık Takibi (Heartbeat)
     last_ping = db.Column(db.DateTime, nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=turkiye_saati)
 
     # Bağlı Cihazlar İlişkisi (One-to-Many)
     devices = db.relationship('KioskDevice', backref='pharmacy', cascade='all, delete-orphan', lazy='dynamic')
 
     def nobetci_mi(self) -> bool:
         """Eczanenin anlık nöbetçi modunda olup olmadığını kontrol eder."""
-        if self.manual_duty_override_until and self.manual_duty_override_until > datetime.now():
+        if self.manual_duty_override_until and self.manual_duty_override_until > turkiye_saati():
             return True
         return bool(self.is_on_duty_today)
 
     def duty_test_aktif_mi(self) -> bool:
         """1 saatlik hızlı nöbet testinin şu an aktif olup olmadığını döndürür."""
-        return bool(self.manual_duty_override_until and self.manual_duty_override_until > datetime.now())
+        return bool(self.manual_duty_override_until and self.manual_duty_override_until > turkiye_saati())
 
     def cihaz_dogrula_veya_kaydet(self, token: str, mac: str = None, local_ip: str = None, ip: str = None, resolution: str = None, user_agent: str = None) -> tuple[bool, str, object]:
         """
@@ -319,7 +326,7 @@ class Pharmacy(db.Model):
         Döndürür: (erisim_izni_var_mi: bool, aciklama: str, cihaz_nesnesi: KioskDevice)
         """
         if not self.device_lock_enabled:
-            self.last_ping = datetime.now()
+            self.last_ping = turkiye_saati()
             if ip: self.last_ip = ip
             return True, "Cihaz kilidi devre dışı", None
 
@@ -339,7 +346,7 @@ class Pharmacy(db.Model):
         # GÜVENLİK: Yalnızca son 10 dakikadır sinyal göndermeyen (pasif) bir cihaz devralınabilir.
         # Aksi halde DHCP ile aynı IP'yi alan başka bir TV, çalışan bir cihazın kaydını ele geçirebilirdi.
         if not kayitli_cihaz and local_ip and not local_ip.startswith("127.") and local_ip != "-":
-            pasiflik_siniri = datetime.now() - timedelta(minutes=10)
+            pasiflik_siniri = turkiye_saati() - timedelta(minutes=10)
             ayni_ip_onayli_cihaz = self.devices.filter(
                 KioskDevice.local_ip == local_ip,
                 KioskDevice.is_approved == True,
@@ -353,13 +360,13 @@ class Pharmacy(db.Model):
                     kayitli_cihaz.device_token = token
 
         if kayitli_cihaz:
-            kayitli_cihaz.last_ping = datetime.now()
+            kayitli_cihaz.last_ping = turkiye_saati()
             if mac: kayitli_cihaz.mac_address = mac
             if local_ip: kayitli_cihaz.local_ip = local_ip
             if ip: kayitli_cihaz.ip_address = ip
             if resolution: kayitli_cihaz.screen_resolution = resolution
             if user_agent: kayitli_cihaz.user_agent = user_agent[:250]
-            self.last_ping = datetime.now()
+            self.last_ping = turkiye_saati()
             if ip: self.last_ip = ip
             db.session.commit()
 
@@ -389,10 +396,10 @@ class Pharmacy(db.Model):
             theme_settings=self.theme_settings or "{}",
             is_approved=False, # Yeni bağlanan cihaz admin onayına düşer
             user_agent=user_agent[:250] if user_agent else None,
-            last_ping=datetime.now()
+            last_ping=turkiye_saati()
         )
         db.session.add(yeni_cihaz)
-        self.last_ping = datetime.now()
+        self.last_ping = turkiye_saati()
         if ip: self.last_ip = ip
         if not self.registered_device_token:
             self.registered_device_token = token
@@ -432,7 +439,7 @@ class Pharmacy(db.Model):
 
         if not en_yeni_ping:
             return "Sinyal yok"
-        toplam_sn = max(0, int((datetime.now() - en_yeni_ping).total_seconds()))
+        toplam_sn = max(0, int((turkiye_saati() - en_yeni_ping).total_seconds()))
         if toplam_sn < 60:
             return f"{toplam_sn} sn önce"
         elif toplam_sn < 3600:
@@ -453,13 +460,13 @@ class Pharmacy(db.Model):
             return False
         if not self.expires_at:
             return False
-        return self.expires_at >= datetime.now()
+        return self.expires_at >= turkiye_saati()
 
     def kalan_gun_sayisi(self) -> int:
         """Lisansın bitmesine kalan gün sayısını hesaplar."""
         if not self.expires_at:
             return 0
-        fark = self.expires_at - datetime.now()
+        fark = self.expires_at - turkiye_saati()
         toplam_saniye = fark.total_seconds()
         if toplam_saniye <= 0:
             return 0
@@ -479,7 +486,7 @@ class Pharmacy(db.Model):
         # 2. Ana last_ping aktif mi?
         if not self.last_ping:
             return False
-        gecen_sure = datetime.now() - self.last_ping
+        gecen_sure = turkiye_saati() - self.last_ping
         return gecen_sure <= timedelta(minutes=tolerans_dakika)
 
     def get_institution_type_label(self) -> str:
@@ -626,7 +633,7 @@ class SystemSetting(db.Model):
     evolution_global_key = db.Column(db.String(255), default="16f54b4d7f24e095e8e88761f3bc993d863cafced9d6f99939824", nullable=True)
     whatsapp_notify_admin = db.Column(db.Boolean, default=True, nullable=False)     # Admin'e WhatsApp bildirimi gitsin mi
     whatsapp_notify_pharmacy = db.Column(db.Boolean, default=True, nullable=False)  # Kurum yetkilisine gitsin mi
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=turkiye_saati, onupdate=turkiye_saati)
 
     @classmethod
     def get_settings(cls):
@@ -680,7 +687,7 @@ class TickerTemplate(db.Model):
     title = db.Column(db.String(100), nullable=False) # Örn: "Sağlıklı Günler"
     text = db.Column(db.Text, nullable=False)          # Örn: "{eczane} sağlıklı günler diler."
     is_default = db.Column(db.Boolean, default=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=turkiye_saati)
 
     def to_dict(self) -> dict:
         return {
@@ -724,7 +731,7 @@ class DeviceLog(db.Model):
     message = db.Column(db.Text, nullable=False)
     details = db.Column(db.Text, nullable=True) # JSON ek detaylar (IP, MAC, pil, tarayıcı vs.)
     whatsapp_sent = db.Column(db.Boolean, default=False, nullable=False) # WhatsApp bildirimi yollandı mı?
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    created_at = db.Column(db.DateTime, default=turkiye_saati, index=True)
 
     pharmacy = db.relationship("Pharmacy", backref=db.backref("logs", lazy="dynamic"))
     device = db.relationship("KioskDevice", backref=db.backref("logs", lazy="dynamic"))
@@ -761,7 +768,7 @@ class WhatsAppLog(db.Model):
     error_message = db.Column(db.Text, nullable=True) # Hata detayı
     instance = db.Column(db.String(100), nullable=True) # Kullanılan Evolution instance
     raw_response = db.Column(db.Text, nullable=True) # JSON raw payload
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    created_at = db.Column(db.DateTime, default=turkiye_saati, index=True)
 
     def to_dict(self) -> dict:
         return {

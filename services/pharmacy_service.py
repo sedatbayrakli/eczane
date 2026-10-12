@@ -10,10 +10,17 @@ import json
 import time
 import math
 import urllib.parse
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from threading import Lock
 from typing import List, Dict, Any, Tuple, Optional
 import requests
+
+# Türkiye Saat Dilimi (UTC+3)
+TZ_TR = timezone(timedelta(hours=3))
+
+def turkiye_saati() -> datetime:
+    """Türkiye yerel saatini (UTC+3, Europe/Istanbul) naive datetime olarak döner."""
+    return (datetime.now(timezone.utc) + timedelta(hours=3)).replace(tzinfo=None)
 
 # 45 Dakikalık Önbellek Süresi (Saniye)
 CACHE_SURESI_SANIYE = 45 * 60
@@ -270,7 +277,7 @@ def kaynak_ieo_native_cek(sno: str, il: str = "İstanbul", ilce: Optional[str] =
         return [], "İEO Kiosk API için Cihaz Seri Numarası (sno) gereklidir"
 
     sno_temiz = sno.strip()
-    bugun_str = datetime.now().strftime("%Y-%m-%d")
+    bugun_str = turkiye_saati().strftime("%Y-%m-%d")
     req_tur = "get_hn" if (is_weekly or (tarih and _tarih_normalize(tarih) != bugun_str)) else "get_bn"
     url = f"http://www.istanbuleczaciodasi.org.tr/android/com.ieo.eczanebilgiekrani/bn.php?req={req_tur}&sno={urllib.parse.quote(sno_temiz)}"
 
@@ -755,7 +762,7 @@ def nobetci_eczaneleri_getir(il: str, ilce: str,
     - Seri No (sno) doluysa: Resmi İEO Kiosk API'sinden (get_hn / get_bn) haftalık ve ileri/geçmiş tarihli sorgu yapar.
     - Seri No (sno) boşsa: Yalnızca bugünün güncel nöbetçileri sorgulanır; tarihli sorgulara izin verilmez.
     """
-    today_str = datetime.now().strftime("%Y-%m-%d")
+    today_str = turkiye_saati().strftime("%Y-%m-%d")
     aktif_tarih = _tarih_normalize(tarih) if tarih else today_str
     is_today = (aktif_tarih == today_str)
 
@@ -849,7 +856,7 @@ def nobetci_eczaneleri_getir(il: str, ilce: str,
                     else:
                         hata_raporu.append(f"{kaynak_adi}: {hata}")
 
-    zaman_metni = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
+    zaman_metni = turkiye_saati().strftime("%d.%m.%Y %H:%M:%S")
 
     # Başarılı veri çekildiyse önbelleğe kaydet
     if basarili_eczaneler:
@@ -987,7 +994,7 @@ def ieo_resmi_tatil_bilgisi(tarih_str: Optional[str] = None) -> Dict[str, Any]:
     Bugünün (veya verilen tarihin) resmi tatil, pazar veya arife günü olup olmadığını,
     nöbet başlangıç/bitiş saatlerini ve durum bilgisini döner.
     """
-    simdi = datetime.now()
+    simdi = turkiye_saati()
     if tarih_str:
         try:
             hedef_tarih = datetime.strptime(tarih_str, "%Y-%m-%d")
