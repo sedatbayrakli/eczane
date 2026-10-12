@@ -3,9 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lisans Bildirimi | Nöbetçi Eczane Kiosk</title>
-    <!-- 60 saniyede bir otomatik yenileme (Lisans uzatılınca TV kendiliğinden açılsın) -->
-    <meta http-equiv="refresh" content="60">
+    <title>Lisans Aktivasyonu | Nöbetçi Eczane Kiosk</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@700;800&display=swap" rel="stylesheet">
@@ -23,83 +21,173 @@
         }
         .error-card {
             background: rgba(18, 24, 38, 0.96);
-            border: 1.5px solid rgba(239, 68, 68, 0.35);
+            border: 1.5px solid rgba(56, 189, 248, 0.35);
             border-radius: 24px;
-            padding: 2.2rem 2.8rem;
-            max-width: 640px;
+            padding: 2.4rem 2.8rem;
+            max-width: 680px;
             width: 100%;
-            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.65), 0 0 35px rgba(239, 68, 68, 0.15);
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.65), 0 0 35px rgba(56, 189, 248, 0.15);
             box-sizing: border-box;
         }
         .warning-icon {
-            width: 58px;
-            height: 58px;
-            background: rgba(239, 68, 68, 0.12);
-            border: 1px solid rgba(239, 68, 68, 0.3);
-            border-radius: 16px;
+            width: 64px;
+            height: 64px;
+            background: rgba(56, 189, 248, 0.12);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            border-radius: 18px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            font-size: 2rem;
-            margin-bottom: 1rem;
+            font-size: 2.2rem;
+            margin-bottom: 1.2rem;
         }
         h1 {
-            font-size: 1.45rem;
+            font-size: 1.6rem;
             font-weight: 800;
             color: #ffffff;
             margin-bottom: 0.5rem;
             letter-spacing: -0.01em;
         }
         p {
-            font-size: 0.92rem;
+            font-size: 0.95rem;
             color: #94a3b8;
             line-height: 1.5;
+            margin-bottom: 1.6rem;
+        }
+        .form-group {
             margin-bottom: 1.4rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
-        .license-box {
-            background: rgba(0, 0, 0, 0.4);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            padding: 0.75rem 1.5rem;
-            border-radius: 12px;
-            display: inline-block;
-            margin-bottom: 1.4rem;
+        .input-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 440px;
         }
-        .license-label {
-            font-size: 0.7rem;
-            color: #94a3b8;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-            font-weight: 700;
-            margin-bottom: 0.25rem;
-        }
-        .license-value {
+        .license-input {
+            width: 100%;
+            padding: 1rem 1.2rem;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 1.05rem;
+            font-size: 1.5rem;
             font-weight: 800;
-            color: #fbbf24;
-            letter-spacing: 0.05em;
+            color: #38bdf8;
+            background: rgba(0, 0, 0, 0.6);
+            border: 2px solid rgba(56, 189, 248, 0.4);
+            border-radius: 14px;
+            text-align: center;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            outline: none;
+            transition: all 0.25s ease;
+        }
+        .license-input:focus {
+            border-color: #38bdf8;
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.4);
+            background: rgba(0, 0, 0, 0.8);
+        }
+        .btn-submit {
+            background: linear-gradient(135deg, #0284c7, #38bdf8);
+            color: #0f172a;
+            font-size: 1.15rem;
+            font-weight: 800;
+            padding: 0.95rem 2.5rem;
+            border-radius: 14px;
+            border: none;
+            cursor: pointer;
+            margin-top: 1rem;
+            transition: all 0.2s ease;
+            box-shadow: 0 10px 25px rgba(56, 189, 248, 0.35);
+        }
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 30px rgba(56, 189, 248, 0.5);
+            filter: brightness(1.1);
         }
         .footer-note {
             font-size: 0.82rem;
             color: #64748b;
             line-height: 1.5;
+            margin-top: 1.5rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            padding-top: 1.2rem;
         }
     </style>
 </head>
 <body>
     <div class="error-card">
-        <div class="warning-icon">⚠️</div>
-        <h1>{{ hata_baslik }}</h1>
-        <p>{{ hata_mesaj }}</p>
+        <div class="warning-icon">📺</div>
+        <h1>TV Ekranı Lisans Aktivasyonu</h1>
+        <p>Eczanenizin nöbetçi ekranını TV'de yayına almak için paneldeki lisans kodunuzu giriniz.</p>
 
-        <div class="license-box">
-            <div class="license-label">Cihaz Lisans Kodu</div>
-            <div class="license-value">{{ lisans_kodu }}</div>
-        </div>
+        <form id="licenseForm" onsubmit="lisansKaydet(event)">
+            <div class="form-group">
+                <div class="input-wrapper">
+                    <input 
+                        type="text" 
+                        id="licenseInput" 
+                        class="license-input" 
+                        placeholder="ECZ-XXXX-XXXX" 
+                        maxlength="13" 
+                        autocomplete="off" 
+                        autofocus
+                        required>
+                </div>
+                <button type="submit" class="btn-submit">
+                    🚀 TV Ekranını Başlat
+                </button>
+            </div>
+        </form>
 
         <div class="footer-note">
-            Lisansınız aktif edildiğinde bu ekran otomatik olarak yayına başlayacaktır. (Her 60 saniyede bir kontrol edilir)
+            💡 Kod yazılırken aradaki <strong>tire (-) işaretleri otomatik tamamlanır</strong>.<br>
+            Lisans anahtarını girdikten sonra TV bu bilgiyi hafızaya alacak ve bir daha sormayacaktır.
         </div>
     </div>
+
+    <script>
+        const input = document.getElementById('licenseInput');
+
+        // Otomatik Tire Tamamlama Motoru (ECZ-XXXX-XXXX)
+        input.addEventListener('input', function(e) {
+            let val = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            
+            // Eğer kullanıcı doğrudan yazıyorsa ECZ- prefixini ve tireleri otomatik formatla
+            let formatted = '';
+            if (val.length > 0) {
+                // İlk kısım (ECZ veya 3 hane)
+                formatted += val.substring(0, 3);
+                if (val.length > 3) {
+                    formatted += '-' + val.substring(3, 7);
+                }
+                if (val.length > 7) {
+                    formatted += '-' + val.substring(7, 11);
+                }
+            }
+            this.value = formatted;
+        });
+
+        // Sayfa açıldığında önceden girilmiş kod varsa doldur
+        const kayitli = localStorage.getItem('kiosk_license_key');
+        if (kayitli) {
+            input.value = kayitli;
+        }
+
+        function lisansKaydet(e) {
+            e.preventDefault();
+            const kod = input.value.trim().toUpperCase();
+            if (kod.length < 8) {
+                alert('Lütfen geçerli bir lisans kodu giriniz (Örn: ECZ-A62F-D143)');
+                return;
+            }
+
+            try {
+                localStorage.setItem('kiosk_license_key', kod);
+            } catch(err) {}
+
+            // Doğrudan lisanslı kiosk adresine yönlendir
+            window.location.href = '/kiosk?key=' + encodeURIComponent(kod);
+        }
+    </script>
 </body>
 </html>
