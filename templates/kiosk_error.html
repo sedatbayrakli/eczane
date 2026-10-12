@@ -120,12 +120,13 @@
         <h1>TV Ekranı Lisans Aktivasyonu</h1>
         <p>Eczanenizin nöbetçi ekranını TV'de yayına almak için paneldeki lisans kodunuzu giriniz.</p>
 
-        <form id="licenseForm" onsubmit="lisansKaydet(event)">
+        <form id="licenseForm" action="/kiosk" method="GET" onsubmit="return handleFormSubmit(event)">
             <div class="form-group">
                 <div class="input-wrapper">
                     <input 
                         type="text" 
                         id="licenseInput" 
+                        name="key"
                         class="license-input" 
                         placeholder="ECZ-XXXX-XXXX" 
                         maxlength="13" 
@@ -133,7 +134,7 @@
                         autofocus
                         required>
                 </div>
-                <button type="submit" class="btn-submit">
+                <button type="submit" id="btnSubmit" class="btn-submit" onclick="handleBtnClick(event)">
                     🚀 TV Ekranını Başlat
                 </button>
             </div>
@@ -173,21 +174,24 @@
             input.value = kayitli;
         }
 
-        function lisansKaydet(e) {
-            e.preventDefault();
+        function handleBtnClick(e) {
+            saveAndGo();
+        }
+
+        function handleFormSubmit(e) {
+            saveAndGo();
+            return true;
+        }
+
+        function saveAndGo() {
             const kod = input.value.trim().toUpperCase();
-            if (kod.length < 8) {
-                alert('Lütfen geçerli bir lisans kodu giriniz (Örn: ECZ-A62F-D143)');
-                return;
+            if (kod.length >= 8) {
+                try {
+                    localStorage.setItem('kiosk_license_key', kod);
+                    document.cookie = "kiosk_license_key=" + encodeURIComponent(kod) + "; path=/; max-age=31536000; SameSite=Lax";
+                } catch(err) {}
+                window.location.href = '/kiosk?key=' + encodeURIComponent(kod);
             }
-
-            try {
-                localStorage.setItem('kiosk_license_key', kod);
-                document.cookie = "kiosk_license_key=" + encodeURIComponent(kod) + "; path=/; max-age=31536000; SameSite=Lax";
-            } catch(err) {}
-
-            // Doğrudan lisanslı kiosk adresine yönlendir
-            window.location.href = '/kiosk?key=' + encodeURIComponent(kod);
         }
     </script>
 </body>
