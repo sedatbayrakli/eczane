@@ -578,6 +578,17 @@
                     <h1 style="font-size: 1.4rem; font-weight: 800; margin: 0; color: #fff;">🏥 Nöbetçi Eczane Sorgulama & Rota Servisi</h1>
                     <p style="margin: 0.3rem 0 0 0; color: var(--text-muted); font-size: 0.85rem;">İl, ilçe ve tarih bazlı canlı nöbetçi listesi, harita ve koordinat doğrulama</p>
                 </div>
+                <div>
+                    {% if has_ieo_sno %}
+                        <span class="stats-badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); padding: 0.45rem 0.85rem; font-size: 0.82rem;">
+                            🔑 İEO Cihaz Seri No: <strong>{{ ieo_sno }}</strong> (Haftalık Sorgu Aktif)
+                        </span>
+                    {% else %}
+                        <a href="/admin/settings" class="stats-badge" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); padding: 0.45rem 0.85rem; font-size: 0.82rem; text-decoration: none;">
+                            ⚠️ Seri No Tanımsız (Yalnızca Günlük Sorgu) ⚙️
+                        </a>
+                    {% endif %}
+                </div>
             </div>
 
         <!-- Filtreleme ve Arama Formu -->
@@ -861,6 +872,9 @@
             return `${y}-${m}-${d}`;
         }
 
+        const HAS_IEO_SNO = {{ 'true' if has_ieo_sno else 'false' }};
+        const IEO_SNO = "{{ ieo_sno }}";
+
         // Tarih Bilgilendirme Uyarısını Yönet
         function tarihUyariKontrolEt(tarihStr) {
             const banner = document.getElementById('date-notice-banner');
@@ -872,10 +886,14 @@
                 banner.style.display = 'none';
             } else {
                 banner.style.display = 'flex';
-                if (tarihStr > bugunStr) {
-                    textEl.textContent = `Resmi Eczacı Odaları (İEO), son dakika nöbet takasları nedeniyle halka açık sorgularda yalnızca 24 saatlik GÜNCEL nöbet listesini yayınlamaktadır. Seçtiğiniz ileri tarih (${tarihStr}) için resmi odanın yayındaki en son teyit edilmiş nöbet çizelgesi listelenmektedir.`;
+                if (!HAS_IEO_SNO) {
+                    banner.style.borderColor = 'rgba(245, 158, 11, 0.4)';
+                    banner.style.background = 'rgba(245, 158, 11, 0.1)';
+                    textEl.innerHTML = `⚠️ <strong>İEO Cihaz Seri No Tanımlanmamış:</strong> İleri veya geçmiş tarihli (${tarihStr}) nöbet listelerini sorgulamak için İEO Cihaz Seri No gereklidir. Tanımlanmadığı sürece yalnızca bugünün güncel nöbetçileri sorgulanabilir. <a href="/admin/settings" style="color: #38bdf8; font-weight: 700; text-decoration: underline;">Genel Ayarlar'dan Tanımla</a>`;
                 } else {
-                    textEl.textContent = `Resmi Eczacı Odaları, halka açık servislerde arşiv kayıtlarını kapalı tutmakta olup güncel 24 saatlik nöbet çizelgesini yayınlamaktadır. Seçtiğiniz geçmiş tarih (${tarihStr}) için odanın resmi güncel listesi sunulmaktadır.`;
+                    banner.style.borderColor = 'rgba(56, 189, 248, 0.25)';
+                    banner.style.background = 'rgba(56, 189, 248, 0.08)';
+                    textEl.innerHTML = `🔑 <strong>İEO Kiosk Haftalık Entegrasyonu:</strong> Seçilen tarih (${tarihStr}) için kayıtlı İEO Cihaz Seri No (<code>${IEO_SNO}</code>) kullanılarak resmi haftalık nöbet çizelgesi sorgulanacaktır.`;
                 }
             }
         }
@@ -897,6 +915,20 @@
             const statsBar = document.getElementById('stats-bar');
             const submitBtn = document.getElementById('btn-submit');
 
+            // KURAL: Seri no yoksa bugün dışındaki tarihleri engelle
+            const bugunStr = bugunTarihStr();
+            if (!HAS_IEO_SNO && tarih && tarih !== bugunStr) {
+                loadingBox.style.display = 'none';
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '🔍 Nöbetçileri Getir';
+                grid.innerHTML = '';
+                emptyBox.style.display = 'block';
+                document.getElementById('empty-title').textContent = 'İEO Cihaz Seri No Gerekli';
+                document.getElementById('empty-desc').innerHTML = `Haftalık ve ileri/geçmiş tarihli (${tarih}) nöbet listelerini sorgulamak için İEO Cihaz Seri No / Kodu tanımlanmalıdır.<br><br><a href="/admin/settings" class="btn btn-sm btn-primary" style="margin-top: 0.5rem; display: inline-flex;">⚙️ Genel Ayarlar'dan Seri No Tanımla</a>`;
+                statsBar.style.display = 'none';
+                return;
+            }
+
             loadingBox.style.display = 'block';
             emptyBox.style.display = 'none';
             grid.innerHTML = '';
@@ -916,8 +948,10 @@
 
                 if (!data.success || !data.eczaneler || data.eczaneler.length === 0) {
                     emptyBox.style.display = 'block';
-                    document.getElementById('empty-title').textContent = `${ilce} / ${il} İçin Nöbetçi Bulunamadı`;
-                    document.getElementById('empty-desc').textContent = `${tarih} tarihi için veri kaynağında nöbetçi eczane listesi henüz yayınlanmamış veya bulunamadı.`;
+                    document.getElementById('empty-title').textContent = data.sno_required ? 'İEO Cihaz Seri No Gerekli' : `${ilce} / ${il} İçin Nöbetçi Bulunamadı`;
+                    document.getElementById('empty-desc').innerHTML = data.sno_required 
+                        ? `${data.error}<br><br><a href="/admin/settings" class="btn btn-sm btn-primary" style="margin-top: 0.5rem; display: inline-flex;">⚙️ Genel Ayarlar'dan Seri No Tanımla</a>` 
+                        : (data.error || `${tarih} tarihi için veri kaynağında nöbetçi eczane listesi henüz yayınlanmamış veya bulunamadı.`);
                     statsBar.style.display = 'none';
                     return;
                 }

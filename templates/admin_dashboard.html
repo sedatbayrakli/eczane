@@ -1073,6 +1073,10 @@
                                 <label>Kurum Sicil / GLN No</label>
                                 <input type="text" id="add-chamber_registration_no" name="chamber_registration_no" class="form-control" placeholder="Örn: 34-12345">
                             </div>
+                            <div class="form-group">
+                                <label>İEO Cihaz Seri No / Kodu</label>
+                                <input type="text" id="add-ieo_device_serial_no" name="ieo_device_serial_no" class="form-control" placeholder="Örn: 2023-XXXX (Boşsa Genel Ayar)">
+                            </div>
                         </div>
 
                         <div class="form-row">
@@ -1245,6 +1249,10 @@
                             <div class="form-group">
                                 <label>Kurum Sicil / GLN No</label>
                                 <input type="text" id="edit-chamber_registration_no" name="chamber_registration_no" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label>İEO Cihaz Seri No / Kodu</label>
+                                <input type="text" id="edit-ieo_device_serial_no" name="ieo_device_serial_no" class="form-control" placeholder="Örn: 2023-XXXX (Boşsa Genel Ayar)">
                             </div>
                         </div>
 
@@ -1801,6 +1809,7 @@
             document.getElementById('edit-district').value = eczane.district || '';
             document.getElementById('edit-pharmacist_name').value = eczane.pharmacist_name || '';
             document.getElementById('edit-chamber_registration_no').value = eczane.chamber_registration_no || '';
+            document.getElementById('edit-ieo_device_serial_no').value = eczane.ieo_device_serial_no || '';
             document.getElementById('edit-phone').value = eczane.phone || '';
             document.getElementById('edit-mobile_phone').value = eczane.mobile_phone || '';
             document.getElementById('edit-address').value = eczane.address || '';

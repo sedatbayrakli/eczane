@@ -327,7 +327,34 @@
                 </div>
             </div>
 
-            <!-- 3. KART: TV Kiosk Ekranı & Donanım Sinyalleri -->
+            <!-- 3. KART: İEO Kiosk Cihaz Seri No & Haftalık Nöbet Entegrasyonu -->
+            <div class="settings-card" style="border-color: rgba(56, 189, 248, 0.35); background: rgba(56, 189, 248, 0.04);">
+                <div class="card-header-custom">
+                    <span class="icon" style="background: rgba(56, 189, 248, 0.2); color: #38bdf8;">🔑</span>
+                    <div>
+                        <h2>İstanbul Eczacı Odası (İEO) Cihaz Seri No & Haftalık Nöbet Entegrasyonu</h2>
+                        <p>Resmi İEO Kiosk API (get_bn / get_hn) bağlantısı ve haftalık nöbetçi listesi sorgulama parametresi.</p>
+                    </div>
+                </div>
+
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label>İEO Cihaz Seri No / Kiosk Kodu (SNO)</label>
+                        <input type="text" name="ieo_device_serial_no" value="{{ ayar.ieo_device_serial_no or '' }}" class="form-control" placeholder="Örn: 2023-XXXX veya Cihaz Seri No">
+                        <small>İstanbul Eczacı Odası tarafından verilen Kiosk Cihaz Seri No. Bu parametre dolu olduğunda resmi İEO API'si üzerinden haftalık ve ileri/geçmiş tarihli nöbet çizelgeleri sorgulanır.</small>
+                    </div>
+
+                    <div class="form-group" style="background: rgba(0,0,0,0.25); padding: 0.85rem 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                        <label style="color: #38bdf8;">ℹ️ Çalışma Mantığı & Kural</label>
+                        <div style="font-size: 0.8rem; color: #cbd5e1; line-height: 1.5;">
+                            • <strong>Seri No Tanımlı İse:</strong> Haftalık nöbet çizelgesi (<code>req=get_hn</code>) ve bugünkü nöbetçiler (<code>req=get_bn</code>) doğrudan resmi İEO Kiosk API'sinden çekilir.<br>
+                            • <strong>Seri No Boş İse:</strong> Sistem yalnızca bugünün nöbetçilerini halka açık web kaynaklarından sorgular. Günlük dışındaki (ileri veya geçmiş) tarih sorgulamalarına izin verilmez.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. KART: TV Kiosk Ekranı & Donanım Sinyalleri -->
             <div class="settings-card">
                 <div class="card-header-custom">
                     <span class="icon">📺</span>

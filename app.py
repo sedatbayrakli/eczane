@@ -148,6 +148,8 @@ def init_db():
                         conn.execute(text("ALTER TABLE pharmacies ADD COLUMN day_mode_title VARCHAR(150) DEFAULT 'Eczanemiz Hizmetinizdedir'"))
                     if "day_mode_message" not in mevcut_kolonlar:
                         conn.execute(text("ALTER TABLE pharmacies ADD COLUMN day_mode_message TEXT DEFAULT 'Reçeteli ve reçetesiz ilaçlarınız, medikal ürünler ve danışmanlık için hizmetinizdeyiz.'"))
+                    if "ieo_device_serial_no" not in mevcut_kolonlar:
+                        conn.execute(text("ALTER TABLE pharmacies ADD COLUMN ieo_device_serial_no VARCHAR(100)"))
                     conn.commit()
 
             if "kiosk_devices" in tablolar:
@@ -219,6 +221,8 @@ def init_db():
                         conn.execute(text("ALTER TABLE system_settings ADD COLUMN day_mode_end_time VARCHAR(10) DEFAULT '19:00'"))
                     if "webhook_secret" not in mevcut_sys_kolonlar:
                         conn.execute(text("ALTER TABLE system_settings ADD COLUMN webhook_secret VARCHAR(100) DEFAULT 'eczane-webhook-secret-2026'"))
+                    if "ieo_device_serial_no" not in mevcut_sys_kolonlar:
+                        conn.execute(text("ALTER TABLE system_settings ADD COLUMN ieo_device_serial_no VARCHAR(100) DEFAULT ''"))
                     conn.commit()
         except Exception as hata:
             print(f"[UYARI] Veritabanı kolon denetim hatası: {hata}")
@@ -724,6 +728,7 @@ def admin_add_pharmacy():
     
     eczaci_adi = request.form.get("pharmacist_name", "").strip()
     oda_sicil = request.form.get("chamber_registration_no", "").strip()
+    ieo_sno = request.form.get("ieo_device_serial_no", "").strip()
     telefon = request.form.get("phone", "").strip()
     cep_telefonu = request.form.get("mobile_phone", "").strip()
     acik_adres = request.form.get("address", "").strip()
@@ -747,6 +752,7 @@ def admin_add_pharmacy():
         longitude=boylam,
         pharmacist_name=eczaci_adi,
         chamber_registration_no=oda_sicil,
+        ieo_device_serial_no=ieo_sno or None,
         phone=telefon,
         mobile_phone=cep_telefonu,
         address=acik_adres,
@@ -782,6 +788,7 @@ def admin_edit_pharmacy(eczane_id):
     
     eczane.pharmacist_name = request.form.get("pharmacist_name", eczane.pharmacist_name).strip()
     eczane.chamber_registration_no = request.form.get("chamber_registration_no", eczane.chamber_registration_no).strip()
+    eczane.ieo_device_serial_no = request.form.get("ieo_device_serial_no", "").strip() or None
     eczane.phone = request.form.get("phone", eczane.phone).strip()
     eczane.mobile_phone = request.form.get("mobile_phone", eczane.mobile_phone).strip()
     eczane.address = request.form.get("address", eczane.address).strip()
@@ -1120,12 +1127,18 @@ def admin_duty_pharmacies():
     ilce = request.args.get("ilce", "Bahçelievler")
     tarih = request.args.get("tarih", datetime.now().strftime("%Y-%m-%d"))
     kaynak = request.args.get("kaynak", "hepsi")
+
+    ayar = SystemSetting.get_settings()
+    has_ieo_sno = bool(ayar.ieo_device_serial_no and ayar.ieo_device_serial_no.strip())
+
     return render_template(
         "admin_duty_pharmacies.html",
         secili_il=il,
         secili_ilce=ilce,
         secili_tarih=tarih,
         secili_kaynak=kaynak,
+        has_ieo_sno=has_ieo_sno,
+        ieo_sno=ayar.ieo_device_serial_no or "",
         aktif_sayfa="duty"
     )
 
@@ -1140,6 +1153,25 @@ def admin_api_duty_pharmacies():
     kaynak = request.args.get("kaynak", "hepsi").strip()
     force_refresh = request.args.get("refresh", "0") in ("1", "true", "True")
 
+    # İEO Cihaz Seri No kontrolü (Parametreden veya Sistem Ayarlarından)
+    ayar = SystemSetting.get_settings()
+    sno = request.args.get("sno", "").strip() or (ayar.ieo_device_serial_no or "").strip()
+
+    bugun_str = datetime.now().strftime("%Y-%m-%d")
+    is_bugun = (not tarih) or (tarih == bugun_str)
+
+    # KURAL: Seri No boşsa, bugün dışındaki tarih sorgulamalarına izin verilmez
+    if not is_bugun and not sno:
+        return jsonify({
+            "success": False,
+            "error": "İleri veya geçmiş tarihli haftalık nöbet listelerini sorgulamak için İEO Cihaz Seri No / Kodu tanımlanmalıdır. Lütfen Genel Ayarlar bölümünden seri numaranızı tanımlayınız.",
+            "sno_required": True,
+            "eczaneler": [],
+            "il": il,
+            "ilce": ilce,
+            "tarih": tarih
+        })
+
     # Özel kaynak seçimi yapılmışsa öncelik listesini ona göre ayarla
     kaynak_siralamasi = [kaynak] if (kaynak and kaynak not in ("hepsi", "auto", "tum")) else None
     cache_suresi = 0 if force_refresh else None
@@ -1150,8 +1182,20 @@ def admin_api_duty_pharmacies():
             ilce=ilce,
             cache_suresi_dakika=cache_suresi,
             kaynak_siralamasi=kaynak_siralamasi,
-            tarih=tarih
+            tarih=tarih,
+            sno=sno
         )
+        if not sonuc.get("success", False):
+            return jsonify({
+                "success": False,
+                "error": sonuc.get("error") or "Nöbetçi eczane listesi alınamadı.",
+                "sno_required": sonuc.get("sno_required", False),
+                "eczaneler": [],
+                "il": il,
+                "ilce": ilce,
+                "tarih": tarih or bugun_str
+            })
+
         return jsonify({
             "success": True,
             "eczaneler": sonuc.get("eczaneler", []),
@@ -1159,8 +1203,9 @@ def admin_api_duty_pharmacies():
             "guncellenme_zamani": sonuc.get("guncellenme_zamani", ""),
             "il": il,
             "ilce": ilce,
-            "tarih": tarih or datetime.now().strftime("%Y-%m-%d"),
-            "kaynak": kaynak
+            "tarih": tarih or bugun_str,
+            "kaynak": kaynak,
+            "has_sno": bool(sno)
         })
     except Exception as e:
         app.logger.error(f"Nöbetçi eczane sorgu hatası: {e}")
@@ -1361,6 +1406,7 @@ def admin_settings():
             ayar.heartbeat_tolerance_min = max(1, tolerance)
             ayar.max_search_distance_km = max(1, max_dist)
             ayar.map_theme = map_theme or "cartodb_dark"
+            ayar.ieo_device_serial_no = (request.form.get("ieo_device_serial_no") or "").strip()
 
             # Evolution API WhatsApp Ayarları
             ayar.whatsapp_enabled = (request.form.get("whatsapp_enabled") == "1")
@@ -1648,7 +1694,8 @@ def api_kiosk_data():
         kendi_lat, 
         kendi_lon,
         cache_suresi_dakika=sistem_ayari.cache_duration_minutes,
-        kaynak_siralamasi=kaynak_sirasi
+        kaynak_siralamasi=kaynak_sirasi,
+        sno=eczane.get_ieo_serial_no()
     )
 
     # Otomatik nöbetçi tespiti

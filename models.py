@@ -259,6 +259,7 @@ class Pharmacy(db.Model):
     # Eczacı ve İletişim Bilgileri
     pharmacist_name = db.Column(db.String(120), nullable=True)         # Eczacı Ad Soyad
     chamber_registration_no = db.Column(db.String(60), nullable=True) # Oda Sicil / GLN No
+    ieo_device_serial_no = db.Column(db.String(100), nullable=True)    # İEO Kiosk Cihaz Seri No / Kodu
     phone = db.Column(db.String(30), nullable=True)                   # Sabit Telefon
     mobile_phone = db.Column(db.String(30), nullable=True)            # Eczacı Cep Telefonu
     address = db.Column(db.Text, nullable=True)                       # Eczanenin Kendi Açık Adresi
@@ -512,6 +513,16 @@ class Pharmacy(db.Model):
             guncel.update(ayarlar)
         self.institution_settings = json.dumps(guncel, ensure_ascii=False)
 
+    def get_ieo_serial_no(self) -> str:
+        """Eczaneye tanımlı seri no varsa döner, yoksa sistem genel ayarındaki seri no'yu döner."""
+        if self.ieo_device_serial_no and self.ieo_device_serial_no.strip():
+            return self.ieo_device_serial_no.strip()
+        try:
+            ayar = SystemSetting.get_settings()
+            return (ayar.ieo_device_serial_no or "").strip()
+        except Exception:
+            return ""
+
     def to_dict(self) -> dict:
         """Model verilerini JSON sözlüğüne dönüştürür."""
         cihazlar = [d.to_dict() for d in self.devices]
@@ -527,6 +538,8 @@ class Pharmacy(db.Model):
             "longitude": self.longitude,
             "pharmacist_name": self.pharmacist_name or "",
             "chamber_registration_no": self.chamber_registration_no or "",
+            "ieo_device_serial_no": self.ieo_device_serial_no or "",
+            "effective_ieo_serial_no": self.get_ieo_serial_no(),
             "phone": self.phone or "",
             "mobile_phone": self.mobile_phone or "",
             "address": self.address or "",
@@ -597,6 +610,7 @@ class SystemSetting(db.Model):
     heartbeat_tolerance_min = db.Column(db.Integer, default=5, nullable=False) # Çevrimdışı Sinyal Toleransı (dk)
     max_search_distance_km = db.Column(db.Integer, default=15, nullable=False) # Maksimum Nöbetçi Çemberi (km)
     map_theme = db.Column(db.String(50), default="cartodb_dark", nullable=False) # Harita Sağlayıcı Stili
+    ieo_device_serial_no = db.Column(db.String(100), default="", nullable=True)  # İEO Kiosk Cihaz Seri No / Kodu (Global)
 
     # Gündüz / Nöbet Modu Otomasyonu
     day_mode_enabled = db.Column(db.Boolean, default=True, nullable=False)          # Gündüz Modu Açık/Kapalı
@@ -639,6 +653,7 @@ class SystemSetting(db.Model):
             "heartbeat_tolerance_min": self.heartbeat_tolerance_min,
             "max_search_distance_km": self.max_search_distance_km,
             "map_theme": self.map_theme,
+            "ieo_device_serial_no": self.ieo_device_serial_no or "",
             "day_mode_enabled": self.day_mode_enabled,
             "day_mode_start_time": self.day_mode_start_time,
             "day_mode_end_time": self.day_mode_end_time,

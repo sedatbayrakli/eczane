@@ -243,6 +243,135 @@ def kaynak_ieo_cek(il: str, ilce: str, tarih: Optional[str] = None) -> Tuple[Lis
         return [], f"İEO çekim hatası: {str(err)}"
 
 
+def _tarih_normalize(t_str: str) -> str:
+    """Tarih dizgesini YYYY-MM-DD formatına normalize eder."""
+    if not t_str:
+        return ""
+    t_str = t_str.strip()
+    m1 = re.match(r'^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})', t_str)
+    if m1:
+        return f"{m1.group(1)}-{int(m1.group(2)):02d}-{int(m1.group(3)):02d}"
+    m2 = re.match(r'^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})', t_str)
+    if m2:
+        return f"{m2.group(3)}-{int(m2.group(2)):02d}-{int(m2.group(1)):02d}"
+    return t_str
+
+
+def kaynak_ieo_native_cek(sno: str, il: str = "İstanbul", ilce: Optional[str] = None,
+                          tarih: Optional[str] = None, is_weekly: bool = False) -> Tuple[List[Dict[str, Any]], str]:
+    """
+    İstanbul Eczacı Odası resmi Kiosk API'sinden (bn.php) veri çeker.
+    Parametreler:
+        sno: Cihaz Seri Numarası / Kiosk Kodu (Zorunlu)
+        is_weekly: True ise 'req=get_hn' (Haftalık Nöbetler), False ise 'req=get_bn' (Bugünkü Nöbetler)
+        tarih: Belirli bir gün filtresi (YYYY-MM-DD)
+    """
+    if not sno or not sno.strip():
+        return [], "İEO Kiosk API için Cihaz Seri Numarası (sno) gereklidir"
+
+    sno_temiz = sno.strip()
+    bugun_str = datetime.now().strftime("%Y-%m-%d")
+    req_tur = "get_hn" if (is_weekly or (tarih and _tarih_normalize(tarih) != bugun_str)) else "get_bn"
+    url = f"http://www.istanbuleczaciodasi.org.tr/android/com.ieo.eczanebilgiekrani/bn.php?req={req_tur}&sno={urllib.parse.quote(sno_temiz)}"
+
+    session = requests.Session()
+    session.headers.update({
+        "User-Agent": "Dalvik/2.1.0 (Linux; U; Android 7.1.2; TV-BOX Build/NHG47K)",
+        "Accept": "*/*"
+    })
+
+    try:
+        yanit = session.get(url, timeout=10)
+        if yanit.status_code != 200:
+            return [], f"İEO Kiosk API HTTP {yanit.status_code}"
+
+        try:
+            veri = yanit.json()
+        except Exception:
+            temiz_metin = yanit.text.strip().lstrip('\ufeff')
+            veri = json.loads(temiz_metin)
+
+        if isinstance(veri, dict) and (veri.get("error") == 1 or veri.get("error") == "1"):
+            hata_mesaji = veri.get("message") or "Cihaz seri no eşleşmiyor!"
+            return [], f"İEO Cihaz Hatası: {hata_mesaji}"
+
+        ham_eczaneler = veri.get("nobetciler", []) if isinstance(veri, dict) else []
+        if not ham_eczaneler:
+            return [], "İEO Kiosk servisinde nöbetçi eczane listesi bulunamadı"
+
+        hedef_tarih_norm = _tarih_normalize(tarih) if tarih else ""
+        ilce_norm = turkce_karakter_temizle(ilce) if ilce else ""
+
+        sonuclar = []
+        for sira, e in enumerate(ham_eczaneler, start=1):
+            if not isinstance(e, dict):
+                continue
+
+            raw_tarih = str(e.get("tarih", "")).strip()
+            e_tarih = _tarih_normalize(raw_tarih)
+
+            # Tarih filtresi varsa eşleştir
+            if hedef_tarih_norm and e_tarih and e_tarih != hedef_tarih_norm:
+                continue
+
+            # İlçe filtresi varsa eşleştir
+            e_ilcesemt = str(e.get("ilce_semt", "") or e.get("ilcesemt", "")).strip()
+            e_adres_raw = str(e.get("adres", "")).strip()
+
+            if ilce_norm:
+                e_ilcesemt_norm = turkce_karakter_temizle(e_ilcesemt)
+                e_adres_norm = turkce_karakter_temizle(e_adres_raw)
+                if (ilce_norm not in e_ilcesemt_norm) and (ilce_norm not in e_adres_norm):
+                    continue
+
+            eczane_adi = (e.get("eczane_ad") or e.get("eczane") or f"Eczane #{sira}").strip()
+            semt = e_ilcesemt
+
+            mahalle = (e.get("mahalle") or "").strip()
+            cadde_sokak = (e.get("cadde_sokak") or "").strip()
+            bina_kapi = (e.get("bina_kapi") or "").strip()
+            adres = e_adres_raw
+            if not adres and (mahalle or cadde_sokak or bina_kapi):
+                adres = f"{mahalle} {cadde_sokak} {bina_kapi}".strip()
+            adres = re.sub(r'<[^>]+>', '', adres).replace("Adres:", "").strip()
+
+            telefon_ham = str(e.get("eczane_tel") or e.get("telefon") or "").strip()
+            tarif = str(e.get("tarif") or "").strip()
+            yol_tarifi = re.sub(r'<[^>]+>', '', tarif).replace("Tarif:", "").strip()
+
+            try:
+                enlem = float(e.get("lat")) if e.get("lat") else None
+                boylam = float(e.get("lng") or e.get("lon")) if (e.get("lng") or e.get("lon")) else None
+            except (ValueError, TypeError):
+                enlem, boylam = None, None
+
+            sonuclar.append({
+                "id": sira,
+                "isim": eczane_adi,
+                "il": "İstanbul",
+                "ilce": ilce.capitalize() if ilce else semt,
+                "semt": semt,
+                "adres": adres,
+                "telefon": telefon_formatla(telefon_ham),
+                "telefon_link": f"tel:{re.sub(r'[^0-9+]', '', telefon_ham)}" if telefon_ham else "",
+                "yol_tarifi": yol_tarifi,
+                "nobet_durumu": "Sabaha kadar açık",
+                "enlem": enlem,
+                "boylam": boylam,
+                "kaynak": "ieo_kiosk_native",
+                "sicil": str(e.get("sicil", "")).strip(),
+                "tarih": e_tarih or tarih or "",
+                "qrlink": str(e.get("qrlink", "")).strip()
+            })
+
+        if not sonuclar and (hedef_tarih_norm or ilce_norm):
+            return [], f"{ilce or ''} için {tarih or ''} tarihinde İEO Kiosk kaydı bulunamadı"
+
+        return sonuclar, ""
+    except Exception as err:
+        return [], f"İEO Kiosk API çekim hatası: {str(err)}"
+
+
 def eczane_detay_bilgisi_ara(eczane_adi: str, ilce: str, il: str = "İstanbul", mevcut_adres: str = "") -> Dict[str, Any]:
     """
     Eczane kayıt formunda otomatik adres, telefon, sicil ve koordinat bulucu.
@@ -619,17 +748,34 @@ def nobetci_eczaneleri_getir(il: str, ilce: str,
                              kendi_boylam: Optional[float] = None,
                              cache_suresi_dakika: Optional[int] = None,
                              kaynak_siralamasi: Optional[List[str]] = None,
-                             tarih: Optional[str] = None) -> Dict[str, Any]:
+                             tarih: Optional[str] = None,
+                             sno: Optional[str] = None) -> Dict[str, Any]:
     """
-    Sıralı Fallback Pipeline (Dinamik Öncelik, Tarih Filtresi ve Yapılandırılabilir Önbellek):
-    Kullanıcı tanımlı veya varsayılan kaynak önceliğine göre sırayla dener.
-    Seçilen tarihe (YYYY-MM-DD) göre resmi veya harici kaynaklardan nöbetçi listesini çeker.
+    Sıralı Fallback Pipeline & İEO Kiosk Entegrasyonu:
+    - Seri No (sno) doluysa: Resmi İEO Kiosk API'sinden (get_hn / get_bn) haftalık ve ileri/geçmiş tarihli sorgu yapar.
+    - Seri No (sno) boşsa: Yalnızca bugünün güncel nöbetçileri sorgulanır; tarihli sorgulara izin verilmez.
     """
-    tarih_eki = f"_{turkce_karakter_temizle(tarih)}" if tarih else ""
-    onbellek_anahtari = f"{turkce_karakter_temizle(il)}_{turkce_karakter_temizle(ilce)}{tarih_eki}"
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    aktif_tarih = _tarih_normalize(tarih) if tarih else today_str
+    is_today = (aktif_tarih == today_str)
+
+    # KURAL: Seri No boşsa, bugün dışındaki tarih sorgulamalarına izin verilmez
+    if not is_today and not (sno and sno.strip()):
+        return {
+            "success": False,
+            "error": "İleri veya geçmiş tarihli haftalık nöbet listelerini sorgulamak için İEO Cihaz Seri No / Kodu tanımlanmalıdır. Lütfen Genel Ayarlar veya Eczane Düzenleme bölümünden seri numaranızı tanımlayınız.",
+            "sno_required": True,
+            "eczaneler": [],
+            "tarih": aktif_tarih,
+            "il": il.capitalize(),
+            "ilce": ilce.capitalize()
+        }
+
+    tarih_eki = f"_{turkce_karakter_temizle(aktif_tarih)}"
+    sno_eki = f"_{turkce_karakter_temizle(sno[:8])}" if sno else ""
+    onbellek_anahtari = f"{turkce_karakter_temizle(il)}_{turkce_karakter_temizle(ilce)}{tarih_eki}{sno_eki}"
     suan = time.time()
     cache_ttl_saniye = (cache_suresi_dakika * 60) if (cache_suresi_dakika and cache_suresi_dakika > 0) else CACHE_SURESI_SANIYE
-    aktif_tarih = tarih.strip() if tarih else datetime.now().strftime("%Y-%m-%d")
 
     # 1. Aşama: Geçerli önbellek kontrolü
     with onbellek_kilidi:
@@ -648,32 +794,60 @@ def nobetci_eczaneleri_getir(il: str, ilce: str,
                 "ilce": ilce.capitalize()
             }
 
-    # 2. Aşama: Sıralı Kaynak Denemeleri (Dinamik Öncelikli Pipeline)
     basarili_eczaneler: List[Dict[str, Any]] = []
     kullanilan_kaynak = ""
     hata_raporu = []
 
-    # Kaynak motorları haritası (tarih parametresi ile birlikte)
-    kaynak_haritasi = {
-        "ieo_resmi": ("İEO (İstanbul Eczacı Odası)", lambda _il, _ilce: kaynak_ieo_cek(_il, _ilce, tarih=aktif_tarih)),
-        "eczaneler_gen_tr": ("Eczaneler.gen.tr", lambda _il, _ilce: kaynak_eczaneler_gen_tr_cek(_il, _ilce, tarih=aktif_tarih)),
-        "nobetcieczaneler_org": ("Nobetcieczaneler.org", lambda _il, _ilce: kaynak_nobetcieczaneler_org_cek(_il, _ilce, tarih=aktif_tarih))
-    }
+    # 2. Aşama: İleri/Geçmiş Tarih Sorgusu (SNO ile Haftalık Çekim)
+    if not is_today and sno and sno.strip():
+        eczaneler, hata = kaynak_ieo_native_cek(sno=sno.strip(), il=il, ilce=ilce, tarih=aktif_tarih, is_weekly=True)
+        if eczaneler:
+            basarili_eczaneler = eczaneler
+            kullanilan_kaynak = "ieo_kiosk_native"
+        else:
+            hata_raporu.append(f"İEO Kiosk Haftalık: {hata}")
+            return {
+                "success": False,
+                "error": f"İEO Haftalık Nöbet Çekim Hatası: {hata}",
+                "sno_required": False,
+                "eczaneler": [],
+                "tarih": aktif_tarih,
+                "il": il.capitalize(),
+                "ilce": ilce.capitalize()
+            }
 
-    # Eğer özel kaynak sıralaması gelmediyse varsayılan sıra
-    if not kaynak_siralamasi:
-        kaynak_siralamasi = ["ieo_resmi", "eczaneler_gen_tr", "nobetcieczaneler_org"]
-
-    for kaynak_anahtari in kaynak_siralamasi:
-        if kaynak_anahtari in kaynak_haritasi:
-            kaynak_adi, kaynak_func = kaynak_haritasi[kaynak_anahtari]
-            eczaneler, hata = kaynak_func(il, ilce)
+    # 3. Aşama: Bugünün Sorgusu
+    if is_today:
+        # Eğer SNO varsa önce resmi native endpoint'i dene (get_bn)
+        if sno and sno.strip():
+            eczaneler, hata = kaynak_ieo_native_cek(sno=sno.strip(), il=il, ilce=ilce, tarih=aktif_tarih, is_weekly=False)
             if eczaneler:
                 basarili_eczaneler = eczaneler
-                kullanilan_kaynak = kaynak_anahtari
-                break
+                kullanilan_kaynak = "ieo_kiosk_native"
             else:
-                hata_raporu.append(f"{kaynak_adi}: {hata}")
+                hata_raporu.append(f"İEO Kiosk Günlük: {hata}")
+
+        # Eğer native ile çekilemediyse veya SNO yoksa sıralı web kaynaklarını dene
+        if not basarili_eczaneler:
+            kaynak_haritasi = {
+                "ieo_resmi": ("İEO (İstanbul Eczacı Odası)", lambda _il, _ilce: kaynak_ieo_cek(_il, _ilce, tarih=aktif_tarih)),
+                "eczaneler_gen_tr": ("Eczaneler.gen.tr", lambda _il, _ilce: kaynak_eczaneler_gen_tr_cek(_il, _ilce, tarih=aktif_tarih)),
+                "nobetcieczaneler_org": ("Nobetcieczaneler.org", lambda _il, _ilce: kaynak_nobetcieczaneler_org_cek(_il, _ilce, tarih=aktif_tarih))
+            }
+
+            if not kaynak_siralamasi:
+                kaynak_siralamasi = ["ieo_resmi", "eczaneler_gen_tr", "nobetcieczaneler_org"]
+
+            for kaynak_anahtari in kaynak_siralamasi:
+                if kaynak_anahtari in kaynak_haritasi:
+                    kaynak_adi, kaynak_func = kaynak_haritasi[kaynak_anahtari]
+                    eczaneler, hata = kaynak_func(il, ilce)
+                    if eczaneler:
+                        basarili_eczaneler = eczaneler
+                        kullanilan_kaynak = kaynak_anahtari
+                        break
+                    else:
+                        hata_raporu.append(f"{kaynak_adi}: {hata}")
 
     zaman_metni = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
 
@@ -699,7 +873,7 @@ def nobetci_eczaneleri_getir(il: str, ilce: str,
             "ilce": ilce.capitalize()
         }
 
-    # Eğer canlı kaynaklar başarısız olduysa ve bayat önbellek varsa onu kullan
+    # Canlı kaynaklar başarısız olduysa ve bayat önbellek varsa onu kullan
     with onbellek_kilidi:
         if kayit and kayit.get("data"):
             zenginlestirilmis = _mesafe_ve_rotalari_zenginlestir(kayit["data"], kendi_enlem, kendi_boylam)
