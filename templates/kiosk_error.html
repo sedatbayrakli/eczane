@@ -118,7 +118,28 @@
     <div class="error-card">
         <div class="warning-icon">📺</div>
         <h1>TV Ekranı Lisans Aktivasyonu</h1>
+        
+        <!-- Bağlı Sunucu Bilgisi -->
+        <div style="display: inline-flex; align-items: center; gap: 0.5rem; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 9999px; padding: 0.3rem 0.9rem; font-size: 0.8rem; font-family: 'JetBrains Mono', monospace; color: #38bdf8; margin-bottom: 1rem;">
+            <span>🌐 Sunucu:</span>
+            <strong>{{ request.host }}</strong>
+            {% if 'dev' in request.host %}
+                <span style="background: #f59e0b; color: #000; font-weight: 800; font-size: 0.7rem; padding: 0.1rem 0.4rem; border-radius: 4px;">DEV</span>
+            {% else %}
+                <span style="background: #10b981; color: #000; font-weight: 800; font-size: 0.7rem; padding: 0.1rem 0.4rem; border-radius: 4px;">PROD</span>
+            {% endif %}
+        </div>
+
+        {% if hata_mesaj and hata_mesaj != 'TV ekranının çalışabilmesi için geçerli bir lisans anahtarı belirtilmelidir.' %}
+        <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 12px; padding: 0.8rem 1.2rem; margin-bottom: 1.2rem; color: #fca5a5; font-size: 0.88rem;">
+            <strong>⚠️ {{ hata_baslik }}:</strong> {{ hata_mesaj }}
+            {% if lisans_kodu and lisans_kodu != 'Belirtilmedi' %}
+                <div style="margin-top: 0.3rem; font-family: monospace; color: #f87171;">Girilen Lisans: {{ lisans_kodu }}</div>
+            {% endif %}
+        </div>
+        {% else %}
         <p>Eczanenizin nöbetçi ekranını TV'de yayına almak için paneldeki lisans kodunuzu giriniz.</p>
+        {% endif %}
 
         <form id="licenseForm" action="/kiosk" method="GET" onsubmit="return handleFormSubmit(event)">
             <div class="form-group">
