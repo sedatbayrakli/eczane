@@ -30,7 +30,8 @@ from services.pharmacy_service import (
     rota_linki_olustur,
     qr_kod_url_olustur,
     eczane_detay_bilgisi_ara,
-    onbellek_temizle
+    onbellek_temizle,
+    ieo_resmi_tatil_bilgisi
 )
 
 # Flask uygulamasının başlatılması
@@ -55,6 +56,21 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 # Veritabanını Flask uygulamasına bağlama
 db.init_app(app)
+
+# SQLite Yüksek Eşzamanlılık (Concurrency) - WAL Modu ve Hızlı Yazma
+from sqlalchemy import event
+from sqlalchemy.engine import Engine
+
+@event.listens_for(Engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    try:
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA synchronous=NORMAL")
+        cursor.execute("PRAGMA busy_timeout=5000")
+        cursor.close()
+    except Exception:
+        pass
 
 # Yapılandırma ve ortam değişkenleri
 VARSAYILAN_IL = os.getenv("DEFAULT_PROVINCE", "istanbul").lower().strip()
@@ -128,6 +144,10 @@ def init_db():
                         conn.execute(text("ALTER TABLE pharmacies ADD COLUMN institution_type VARCHAR(50) DEFAULT 'pharmacy'"))
                     if "institution_settings" not in mevcut_kolonlar:
                         conn.execute(text("ALTER TABLE pharmacies ADD COLUMN institution_settings TEXT DEFAULT '{}'"))
+                    if "day_mode_title" not in mevcut_kolonlar:
+                        conn.execute(text("ALTER TABLE pharmacies ADD COLUMN day_mode_title VARCHAR(150) DEFAULT 'Eczanemiz Hizmetinizdedir'"))
+                    if "day_mode_message" not in mevcut_kolonlar:
+                        conn.execute(text("ALTER TABLE pharmacies ADD COLUMN day_mode_message TEXT DEFAULT 'Reçeteli ve reçetesiz ilaçlarınız, medikal ürünler ve danışmanlık için hizmetinizdeyiz.'"))
                     conn.commit()
 
             if "kiosk_devices" in tablolar:
@@ -153,6 +173,16 @@ def init_db():
                         conn.execute(text("ALTER TABLE kiosk_devices ADD COLUMN is_visible BOOLEAN DEFAULT 1"))
                     if "last_visibility_change" not in mevcut_dev_kolonlar:
                         conn.execute(text("ALTER TABLE kiosk_devices ADD COLUMN last_visibility_change DATETIME"))
+                    if "screenshot_requested" not in mevcut_dev_kolonlar:
+                        conn.execute(text("ALTER TABLE kiosk_devices ADD COLUMN screenshot_requested BOOLEAN DEFAULT 0"))
+                    if "last_screenshot" not in mevcut_dev_kolonlar:
+                        conn.execute(text("ALTER TABLE kiosk_devices ADD COLUMN last_screenshot TEXT"))
+                    if "last_screenshot_at" not in mevcut_dev_kolonlar:
+                        conn.execute(text("ALTER TABLE kiosk_devices ADD COLUMN last_screenshot_at DATETIME"))
+                    if "last_background_alert_at" not in mevcut_dev_kolonlar:
+                        conn.execute(text("ALTER TABLE kiosk_devices ADD COLUMN last_background_alert_at DATETIME"))
+                    if "last_offline_alert_at" not in mevcut_dev_kolonlar:
+                        conn.execute(text("ALTER TABLE kiosk_devices ADD COLUMN last_offline_alert_at DATETIME"))
                     conn.commit()
 
             if "admin_users" in tablolar:
@@ -181,6 +211,14 @@ def init_db():
                         conn.execute(text("ALTER TABLE system_settings ADD COLUMN whatsapp_notify_admin BOOLEAN DEFAULT 1"))
                     if "whatsapp_notify_pharmacy" not in mevcut_sys_kolonlar:
                         conn.execute(text("ALTER TABLE system_settings ADD COLUMN whatsapp_notify_pharmacy BOOLEAN DEFAULT 1"))
+                    if "day_mode_enabled" not in mevcut_sys_kolonlar:
+                        conn.execute(text("ALTER TABLE system_settings ADD COLUMN day_mode_enabled BOOLEAN DEFAULT 1"))
+                    if "day_mode_start_time" not in mevcut_sys_kolonlar:
+                        conn.execute(text("ALTER TABLE system_settings ADD COLUMN day_mode_start_time VARCHAR(10) DEFAULT '08:30'"))
+                    if "day_mode_end_time" not in mevcut_sys_kolonlar:
+                        conn.execute(text("ALTER TABLE system_settings ADD COLUMN day_mode_end_time VARCHAR(10) DEFAULT '19:00'"))
+                    if "webhook_secret" not in mevcut_sys_kolonlar:
+                        conn.execute(text("ALTER TABLE system_settings ADD COLUMN webhook_secret VARCHAR(100) DEFAULT 'eczane-webhook-secret-2026'"))
                     conn.commit()
         except Exception as hata:
             print(f"[UYARI] Veritabanı kolon denetim hatası: {hata}")
@@ -420,6 +458,19 @@ def webhook_evolution():
     """
     if request.method == "GET":
         return jsonify({"status": "active", "service": "Eczane Kiosk Evolution Webhook"}), 200
+
+    # Webhook Güvenlik Doğrulaması
+    s_ayar = SystemSetting.get_settings()
+    req_secret = request.headers.get("apikey") or request.headers.get("X-Webhook-Secret") or request.args.get("secret")
+    gecerli_anahtarlar = [
+        s_ayar.webhook_secret,
+        s_ayar.evolution_global_key,
+        s_ayar.evolution_instance_key
+    ]
+    gecerli_anahtarlar = [k for k in gecerli_anahtarlar if k and k.strip()]
+    if gecerli_anahtarlar and (not req_secret or req_secret.strip() not in gecerli_anahtarlar):
+        print(f"[WEBHOOK GÜVENLİK ENGELİ] Yetkisiz webhook isteği engellendi (IP: {istemci_ip_al()})")
+        return jsonify({"status": "unauthorized", "error": "Geçersiz veya eksik webhook güvenlik anahtarı"}), 401
 
     try:
         veri = request.get_json(force=True, silent=True) or {}
@@ -1317,8 +1368,14 @@ def admin_settings():
             ayar.evolution_instance = (request.form.get("evolution_instance") or "").strip()
             ayar.evolution_instance_key = (request.form.get("evolution_instance_key") or "").strip()
             ayar.evolution_global_key = (request.form.get("evolution_global_key") or "").strip()
+            ayar.webhook_secret = (request.form.get("webhook_secret") or "").strip()
             ayar.whatsapp_notify_admin = (request.form.get("whatsapp_notify_admin") == "1")
             ayar.whatsapp_notify_pharmacy = (request.form.get("whatsapp_notify_pharmacy") == "1")
+
+            # Gündüz Modu Ayarları
+            ayar.day_mode_enabled = (request.form.get("day_mode_enabled") == "1")
+            ayar.day_mode_start_time = (request.form.get("day_mode_start_time") or "08:30").strip()
+            ayar.day_mode_end_time = (request.form.get("day_mode_end_time") or "18:30").strip()
 
             ayar.updated_at = datetime.utcnow()
 
@@ -1659,6 +1716,26 @@ def api_kiosk_data():
     # Manuel test veya otomatik tespit kontrolü
     nihai_nobet_durumu = eczane.nobetci_mi()
 
+    # Resmi Tatil ve Bayram Bilgisi (İEO Resmi Takvimi Entegrasyonu)
+    tatil_bilgisi = ieo_resmi_tatil_bilgisi()
+
+    # Gündüz Modu Kararı (Digital Signage Modu)
+    simdi_saat = datetime.now().strftime("%H:%M")
+    is_day_mode = False
+    if sistem_ayari.day_mode_enabled and not tatil_bilgisi.get("is_holiday"):
+        g_baslangic = sistem_ayari.day_mode_start_time or "08:30"
+        g_bitis = sistem_ayari.day_mode_end_time or "19:00"
+        if (g_baslangic <= simdi_saat < g_bitis) and not nihai_nobet_durumu:
+            is_day_mode = True
+
+    day_mode_bilgisi = {
+        "active": is_day_mode,
+        "title": eczane.day_mode_title or "Eczanemiz Hizmetinizdedir",
+        "message": eczane.day_mode_message or "Reçeteli ve reçetesiz ilaçlarınız, medikal ürünler ve danışmanlık için hizmetinizdeyiz.",
+        "start_time": sistem_ayari.day_mode_start_time,
+        "end_time": sistem_ayari.day_mode_end_time
+    }
+
     return jsonify({
         "success": True,
         "license_valid": True,
@@ -1686,6 +1763,8 @@ def api_kiosk_data():
         "identify": identify_bilgisi,
         "is_on_duty_today": nihai_nobet_durumu,
         "duty_test_active": eczane.duty_test_aktif_mi(),
+        "holiday_info": tatil_bilgisi,
+        "day_mode": day_mode_bilgisi,
         "eczaneler": veri.get("eczaneler", []),
         "kaynak": veri.get("kaynak"),
         "veri_saglayici": veri.get("veri_saglayici"),
@@ -1694,7 +1773,8 @@ def api_kiosk_data():
             "poll_interval_sec": sistem_ayari.kiosk_poll_interval_sec,
             "duty_start_time": sistem_ayari.duty_start_time,
             "duty_end_time": sistem_ayari.duty_end_time,
-            "map_theme": sistem_ayari.map_theme
+            "map_theme": sistem_ayari.map_theme,
+            "day_mode_enabled": sistem_ayari.day_mode_enabled
         }
     })
 
@@ -1767,33 +1847,45 @@ def api_kiosk_ping():
                 )
                 db.session.add(yeni_log)
 
-                # 2. WhatsApp Bildirimi Gönderimi (Arka plana düşme veya kritik olaylarda)
+                # 2. WhatsApp Bildirimi Gönderimi (Arka plana düşme veya kritik olaylarda - Spam Korumalı)
                 try:
                     s_ayar = SystemSetting.get_settings()
                     if s_ayar.whatsapp_enabled:
-                        wa_mesaj = (
-                            f"🔔 *NÖBETÇİ ECZANE TV BİLDİRİMİ*\n\n"
-                            f"🏢 *Kurum:* {eczane.name}\n"
-                            f"📺 *Cihaz:* {aktif_cihaz.device_name}\n"
-                            f"⚠️ *Durum:* {yeni_durum}\n"
-                            f"🕒 *Zaman:* {datetime.now().strftime('%d.%m.%Y %H:%M:%S')}\n"
-                            f"ℹ️ *Açıklama:* {log_mesaj}\n\n"
-                            f"_Lütfen TV kumandasından TV Bro / Tarayıcı uygulamasını kontrol ediniz._"
-                        )
-                        mesaj_iletildi = False
-                        # Admin'e gönder
-                        if s_ayar.whatsapp_notify_admin:
-                            admin_usr = AdminUser.query.first()
-                            if admin_usr and admin_usr.phone:
-                                ok_adm, _ = evolution_whatsapp_gonder(admin_usr.phone, wa_mesaj, s_ayar)
-                                if ok_adm: mesaj_iletildi = True
-                        # Kurum yetkilisine gönder
-                        if s_ayar.whatsapp_notify_pharmacy and eczane.mobile_phone:
-                            ok_pha, _ = evolution_whatsapp_gonder(eczane.mobile_phone, wa_mesaj, s_ayar)
-                            if ok_pha: mesaj_iletildi = True
-                        
-                        if mesaj_iletildi:
-                            yeni_log.whatsapp_sent = True
+                        spam_engellendi = False
+                        if not yeni_visible:
+                            if aktif_cihaz.last_background_alert_at:
+                                gecen_sn = (datetime.now() - aktif_cihaz.last_background_alert_at).total_seconds()
+                                if gecen_sn < 900:  # Son 15 dakika içinde zaten uyarı gönderildi
+                                    spam_engellendi = True
+
+                        if not spam_engellendi:
+                            wa_mesaj = (
+                                f"🔔 *NÖBETÇİ ECZANE TV BİLDİRİMİ*\n\n"
+                                f"🏢 *Kurum:* {eczane.name}\n"
+                                f"📺 *Cihaz:* {aktif_cihaz.device_name}\n"
+                                f"⚠️ *Durum:* {yeni_durum}\n"
+                                f"🕒 *Zaman:* {datetime.now().strftime('%d.%m.%Y %H:%M:%S')}\n"
+                                f"ℹ️ *Açıklama:* {log_mesaj}\n\n"
+                                f"_Lütfen TV kumandasından TV Bro / Tarayıcı uygulamasını kontrol ediniz._"
+                            )
+                            mesaj_iletildi = False
+                            # Admin'e gönder
+                            if s_ayar.whatsapp_notify_admin:
+                                admin_usr = AdminUser.query.first()
+                                if admin_usr and admin_usr.phone:
+                                    ok_adm, _ = evolution_whatsapp_gonder(admin_usr.phone, wa_mesaj, s_ayar)
+                                    if ok_adm: mesaj_iletildi = True
+                            # Kurum yetkilisine gönder
+                            if s_ayar.whatsapp_notify_pharmacy and eczane.mobile_phone:
+                                ok_pha, _ = evolution_whatsapp_gonder(eczane.mobile_phone, wa_mesaj, s_ayar)
+                                if ok_pha: mesaj_iletildi = True
+                            
+                            if mesaj_iletildi:
+                                yeni_log.whatsapp_sent = True
+                                if not yeni_visible:
+                                    aktif_cihaz.last_background_alert_at = datetime.now()
+                        else:
+                            yeni_log.message += " (Spam Koruması: Son 15 dakika içinde bildirim gönderildiği için WhatsApp uyarısı tekrarlanmadı.)"
                 except Exception as wa_err:
                     print(f"[UYARI] WhatsApp bildirim hatası: {wa_err}")
 
@@ -1839,14 +1931,88 @@ def api_kiosk_ping():
         "ticker_text": eczane.ticker_text or ""
     }
 
+    take_screenshot_emri = bool(aktif_cihaz.screenshot_requested) if aktif_cihaz else False
+
     return jsonify({
         "success": True,
         "online": True,
         "pharmacy_id": eczane.id,
         "device_id": aktif_cihaz.id if aktif_cihaz else None,
         "identify": identify_bilgisi,
+        "take_screenshot": take_screenshot_emri,
         "config": config_bilgisi,
         "server_time": datetime.now().strftime("%H:%M:%S")
+    })
+
+
+@app.route("/api/kiosk-upload-screenshot", methods=["POST"])
+def api_kiosk_upload_screenshot():
+    """
+    Kiosk TV ekranının html2canvas ile ürettiği ekran görüntüsünü (Base64 JPEG) yükler.
+    """
+    key = request.args.get("key", "").strip().upper() or request.cookies.get("kiosk_license_key", "").strip().upper()
+    device_token = request.args.get("device_token", "").strip() or request.cookies.get("kiosk_device_token", "").strip()
+
+    veri = request.get_json(force=True, silent=True) or {}
+    image_b64 = veri.get("image", "").strip()
+    if not image_b64:
+        return jsonify({"success": False, "error": "Boş ekran görüntüsü verisi"}), 400
+
+    eczane = Pharmacy.query.filter(db.func.upper(Pharmacy.license_key) == key).first() if key else None
+    if not eczane:
+        return jsonify({"success": False, "error": "Geçersiz lisans"}), 403
+
+    aktif_cihaz = None
+    if device_token:
+        aktif_cihaz = eczane.devices.filter_by(device_token=device_token).first()
+    if not aktif_cihaz:
+        aktif_cihaz = eczane.devices.first()
+
+    if aktif_cihaz:
+        aktif_cihaz.last_screenshot = image_b64
+        aktif_cihaz.last_screenshot_at = datetime.now()
+        aktif_cihaz.screenshot_requested = False
+
+        yeni_log = DeviceLog(
+            pharmacy_id=eczane.id,
+            device_id=aktif_cihaz.id,
+            event_type="screenshot",
+            severity="info",
+            title=f"📸 Ekran Görüntüsü Alındı ({aktif_cihaz.device_name})",
+            message=f"{eczane.name} bünyesindeki '{aktif_cihaz.device_name}' TV ekranının anlık görüntüsü başarıyla alındı.",
+            whatsapp_sent=False
+        )
+        db.session.add(yeni_log)
+        db.session.commit()
+        return jsonify({"success": True, "message": "Ekran görüntüsü başarıyla kaydedildi."})
+
+    return jsonify({"success": False, "error": "Cihaz bulunamadı"}), 404
+
+
+@app.route("/admin/pharmacy/<int:eczane_id>/device/<int:device_id>/request-screenshot", methods=["POST"])
+@login_required
+def admin_request_screenshot(eczane_id, device_id):
+    """TV cihazından bir sonraki heartbeat'te ekran görüntüsü almasını talep eder."""
+    cihaz = KioskDevice.query.filter_by(id=device_id, pharmacy_id=eczane_id).first_or_404()
+    cihaz.screenshot_requested = True
+    db.session.commit()
+    return jsonify({
+        "success": True,
+        "message": f"'{cihaz.device_name}' cihazından ekran görüntüsü talep edildi. TV açık olduğunda birkaç saniye içinde yüklenecektir."
+    })
+
+
+@app.route("/admin/pharmacy/<int:eczane_id>/device/<int:device_id>/screenshot", methods=["GET"])
+@login_required
+def admin_get_screenshot(eczane_id, device_id):
+    """Cihazın son kaydedilen ekran görüntüsünü ve zamanını döndürür."""
+    cihaz = KioskDevice.query.filter_by(id=device_id, pharmacy_id=eczane_id).first_or_404()
+    return jsonify({
+        "success": True,
+        "has_screenshot": bool(cihaz.last_screenshot),
+        "screenshot": cihaz.last_screenshot,
+        "screenshot_at": cihaz.last_screenshot_at.strftime("%d.%m.%Y %H:%M:%S") if cihaz.last_screenshot_at else None,
+        "screenshot_requested": bool(cihaz.screenshot_requested)
     })
 
 
@@ -1898,6 +2064,93 @@ def ekle_guvenlik_basliklari(response):
     response.headers["X-Frame-Options"] = "SAMEORIGIN"
     return response
 
+
+# ==========================================
+# ÇEVRİMDIŞI TV CİHAZ GÖZCÜSÜ (OFFLINE WATCHDOG)
+# ==========================================
+import threading
+
+def _cevrimdisi_cihaz_gozcusu_calistir():
+    """
+    Arka planda her 60 saniyede bir çalışarak bağlantısı kesilen TV'leri kontrol eder.
+    Belirlenen tolerans süresi aşıldığında bir kez WhatsApp uyarısı gönderir.
+    """
+    time.sleep(15)  # Uygulama açılışında 15 saniye bekle
+    while True:
+        try:
+            with app.app_context():
+                s_ayar = SystemSetting.get_settings()
+                if s_ayar.whatsapp_enabled:
+                    tolerans = s_ayar.heartbeat_tolerance_min or 5
+                    pasiflik_zamani = datetime.now() - timedelta(minutes=tolerans)
+
+                    # Onaylı ve aktif eczanelerin cihazlarını kontrol et
+                    cihazlar = KioskDevice.query.filter(
+                        KioskDevice.is_approved == True,
+                        KioskDevice.last_ping != None,
+                        KioskDevice.last_ping < pasiflik_zamani
+                    ).all()
+
+                    for c in cihazlar:
+                        # Spam koruması: son 30 dakika içinde çevrimdışı uyarısı atıldıysa atma
+                        if c.last_offline_alert_at:
+                            gecen_sn = (datetime.now() - c.last_offline_alert_at).total_seconds()
+                            if gecen_sn < 1800:
+                                continue
+
+                        ecz = c.pharmacy
+                        if not ecz or not ecz.lisans_gecerli_mi():
+                            continue
+
+                        fark_dk = max(tolerans, int((datetime.now() - c.last_ping).total_seconds() // 60))
+                        c.last_offline_alert_at = datetime.now()
+
+                        log_baslik = f"🔴 Cihaz Çevrimdışı ({c.device_name})"
+                        log_mesaj = f"{ecz.name} bünyesindeki '{c.device_name}' TV ekranından {fark_dk} dakikadır sinyal alınamıyor. (Cihazın fişi veya internet bağlantısı kesilmiş olabilir)."
+
+                        yeni_log = DeviceLog(
+                            pharmacy_id=ecz.id,
+                            device_id=c.id,
+                            event_type="offline",
+                            severity="danger",
+                            title=log_baslik,
+                            message=log_mesaj,
+                            whatsapp_sent=False
+                        )
+                        db.session.add(yeni_log)
+
+                        wa_mesaj = (
+                            f"⚠️ *NÖBETÇİ ECZANE TV KESİNTİ UYARISI*\n\n"
+                            f"🏢 *Kurum:* {ecz.name}\n"
+                            f"📺 *Cihaz:* {c.device_name}\n"
+                            f"🔴 *Durum:* Çevrimdışı (Sinyal Kesildi)\n"
+                            f"⏱️ *Kesinti Süresi:* ~{fark_dk} dakika\n"
+                            f"🕒 *Zaman:* {datetime.now().strftime('%d.%m.%Y %H:%M:%S')}\n\n"
+                            f"ℹ️ _Lütfen TV Box cihazının elektrik fişini ve Wi-Fi / Ethernet bağlantısını kontrol ediniz._"
+                        )
+
+                        mesaj_gitti = False
+                        if s_ayar.whatsapp_notify_admin:
+                            admin_u = AdminUser.query.first()
+                            if admin_u and admin_u.phone:
+                                ok_a, _ = evolution_whatsapp_gonder(admin_u.phone, wa_mesaj, s_ayar)
+                                if ok_a: mesaj_gitti = True
+
+                        if s_ayar.whatsapp_notify_pharmacy and ecz.mobile_phone:
+                            ok_p, _ = evolution_whatsapp_gonder(ecz.mobile_phone, wa_mesaj, s_ayar)
+                            if ok_p: mesaj_gitti = True
+
+                        if mesaj_gitti:
+                            yeni_log.whatsapp_sent = True
+
+                    db.session.commit()
+        except Exception as err:
+            print(f"[UYARI] Çevrimdışı cihaz gözcüsü hatası: {err}")
+
+        time.sleep(60)
+
+_watchdog_thread = threading.Thread(target=_cevrimdisi_cihaz_gozcusu_calistir, daemon=True)
+_watchdog_thread.start()
 
 # Uygulama ayağa kalktığında veritabanını başlat
 init_db()

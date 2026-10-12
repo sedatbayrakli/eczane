@@ -1946,6 +1946,9 @@
                                     <button type="button" class="btn btn-sm btn-secondary" onclick="cihazOnizlemeBaslat(${eczane.id}, ${d.id})" style="padding: 0.32rem 0.65rem; font-size: 0.78rem; border-color: rgba(56, 189, 248, 0.4); color: #38bdf8;" title="Bu TV Ekranının Yayını Önizle">
                                         🖥️ Önizle
                                     </button>
+                                    <button type="button" class="btn btn-sm btn-secondary" onclick="cihazEkranGoruntusuAc(${eczane.id}, ${d.id}, '${escapeHtml(d.device_name || 'Bu TV')}')" style="padding: 0.32rem 0.65rem; font-size: 0.78rem; border-color: rgba(168, 85, 247, 0.4); color: #c084fc;" title="TV Ekranından Canlı Ekran Görüntüsü (Screenshot) İste & İncele">
+                                        📸 Canlı Ekran
+                                    </button>
                                     <button type="button" class="btn btn-sm btn-primary" onclick="cihazAyarlariniKaydet(${eczane.id}, ${d.id})" style="padding: 0.32rem 0.75rem; font-size: 0.78rem; font-weight: 600;" title="İsim, Tema ve TV Ölçeğini Kaydet">
                                         💾 Kaydet
                                     </button>
@@ -2133,6 +2136,118 @@
                 }
             } catch (err) {
                 alert('Sunucu ile bağlantı kurulamadı.');
+            }
+        }
+
+        // TV Ekranından Canlı Screenshot İste & Görüntüle
+        let _screenshotPollInterval = null;
+        async function cihazEkranGoruntusuAc(eczaneId, deviceId, deviceName) {
+            let scModal = document.getElementById('modal-device-screenshot');
+            if (!scModal) {
+                scModal = document.createElement('div');
+                scModal.id = 'modal-device-screenshot';
+                scModal.className = 'modal-backdrop-custom';
+                scModal.style.zIndex = '99999';
+                scModal.innerHTML = `
+                    <div class="modal-card-custom" style="max-width: 900px; width: 95%;">
+                        <div class="modal-header-custom" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.8rem;">
+                            <div style="display: flex; align-items: center; gap: 0.6rem;">
+                                <span style="font-size: 1.4rem;">📸</span>
+                                <div>
+                                    <h3 id="scmodal-title" style="margin: 0; font-size: 1.1rem; color: #fff;">TV Canlı Ekran Görüntüsü</h3>
+                                    <small id="scmodal-time" style="color: #94a3b8; font-size: 0.78rem;">Bekleniyor...</small>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                <button type="button" class="btn btn-sm btn-primary" id="scmodal-refresh-btn" style="font-size: 0.8rem;">
+                                    🔄 Yeni Görüntü İste
+                                </button>
+                                <button type="button" class="modal-close-btn" onclick="cihazEkranGoruntusuKapat()" style="background: none; border: none; color: #94a3b8; font-size: 1.4rem; cursor: pointer;">&times;</button>
+                            </div>
+                        </div>
+                        <div class="modal-body-custom" style="padding: 1rem 0; text-align: center;">
+                            <div id="scmodal-loading" style="padding: 3rem; color: #38bdf8;">
+                                <div class="spinner" style="margin: 0 auto 1rem; width: 36px; height: 36px; border: 3px solid rgba(56,189,248,0.2); border-top-color: #38bdf8; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                                <strong>TV ekranından görüntü talep ediliyor...</strong>
+                                <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 0.3rem;">TV cihazı bir sonraki ping sinyalinde (maksimum 10 sn) ekranını yakalayıp sunucuya yükleyecektir.</p>
+                            </div>
+                            <div id="scmodal-img-container" style="display: none;">
+                                <img id="scmodal-img" src="" alt="TV Ekranı" style="max-width: 100%; max-height: 70vh; border-radius: 8px; border: 2px solid rgba(255,255,255,0.15); box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+                            </div>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(scModal);
+            }
+
+            document.getElementById('scmodal-title').textContent = `${deviceName} - Canlı Ekran Görüntüsü`;
+            document.getElementById('scmodal-refresh-btn').onclick = () => {
+                cihazdanYeniEkranIste(eczaneId, deviceId);
+            };
+
+            scModal.style.display = 'flex';
+            cihazdanYeniEkranIste(eczaneId, deviceId);
+        }
+
+        function cihazEkranGoruntusuKapat() {
+            if (_screenshotPollInterval) {
+                clearInterval(_screenshotPollInterval);
+                _screenshotPollInterval = null;
+            }
+            const m = document.getElementById('modal-device-screenshot');
+            if (m) m.style.display = 'none';
+        }
+
+        async function cihazdanYeniEkranIste(eczaneId, deviceId) {
+            const loading = document.getElementById('scmodal-loading');
+            const imgBox = document.getElementById('scmodal-img-container');
+            const timeEl = document.getElementById('scmodal-time');
+
+            if (loading) loading.style.display = 'block';
+            if (imgBox) imgBox.style.display = 'none';
+            if (timeEl) timeEl.textContent = 'TV cihazından çekim talep edildi, bekleniyor...';
+
+            if (_screenshotPollInterval) clearInterval(_screenshotPollInterval);
+
+            try {
+                // 1. Ekran görüntüsü talebi oluştur
+                await fetch(`/admin/pharmacy/${eczaneId}/device/${deviceId}/request-screenshot`, {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+
+                // 2. Cihazın görüntüyü yüklemesini 3 saniyede bir kontrol et (en fazla 10 defa / 30 sn)
+                let attempts = 0;
+                _screenshotPollInterval = setInterval(async () => {
+                    attempts++;
+                    try {
+                        const res = await fetch(`/admin/pharmacy/${eczaneId}/device/${deviceId}/screenshot?_t=${Date.now()}`);
+                        const data = await res.json();
+                        if (data.has_screenshot && data.screenshot) {
+                            clearInterval(_screenshotPollInterval);
+                            _screenshotPollInterval = null;
+                            const img = document.getElementById('scmodal-img');
+                            img.src = data.screenshot;
+                            if (loading) loading.style.display = 'none';
+                            if (imgBox) imgBox.style.display = 'block';
+                            if (timeEl) timeEl.textContent = `Çekim Zamanı: ${data.screenshot_at || 'Az önce'}`;
+                        } else if (attempts > 10) {
+                            clearInterval(_screenshotPollInterval);
+                            _screenshotPollInterval = null;
+                            if (loading) {
+                                loading.innerHTML = `
+                                    <div style="color: #f87171; font-size: 1.8rem; margin-bottom: 0.5rem;">⏱️</div>
+                                    <strong style="color: #f87171;">Zaman Aşımı: TV Cihazından Yanıt Alınamadı</strong>
+                                    <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 0.4rem;">Cihaz çevrimdışı olabilir veya açık olan tarayıcı sekmesi aktif olmayabilir.</p>
+                                `;
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Screenshot poll error:', e);
+                    }
+                }, 3000);
+            } catch (err) {
+                alert('Ekran görüntüsü talebi gönderilemedi: ' + err.message);
             }
         }
 

@@ -788,3 +788,105 @@ def _mesafe_ve_rotalari_zenginlestir(eczaneler: List[Dict[str, Any]],
         zengin_liste.sort(key=lambda x: x["mesafe_metre"] if x.get("mesafe_metre") is not None else float("inf"))
 
     return zengin_liste
+
+
+# ==========================================
+# İSTANBUL ECZACI ODASI (İEO) RESMİ TATİL VE NÖBET TAKVİMİ
+# ==========================================
+_tatil_onbellegi: Dict[str, Any] = {"veri": None, "son_guncelleme": 0}
+_tatil_kilidi = Lock()
+
+BILINEN_TATILLER = {
+    "01-01": "Yılbaşı Tatili",
+    "04-23": "23 Nisan Ulusal Egemenlik ve Çocuk Bayramı",
+    "05-01": "1 Mayıs Emek ve Dayanışma Günü",
+    "05-19": "19 Mayıs Atatürk'ü Anma, Gençlik ve Spor Bayramı",
+    "07-15": "15 Temmuz Demokrasi ve Milli Birlik Günü",
+    "08-30": "30 Ağustos Zafer Bayramı",
+    "10-28": "29 Ekim Cumhuriyet Bayramı Arifesi",
+    "10-29": "29 Ekim Cumhuriyet Bayramı"
+}
+
+def ieo_resmi_tatil_bilgisi(tarih_str: Optional[str] = None) -> Dict[str, Any]:
+    """
+    İEO resmi mobil/TV sunucusundaki settings.json takvimini ve haftalık pazar günlerini inceler.
+    Bugünün (veya verilen tarihin) resmi tatil, pazar veya arife günü olup olmadığını,
+    nöbet başlangıç/bitiş saatlerini ve durum bilgisini döner.
+    """
+    simdi = datetime.now()
+    if tarih_str:
+        try:
+            hedef_tarih = datetime.strptime(tarih_str, "%Y-%m-%d")
+        except Exception:
+            hedef_tarih = simdi
+    else:
+        hedef_tarih = simdi
+
+    gun_key = hedef_tarih.strftime("%Y-%m-%d")
+    ay_gun_key = hedef_tarih.strftime("%m-%d")
+    is_sunday = (hedef_tarih.weekday() == 6) # Pazar
+
+    # 1. İEO settings.json önbellek kontrolü (24 saatlik önbellek)
+    fulldates_set = set()
+    global _tatil_onbellegi
+    suan_sn = time.time()
+    
+    with _tatil_kilidi:
+        if not _tatil_onbellegi["veri"] or (suan_sn - _tatil_onbellegi["son_guncelleme"] > 86400):
+            try:
+                resp = requests.get(
+                    "http://www.istanbuleczaciodasi.org.tr/android/com.ieo.eczanebilgiekrani/settings.json",
+                    headers={"User-Agent": "Mozilla/5.0"},
+                    timeout=5
+                )
+                if resp.status_code == 200:
+                    data = resp.json()
+                    fulldates_raw = data.get("fulldates", "")
+                    _tatil_onbellegi["veri"] = set(d.strip() for d in fulldates_raw.split("|") if d.strip())
+                    _tatil_onbellegi["son_guncelleme"] = suan_sn
+            except Exception as e:
+                # Fallback: statik bilinen tatiller
+                pass
+
+        if _tatil_onbellegi.get("veri"):
+            fulldates_set = _tatil_onbellegi["veri"]
+
+    is_ieo_fulldate = (gun_key in fulldates_set)
+    is_known_holiday = (ay_gun_key in BILINEN_TATILLER)
+
+    is_holiday = is_sunday or is_ieo_fulldate or is_known_holiday
+    is_arife = ("arife" in BILINEN_TATILLER.get(ay_gun_key, "").lower())
+
+    holiday_name = ""
+    if is_known_holiday:
+        holiday_name = BILINEN_TATILLER[ay_gun_key]
+    elif is_sunday:
+        holiday_name = "Pazar Günü (Tam Gün Nöbet)"
+    elif is_ieo_fulldate:
+        holiday_name = "Resmi Tatil / Bayram Nöbeti"
+
+    # Nöbet Saatleri Belirleme
+    if is_arife:
+        nobet_baslangic = "13:00"
+        nobet_bitis = "09:00"
+        aciklama = f"{holiday_name} nedeniyle nöbetçi eczaneler saat 13:00 itibarıyla hizmet vermektedir."
+    elif is_holiday:
+        nobet_baslangic = "09:00"
+        nobet_bitis = "09:00"
+        aciklama = f"{holiday_name} nedeniyle nöbetçi eczaneler tam gün kesintisiz hizmet vermektedir."
+    else:
+        nobet_baslangic = "19:00"
+        nobet_bitis = "09:00"
+        aciklama = "Eczaneler 08:30 - 19:00 arası açıktır. Nöbetçi eczaneler saat 19:00'dan itibaren hizmet vermektedir."
+
+    return {
+        "tarih": gun_key,
+        "is_holiday": is_holiday,
+        "is_sunday": is_sunday,
+        "is_arife": is_arife,
+        "holiday_name": holiday_name,
+        "nobet_baslangic": nobet_baslangic,
+        "nobet_bitis": nobet_bitis,
+        "aciklama": aciklama
+    }
+

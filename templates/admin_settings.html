@@ -441,6 +441,19 @@
                     </div>
                 </div>
 
+                <div class="form-grid-2" style="margin-top: 1rem;">
+                    <div class="form-group">
+                        <label>Webhook Doğrulama Anahtarı (Secret / Token)</label>
+                        <input type="text" name="webhook_secret" value="{{ ayar.webhook_secret or '' }}" class="form-control" placeholder="Örn: eczane_webhook_secret_key_123">
+                        <small>Evolution API webhook isteklerinde (<code>apikey</code> veya <code>X-Webhook-Secret</code>) aranacak güvenlik anahtarı.</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Webhook URL (Evolution API Paneline Girilecek)</label>
+                        <input type="text" readonly value="{{ request.host_url }}webhooks/evolution" class="form-control" style="background: rgba(0,0,0,0.4); color: #38bdf8; font-family: monospace;" onclick="this.select();">
+                        <small>Evolution API Manager'da Webhook sekmesine bu URL'yi giriniz.</small>
+                    </div>
+                </div>
+
                 <div class="form-grid-2" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.06);">
                     <div class="form-group" style="display: flex; align-items: center; gap: 0.75rem;">
                         <input type="checkbox" id="whatsapp_notify_admin" name="whatsapp_notify_admin" value="1" style="width: 18px; height: 18px; accent-color: #38bdf8;" {% if ayar.whatsapp_notify_admin %}checked{% endif %}>
@@ -457,6 +470,38 @@
                     <button type="button" class="btn btn-secondary" onclick="testWhatsappMesajiGonder()" style="border-color: rgba(52, 211, 153, 0.4); color: #34d399; font-size: 0.85rem; padding: 0.45rem 1rem;">
                         ⚡ Test WhatsApp Mesajı Gönder
                     </button>
+                </div>
+            </div>
+
+            <!-- 6. KART: Gündüz Modu (Digital Signage / Karşılama) -->
+            <div class="settings-card" style="border-color: rgba(245, 158, 11, 0.35); background: rgba(245, 158, 11, 0.04);">
+                <div class="card-header-custom">
+                    <span class="icon" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24;">☀️</span>
+                    <div>
+                        <h2>Gündüz Modu & Digital Signage Otomasyonu</h2>
+                        <p>Eczane mesai saatleri içinde (gündüz) nöbetçi listesi yerine karşılama, bilgilendirme veya hizmet vitrini gösterir.</p>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 1.2rem; display: flex; align-items: center; gap: 1rem; padding: 0.8rem 1rem; background: rgba(0,0,0,0.3); border-radius: 10px; border: 1px solid rgba(255,255,255,0.06);">
+                    <input type="checkbox" id="day_mode_enabled" name="day_mode_enabled" value="1" style="width: 20px; height: 20px; accent-color: #f59e0b; cursor: pointer;" {% if ayar.day_mode_enabled %}checked{% endif %}>
+                    <label for="day_mode_enabled" style="font-weight: 700; cursor: pointer; color: #fbbf24; font-size: 0.95rem; margin: 0;">
+                        ☀️ Gündüz Modu Otomasyonunu Aktif Et
+                    </label>
+                </div>
+
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label>Gündüz Modu Başlangıç Saati</label>
+                        <input type="time" name="day_mode_start_time" value="{{ ayar.day_mode_start_time or '08:30' }}" class="form-control" required>
+                        <small>Eczane sabah açılış saati (Örn: 08:30).</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Gündüz Modu Bitiş Saati (Nöbet Başlangıcı)</label>
+                        <input type="time" name="day_mode_end_time" value="{{ ayar.day_mode_end_time or '18:30' }}" class="form-control" required>
+                        <small>Akşam kapanış saati. Bu saatten sonra otomatik nöbet moduna döner.</small>
+                    </div>
                 </div>
             </div>
 

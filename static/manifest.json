@@ -1,0 +1,17 @@
+{
+  "name": "Nöbetçi Eczane TV Kiosk",
+  "short_name": "EczaneTV",
+  "description": "7/24 Kesintisiz Nöbetçi Eczane ve Sağlık Bilgilendirme TV Kiosk Ekranı",
+  "start_url": "/kiosk",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#0b1120",
+  "theme_color": "#0b1120",
+  "icons": [
+    {
+      "src": "/static/qrcode.min.js",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}

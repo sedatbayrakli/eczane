@@ -210,6 +210,11 @@ function saatVeTarihiGuncelle() {
  * 3.1 Nöbet Saatleri ve Canlı Geri Sayım Hesaplayıcı (Pazar & Resmi Tatil 24 Saat Desteği)
  */
 function isBugunTatilVeyaPazar(tarihObj) {
+    // 1. Sunucudan (İEO API entegrasyonundan) gelen resmi tatil bilgisi varsa öncelikli kullan
+    if (window._kioskHolidayInfo && window._kioskHolidayInfo.is_holiday) {
+        return true;
+    }
+
     // 0: Pazar günü
     if (tarihObj.getDay() === 0) return true;
 
@@ -2063,6 +2068,53 @@ function arayuzuGuncelle(veri, isOffline = false, savedTime = '') {
         elKioskLayout.className = `kiosk-content-layout layout-${gorunum}${isNoMap ? ' no-map' : ''}`;
     }
 
+    // 1.1 Resmi Tatil Bilgisi (İEO Entegrasyonu)
+    if (veri.holiday_info) {
+        window._kioskHolidayInfo = veri.holiday_info;
+        if (veri.holiday_info.is_holiday && elCalendarDate && veri.holiday_info.holiday_name) {
+            elCalendarDate.innerHTML = `<span style="color: #fbbf24; font-weight: 800;">🎉 ${escapeHtml(veri.holiday_info.holiday_name)}</span>`;
+        }
+    }
+
+    // 1.2 Gündüz Modu Kontrolü (Digital Signage / Karşılama Ekranı)
+    if (veri.day_mode && veri.day_mode.active && !veri.is_on_duty_today) {
+        slaytDongusunuDurdur();
+        if (elOnDutyBanner) elOnDutyBanner.classList.remove('active');
+        if (elKioskLayout) {
+            const eczaneAdi = (veri.pharmacy && veri.pharmacy.name) ? veri.pharmacy.name : 'ECZANEMİZ';
+            const baslik = veri.day_mode.title || `HOŞ GELDİNİZ`;
+            const mesaj = veri.day_mode.message || `${eczaneAdi} olarak halk sağlığı ve danışmanlık hizmetlerimizle yanınızdayız.`;
+            elKioskLayout.innerHTML = `
+                <div class="day-mode-container">
+                    <div class="day-mode-badge">
+                        <span>☀️</span>
+                        <span>ECZANEMİZ AÇIKTIR • GÜNDÜZ HİZMET VİTRİNİ</span>
+                    </div>
+                    <h1 class="day-mode-title">${escapeHtml(baslik)}</h1>
+                    <p class="day-mode-msg">${escapeHtml(mesaj)}</p>
+                    <div class="day-mode-features-grid">
+                        <div class="day-mode-feature-card">
+                            <span class="feat-icon">💊</span>
+                            <strong class="feat-title">Reçete & İlaç Temini</strong>
+                            <span class="feat-desc">SGK ve tüm kurum anlaşmalı reçeteleriniz eksiksiz hazırlanır.</span>
+                        </div>
+                        <div class="day-mode-feature-card">
+                            <span class="feat-icon">🩺</span>
+                            <strong class="feat-title">Danışmanlık & Sağlık</strong>
+                            <span class="feat-desc">Tansiyon, şeker ölçümü ve dermokozmetik uzman desteği.</span>
+                        </div>
+                        <div class="day-mode-feature-card">
+                            <span class="feat-icon">🌙</span>
+                            <strong class="feat-title">Nöbet Saatleri</strong>
+                            <span class="feat-desc">Kapanış saatimizden sonra ekran nöbetçi eczaneleri otomatik gösterir.</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        return;
+    }
+
     // "Bu Gece Nöbetçiyiz" Vurgusu
     if (elOnDutyBanner) {
         if (veri.is_on_duty_today) {
@@ -2406,9 +2458,52 @@ async function kioskHeartbeatPing() {
             if (data && data.config) {
                 anlikAyarGuncellemesiniUygula(data.config);
             }
+            // Sunucudan Canlı Ekran Görüntüsü (Screenshot) Talebi Geldiyse
+            if (data && data.take_screenshot) {
+                kioskEkranGoruntusuCekVeGonder(deviceToken);
+            }
         }
     } catch (e) {
         // Sessizce yutulur
+    }
+}
+
+/**
+ * TV Ekranını html2canvas ile Yakalayıp Sunucuya Gönderir
+ */
+let _ekranCekiliyor = false;
+async function kioskEkranGoruntusuCekVeGonder(deviceToken) {
+    if (_ekranCekiliyor) return;
+    if (typeof html2canvas === 'undefined') {
+        console.warn('[Screenshot] html2canvas kütüphanesi yüklü değil.');
+        return;
+    }
+    _ekranCekiliyor = true;
+    try {
+        console.log('[Screenshot] TV ekranı yakalanıyor...');
+        const canvas = await html2canvas(document.body, {
+            scale: 0.65, // Hızlı transfer ve düşük bellek için %65 oranında küçült
+            logging: false,
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: '#070a11'
+        });
+        const base64Data = canvas.toDataURL('image/jpeg', 0.82);
+
+        await fetch('/api/kiosk-upload-screenshot', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                key: LISANS_KEY,
+                device_token: deviceToken,
+                screenshot: base64Data
+            })
+        });
+        console.log('[Screenshot] Ekran görüntüsü başarıyla yüklendi.');
+    } catch (err) {
+        console.error('[Screenshot] Yakalama hatası:', err);
+    } finally {
+        _ekranCekiliyor = false;
     }
 }
 
@@ -2559,27 +2654,44 @@ function ekranOlceginiUygula(scaleAyar = 'auto', safeAreaAyar = null) {
     hedefMargin = Math.max(0, Math.min(100, hedefMargin));
 
     // 3. CSS Zoom / Scale Uygulama (Tam ekranı doldurarak orantılı ölçekler)
-    if (Math.abs(hedefZoom - 1.0) > 0.01) {
-        if ('zoom' in document.body.style) {
-            document.body.style.zoom = String(hedefZoom);
-            // Zoom uygulandığında ekranın sağında ve altında boşluk kalmaması için boyutu telafi et
-            const compW = (100 / hedefZoom).toFixed(4);
-            const compH = (100 / hedefZoom).toFixed(4);
-            document.body.style.width = `${compW}vw`;
-            document.body.style.height = `${compH}vh`;
-            document.body.style.minWidth = `${compW}vw`;
-            document.body.style.minHeight = `${compH}vh`;
-            document.body.style.maxWidth = `${compW}vw`;
-            document.body.style.maxHeight = `${compH}vh`;
-        }
-    } else {
+    // Eğer scaleAyar 'fit-1080p' veya 'canvas' ise ya da 'auto' olup küçük ekran / 720p tespit edilirse Sanal 1080p Kilidi devreye girer
+    const isCanvasFitMode = (scaleAyar === 'fit-1080p' || scaleAyar === 'canvas');
+
+    if (isCanvasFitMode) {
+        document.body.classList.add('canvas-scale-mode');
         document.body.style.zoom = '';
         document.body.style.width = '100vw';
         document.body.style.height = '100vh';
-        document.body.style.minWidth = '';
-        document.body.style.minHeight = '';
-        document.body.style.maxWidth = '';
-        document.body.style.maxHeight = '';
+        fitToVirtual1080p();
+    } else {
+        document.body.classList.remove('canvas-scale-mode');
+        const elWrapper = document.querySelector('.dashboard-wrapper');
+        if (elWrapper) {
+            elWrapper.style.transform = '';
+            elWrapper.style.transformOrigin = '';
+        }
+
+        if (Math.abs(hedefZoom - 1.0) > 0.01) {
+            if ('zoom' in document.body.style) {
+                document.body.style.zoom = String(hedefZoom);
+                const compW = (100 / hedefZoom).toFixed(4);
+                const compH = (100 / hedefZoom).toFixed(4);
+                document.body.style.width = `${compW}vw`;
+                document.body.style.height = `${compH}vh`;
+                document.body.style.minWidth = `${compW}vw`;
+                document.body.style.minHeight = `${compH}vh`;
+                document.body.style.maxWidth = `${compW}vw`;
+                document.body.style.maxHeight = `${compH}vh`;
+            }
+        } else {
+            document.body.style.zoom = '';
+            document.body.style.width = '100vw';
+            document.body.style.height = '100vh';
+            document.body.style.minWidth = '';
+            document.body.style.minHeight = '';
+            document.body.style.maxWidth = '';
+            document.body.style.maxHeight = '';
+        }
     }
 
     // 4. Safe Area Margin / Padding Değişkenlerini Güncelle (Overscan kesilmesini engeller)
@@ -2589,7 +2701,7 @@ function ekranOlceginiUygula(scaleAyar = 'auto', safeAreaAyar = null) {
     document.documentElement.style.setProperty('--safe-area-left', `${hedefMargin}px`);
 
     const elWrapper = document.querySelector('.dashboard-wrapper');
-    if (elWrapper) {
+    if (elWrapper && !isCanvasFitMode) {
         elWrapper.style.boxSizing = 'border-box';
         if (hedefMargin > 0) {
             elWrapper.style.padding = `calc(0.65rem + ${hedefMargin}px) calc(0.85rem + ${hedefMargin}px)`;
@@ -2620,6 +2732,32 @@ function ekranOlceginiUygula(scaleAyar = 'auto', safeAreaAyar = null) {
         }, 350);
     }
 }
+
+/**
+ * Sanal 1080p Canvas Kilidi (Fit to Virtual 1080p):
+ * 22" monitör veya çözünürlüğü ne olursa olsun TV Box görüntüsünü 1920x1080 sanal tuvale kilitler
+ * ve pencerenin en/boy oranına göre matematiksel olarak tam sığdırır (sıfır taşma, sıfır bozulma).
+ */
+function fitToVirtual1080p() {
+    const elWrapper = document.querySelector('.dashboard-wrapper');
+    if (!elWrapper || !document.body.classList.contains('canvas-scale-mode')) return;
+
+    const baseW = 1920;
+    const baseH = 1080;
+    const winW = window.innerWidth;
+    const winH = window.innerHeight;
+
+    const scale = Math.min(winW / baseW, winH / baseH);
+    elWrapper.style.transformOrigin = 'center center';
+    elWrapper.style.transform = `scale(${scale})`;
+}
+
+// Pencere boyutu değiştiğinde sanal canvas'ı otomatik yeniden orantıla
+window.addEventListener('resize', () => {
+    if (document.body.classList.contains('canvas-scale-mode')) {
+        fitToVirtual1080p();
+    }
+});
 
 /**
  * 12. Cihaz Tanımlama & Ekranda Göster Sinyali (Identify Overlay)

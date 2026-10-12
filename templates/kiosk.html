@@ -8,11 +8,20 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@700;800&display=swap" rel="stylesheet">
     
+    <!-- PWA & Android Kiosk Desteği -->
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#070a11">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
     <!-- Leaflet.js Koyu Tema Haritası -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Uzaktan Ekran Görüntüsü Motoru (html2canvas) -->
+    <script src="/static/html2canvas.min.js"></script>
 
-    <link rel="stylesheet" href="/static/style.css?v=6.1">
+    <link rel="stylesheet" href="/static/style.css?v=6.2">
     <style>
         /* Bu Gece Nöbetçiyiz Özel Bannerı */
         .on-duty-banner {
@@ -174,6 +183,16 @@
     </script>
     <!-- Çevrimdışı Bağımsız Yerel QR Kod Motoru -->
     <script src="/static/qrcode.min.js?v=1.0"></script>
-    <script src="/static/kiosk_app.js?v=6.5"></script>
+    <script src="/static/kiosk_app.js?v=7.0"></script>
+    <!-- PWA Service Worker Kaydı -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/static/sw.js')
+                    .then(reg => console.log('[PWA] Service Worker aktif:', reg.scope))
+                    .catch(err => console.warn('[PWA] Service Worker kaydedilemedi:', err));
+            });
+        }
+    </script>
 </body>
 </html>

@@ -138,6 +138,11 @@ class KioskDevice(db.Model):
     is_visible = db.Column(db.Boolean, default=True, nullable=True)   # Ekran ön planda mı (TV Bro/Chrome aktif mi)?
     last_visibility_change = db.Column(db.DateTime, nullable=True)   # Son görünürlük değişme zamanı
     last_ping = db.Column(db.DateTime, nullable=True)
+    screenshot_requested = db.Column(db.Boolean, default=False, nullable=False) # Uzaktan anlık ekran görüntüsü talebi
+    last_screenshot = db.Column(db.Text, nullable=True)                         # Son ekran görüntüsü (Base64 JPEG)
+    last_screenshot_at = db.Column(db.DateTime, nullable=True)                  # Ekran görüntüsü alınma zamanı
+    last_background_alert_at = db.Column(db.DateTime, nullable=True)            # Son arka plan WhatsApp bildirim zamanı (Spam filtresi)
+    last_offline_alert_at = db.Column(db.DateTime, nullable=True)               # Son çevrimdışı WhatsApp bildirim zamanı (Spam filtresi)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def is_screen_visible(self) -> bool:
@@ -225,6 +230,10 @@ class KioskDevice(db.Model):
             "identify_active": self.is_identify_active(),
             "is_online": self.is_online(),
             "is_visible": self.is_screen_visible(),
+            "has_screenshot": bool(self.last_screenshot),
+            "last_screenshot": self.last_screenshot,
+            "last_screenshot_at": self.last_screenshot_at.strftime("%d.%m.%Y %H:%M:%S") if self.last_screenshot_at else None,
+            "screenshot_requested": bool(self.screenshot_requested),
             "last_ping": self.last_ping.strftime("%H:%M:%S") if self.last_ping else None,
             "last_ping_ago": self.son_sinyal_metni(),
             "created_at": self.created_at.strftime("%d.%m.%Y") if self.created_at else None
@@ -272,6 +281,9 @@ class Pharmacy(db.Model):
         db.String(500), 
         default="Eczanemiz halk sağlığı için hizmetinizdedir. Reçeteli ve reçetesiz ilaçlarınız için danışabilirsiniz."
     )
+    # Gündüz Modu Özel Başlık ve Mesajı
+    day_mode_title = db.Column(db.String(150), default="Eczanemiz Hizmetinizdedir", nullable=True)
+    day_mode_message = db.Column(db.Text, default="Reçeteli ve reçetesiz ilaçlarınız, medikal ürünler ve danışmanlık için hizmetinizdeyiz.", nullable=True)
     # Kiosk Ekran Teması ('classic_grid', 'animated_route', 'focus_carousel', 'dual_card', 'auto_rotate')
     theme = db.Column(db.String(50), default="classic_grid", nullable=False)
     # Kiosk Ekran Teması Parametrik Ayarları (JSON)
@@ -535,6 +547,8 @@ class Pharmacy(db.Model):
             "screen_scale": self.screen_scale or "auto",
             "devices": cihazlar,
             "ticker_text": self.ticker_text,
+            "day_mode_title": self.day_mode_title or "Eczanemiz Hizmetinizdedir",
+            "day_mode_message": self.day_mode_message or "Reçeteli ve reçetesiz ilaçlarınız, medikal ürünler ve danışmanlık için hizmetinizdeyiz.",
             "theme": self.theme or "classic_grid",
             "theme_settings": self.get_theme_settings()
         }
@@ -584,6 +598,12 @@ class SystemSetting(db.Model):
     max_search_distance_km = db.Column(db.Integer, default=15, nullable=False) # Maksimum Nöbetçi Çemberi (km)
     map_theme = db.Column(db.String(50), default="cartodb_dark", nullable=False) # Harita Sağlayıcı Stili
 
+    # Gündüz / Nöbet Modu Otomasyonu
+    day_mode_enabled = db.Column(db.Boolean, default=True, nullable=False)          # Gündüz Modu Açık/Kapalı
+    day_mode_start_time = db.Column(db.String(10), default="08:30", nullable=False) # Gündüz Modu Başlama Saati
+    day_mode_end_time = db.Column(db.String(10), default="19:00", nullable=False)   # Gündüz Modu Bitiş Saati (Nöbet Başlangıcı)
+    webhook_secret = db.Column(db.String(100), default="eczane-webhook-secret-2026", nullable=True) # Webhook Doğrulama Anahtarı
+
     # Evolution API WhatsApp Entegrasyon Ayarları
     whatsapp_enabled = db.Column(db.Boolean, default=False, nullable=False)         # WhatsApp Bildirimleri Açık/Kapalı
     evolution_api_url = db.Column(db.String(255), default="http://10.0.201.201:3800", nullable=True) # API URL
@@ -619,6 +639,10 @@ class SystemSetting(db.Model):
             "heartbeat_tolerance_min": self.heartbeat_tolerance_min,
             "max_search_distance_km": self.max_search_distance_km,
             "map_theme": self.map_theme,
+            "day_mode_enabled": self.day_mode_enabled,
+            "day_mode_start_time": self.day_mode_start_time,
+            "day_mode_end_time": self.day_mode_end_time,
+            "webhook_secret": self.webhook_secret,
             "whatsapp_enabled": self.whatsapp_enabled,
             "evolution_api_url": self.evolution_api_url,
             "evolution_instance": self.evolution_instance,
