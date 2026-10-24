@@ -154,79 +154,143 @@ def qr_kod_url_olustur(hedef_url: str) -> str:
 
 
 # ==========================================
-# 1. BİRİNCİL KAYNAK: İSTANBUL ECZACI ODASI (İEO)
+# 1. BİRİNCİL KAYNAK: İSTANBUL ECZACI ODASI (İEO) WEB GATE API
 # ==========================================
+_ieo_web_cache = {
+    "token": "",
+    "token_time": 0.0,
+    "districts": {}
+}
+_ieo_web_lock = Lock()
+
+
+def _ieo_web_boot_yukle():
+    """İEO'nun güncel Web Gate API anahtarını (X-Web-Token) ve ilçe haritasını çeker / önbellekten döner."""
+    with _ieo_web_lock:
+        simdi_ts = time.time()
+        if _ieo_web_cache["token"] and _ieo_web_cache["districts"] and (simdi_ts - _ieo_web_cache["token_time"] < 1200):
+            return _ieo_web_cache["token"], _ieo_web_cache["token_time"], _ieo_web_cache["districts"]
+
+        url_ana = "https://www.istanbuleczaciodasi.org.tr/nobetci-eczane/"
+        session = requests.Session()
+        session.headers.update(TARAYICI_BASLIKLARI)
+
+        try:
+            yanit_ana = session.get(url_ana, timeout=10)
+            if yanit_ana.status_code == 200:
+                boot_m = re.search(r'<script type=["\']application/json["\'] id=["\']boot["\']>(.*?)</script>', yanit_ana.text, re.DOTALL)
+                if boot_m:
+                    boot_data = json.loads(boot_m.group(1))
+                    yeni_token = boot_data.get("token", "")
+                    ham_ilceler = boot_data.get("districts", [])
+                    ilce_sozlugu = {}
+                    for d in ham_ilceler:
+                        if isinstance(d, dict) and d.get("ilceId") and d.get("ilceAd"):
+                            slug = turkce_karakter_temizle(d["ilceAd"])
+                            ilce_sozlugu[slug] = {"id": d["ilceId"], "name": d["ilceAd"]}
+
+                    if yeni_token and ilce_sozlugu:
+                        _ieo_web_cache["token"] = yeni_token
+                        _ieo_web_cache["token_time"] = simdi_ts
+                        _ieo_web_cache["districts"] = ilce_sozlugu
+                        return yeni_token, simdi_ts, ilce_sozlugu
+        except Exception as e:
+            print(f"[İEO Boot Hatası] {e}", flush=True)
+
+        return _ieo_web_cache.get("token", ""), _ieo_web_cache.get("token_time", 0.0), _ieo_web_cache.get("districts", {})
+
+
 def kaynak_ieo_cek(il: str, ilce: str, tarih: Optional[str] = None) -> Tuple[List[Dict[str, Any]], str]:
-    """
-    İstanbul Eczacı Odası resmi nöbetçi eczane servisinden veri çeker.
-    Yalnızca İstanbul ili için geçerlidir. Tarih filtresini (YYYY-MM-DD) destekler.
-    """
-    if turkce_karakter_temizle(il) != "istanbul":
-        return [], "İEO servisi yalnızca İstanbul için geçerlidir"
+    """İstanbul Eczacı Odası resmi Web Gate API servisinden güncel nöbetçi eczaneleri çeker."""
+    il_temiz = turkce_karakter_temizle(il)
+    if il_temiz not in ("istanbul", "yalova"):
+        return [], "İEO servisi yalnızca İstanbul ve Yalova için geçerlidir"
 
-    ilce_temiz = ilce.strip()
+    ilce_slug = turkce_karakter_temizle(ilce)
+    token, token_ts, ilce_haritasi = _ieo_web_boot_yukle()
 
-    url_ana = "https://www.istanbuleczaciodasi.org.tr/nobetci-eczane/"
-    url_ajax = "https://www.istanbuleczaciodasi.org.tr/nobetci-eczane/index.php"
+    if not token or not ilce_haritasi:
+        return [], "İEO oturum güvenlik anahtarı (Web Token) temin edilemedi"
 
-    session = requests.Session()
-    session.headers.update(TARAYICI_BASLIKLARI)
+    ilce_bilgisi = ilce_haritasi.get(ilce_slug)
+    if not ilce_bilgisi:
+        for k_slug, k_val in ilce_haritasi.items():
+            if ilce_slug in k_slug or k_slug in ilce_slug:
+                ilce_bilgisi = k_val
+                break
+
+    if not ilce_bilgisi:
+        return [], f"İEO ilçe listesinde '{ilce}' bulunamadı"
+
+    ilce_id = ilce_bilgisi["id"]
+    api_url = f"https://www.istanbuleczaciodasi.org.tr/api/nobetci-eczane-web/?action=district&id={ilce_id}"
+    api_headers = {
+        "X-Web-Token": token,
+        "Accept": "application/json",
+        "Referer": "https://www.istanbuleczaciodasi.org.tr/nobetci-eczane/",
+        "Origin": "https://www.istanbuleczaciodasi.org.tr",
+        "User-Agent": TARAYICI_BASLIKLARI.get("User-Agent", "Mozilla/5.0")
+    }
 
     try:
-        yanit_ana = session.get(url_ana, timeout=8)
-        if yanit_ana.status_code != 200:
-            return [], f"İEO ana sayfa HTTP {yanit_ana.status_code}"
+        session = requests.Session()
+        resp = session.get(api_url, headers=api_headers, timeout=10)
 
-        h_eslesme = re.search(r'id=["\']h["\']\s+value=["\']([^"\']+)["\']', yanit_ana.text)
-        if not h_eslesme:
-            return [], "İEO oturum güvenlik anahtarı (h token) bulunamadı"
+        if resp.status_code in (401, 403) or (resp.status_code == 200 and resp.json().get("error", {}).get("code") == "token"):
+            with _ieo_web_lock:
+                _ieo_web_cache["token"] = ""
+            token, token_ts, _ = _ieo_web_boot_yukle()
+            api_headers["X-Web-Token"] = token
+            resp = session.get(api_url, headers=api_headers, timeout=10)
 
-        h_token = h_eslesme.group(1)
+        if resp.status_code != 200:
+            return [], f"İEO Web Gate API HTTP {resp.status_code}"
 
-        ajax_headers = {
-            "Referer": url_ana,
-            "X-Requested-With": "XMLHttpRequest"
-        }
-        post_data = {
-            "jx": "1",
-            "islem": "get_ilce_eczane",
-            "ilce": ilce_temiz,
-            "h": h_token
-        }
-        if tarih:
-            post_data["tarih"] = tarih.strip()
+        payload = resp.json()
+        if not payload.get("success"):
+            err_msg = payload.get("error", {}).get("message") or "İEO API hatası"
+            return [], err_msg
 
-        yanit_ajax = session.post(url_ajax, data=post_data, headers=ajax_headers, timeout=10)
-        if yanit_ajax.status_code != 200:
-            return [], f"İEO ajax HTTP {yanit_ajax.status_code}"
-
-        veri = yanit_ajax.json()
-        if veri.get("error") != 0 and veri.get("error") != "0":
-            return [], veri.get("msg", "İEO API hata döndürdü")
-
-        ham_eczaneler = veri.get("eczaneler", [])
+        ham_eczaneler = payload.get("data", [])
         if not ham_eczaneler:
-            return [], "İEO ilçede nöbetçi eczane listesi boş döndü"
+            return [], f"İEO '{ilce}' için nöbetçi eczane listesi boş döndü"
+
+        # Token çok yeniyse (< 2.2 sn) 'too_fast' hatası almamak için bekle
+        gecen = time.time() - token_ts
+        if gecen < 2.2:
+            time.sleep(max(0.1, 2.2 - gecen))
 
         sonuclar = []
         for sira, e in enumerate(ham_eczaneler, start=1):
-            eczane_adi = e.get("eczane_ad", "").strip() or e.get("adi", "").strip() or f"Eczane #{sira}"
-            semt = e.get("semt", "").strip()
-            
-            # Adres HTML etiketlerini ve başlığını temizle
-            raw_adres = e.get("adres", "").strip()
-            adres = re.sub(r'<[^>]+>', '', raw_adres).replace("Adres:", "").strip()
-            
-            # Telefon ve tarif temizleme
-            telefon_ham = e.get("eczane_tel", "").strip() or e.get("tel", "").strip()
-            raw_tarif = e.get("tarif", "").strip()
-            yol_tarifi = re.sub(r'<[^>]+>', '', raw_tarif).replace("Tarif:", "").strip()
+            eczane_adi = (e.get("ad") or f"Eczane #{sira}").strip()
+            semt = (e.get("mahalle") or "").strip()
+            adres = (e.get("adres") or "").strip()
+            yol_tarifi = (e.get("tarif") or "").strip()
+            sicil = str(e.get("sicil", "")).strip()
 
             try:
                 enlem = float(e.get("lat")) if e.get("lat") else None
-                boylam = float(e.get("lng") or e.get("lon")) if (e.get("lng") or e.get("lon")) else None
+                boylam = float(e.get("lng")) if e.get("lng") else None
             except (ValueError, TypeError):
                 enlem, boylam = None, None
+
+            telefon_ham = ""
+            region_id = e.get("regionId")
+            phone_ticket = e.get("phoneTicket")
+            if region_id and phone_ticket:
+                try:
+                    p_body = {"regionId": region_id, "sicil": sicil, "ticket": phone_ticket}
+                    p_resp = session.post(
+                        "https://www.istanbuleczaciodasi.org.tr/api/nobetci-eczane-web/?action=phone",
+                        json=p_body,
+                        headers=api_headers,
+                        timeout=5
+                    )
+                    if p_resp.status_code == 200 and p_resp.json().get("success"):
+                        p_data = p_resp.json().get("data", {})
+                        telefon_ham = p_data.get("tel") or p_data.get("tel2") or ""
+                except Exception:
+                    pass
 
             sonuclar.append({
                 "id": sira,
@@ -242,7 +306,7 @@ def kaynak_ieo_cek(il: str, ilce: str, tarih: Optional[str] = None) -> Tuple[Lis
                 "enlem": enlem,
                 "boylam": boylam,
                 "kaynak": "ieo_resmi",
-                "sicil": str(e.get("sicil", "")).strip()
+                "sicil": sicil
             })
 
         return sonuclar, ""
@@ -490,9 +554,9 @@ def eczane_detay_bilgisi_ara(eczane_adi: str, ilce: str, il: str = "İstanbul", 
 # 2. İKİNCİL KAYNAK: ECZANELER.GEN.TR
 # ==========================================
 def kaynak_eczaneler_gen_tr_cek(il: str, ilce: str, tarih: Optional[str] = None) -> Tuple[List[Dict[str, Any]], str]:
-    """
-    eczaneler.gen.tr sitesinden ilçe bazlı nöbetçi eczaneleri çeker.
-    """
+    """eczaneler.gen.tr sitesinden ilçe bazlı nöbetçi eczaneleri çeker."""
+    from bs4 import BeautifulSoup
+
     il_slug = turkce_karakter_temizle(il)
     ilce_slug = turkce_karakter_temizle(ilce)
     hedef_url = f"https://www.eczaneler.gen.tr/nobetci-{il_slug}-{ilce_slug}"
@@ -508,39 +572,55 @@ def kaynak_eczaneler_gen_tr_cek(il: str, ilce: str, tarih: Optional[str] = None)
         if "cf-mitigated" in icerik or "challenges.cloudflare.com" in icerik:
             return [], "eczaneler.gen.tr Cloudflare challenge korumasına takıldı"
 
-        # Kartları ayrıştır
-        kartlar = re.findall(r'<div[^>]*class=["\'][^"\']*my-2[^"\']*["\'][^>]*>(.*?)</div>\s*</div>', icerik, re.DOTALL)
-        if not kartlar:
-            kartlar = re.findall(r'<tr[^>]*>(.*?)</tr>', icerik, re.DOTALL)
-
+        soup = BeautifulSoup(icerik, "html.parser")
+        isim_spanlari = soup.find_all("span", class_="isim")
+        
         sonuclar = []
-        for sira, kart in enumerate(kartlar, start=1):
-            isim_m = re.search(r'<span[^>]*class=["\']text-capitalize["\'][^>]*>(.*?)</span>', kart) or re.search(r'<h3>(.*?)</h3>', kart)
-            if not isim_m:
+        for sira, span in enumerate(isim_spanlari, start=1):
+            eczane_adi = span.get_text().strip()
+            row = span.find_parent("div", class_="row")
+            if not row:
                 continue
-            isim = html.unescape(re.sub(r'<[^>]+>', '', isim_m.group(1)).strip())
 
-            adres_m = re.search(r'<span[^>]*class=["\']col-lg-6[^"\']*["\'][^>]*>(.*?)</span>', kart)
-            adres = html.unescape(re.sub(r'<[^>]+>', '', adres_m.group(1)).strip()) if adres_m else ""
+            adres = ""
+            tarif = ""
+            adr_div = row.find("div", class_="col-lg-6")
+            if adr_div:
+                satirlar = [s.strip() for s in adr_div.get_text(separator='\n', strip=True).split('\n') if s.strip()]
+                adres = satirlar[0] if len(satirlar) > 0 else ""
+                if len(satirlar) > 1:
+                    tarif = ' '.join(satirlar[1:])
 
-            tel_m = re.search(r'tel:([0-9\+]+)', kart) or re.search(r'([0-9]{3,4}\s*[0-9]{3}\s*[0-9]{2}\s*[0-9]{2})', kart)
-            telefon_ham = tel_m.group(1) if tel_m else ""
+            telefon_ham = ""
+            for a_el in row.find_all("a"):
+                href = a_el.get("href", "")
+                if href.startswith("tel:"):
+                    telefon_ham = href.replace("tel:", "").strip()
+                    break
+            if not telefon_ham:
+                tel_m = re.search(r'0?\s*\(?2[0-9]{2}\)?[\s\-]?[0-9]{3}[\s\-]?[0-9]{2}[\s\-]?[0-9]{2}', row.get_text())
+                if tel_m:
+                    telefon_ham = tel_m.group(0).strip()
 
-            # Koordinat çıkarma
-            geo_m = re.search(r'data-latitude=["\']([0-9\.]+)["\']\s+data-longitude=["\']([0-9\.]+)["\']', kart)
-            enlem = float(geo_m.group(1)) if geo_m else None
-            boylam = float(geo_m.group(2)) if geo_m else None
+            enlem, boylam = None, None
+            for a_el in row.find_all("a"):
+                href = a_el.get("href", "")
+                coord_m = re.search(r'query=([0-9\.]+),([0-9\.]+)', href)
+                if coord_m:
+                    enlem = float(coord_m.group(1))
+                    boylam = float(coord_m.group(2))
+                    break
 
             sonuclar.append({
                 "id": sira,
-                "isim": isim,
+                "isim": eczane_adi,
                 "il": il.capitalize(),
                 "ilce": ilce.capitalize(),
                 "semt": "",
                 "adres": adres,
                 "telefon": telefon_formatla(telefon_ham),
-                "telefon_link": f"tel:{telefon_ham}",
-                "yol_tarifi": "",
+                "telefon_link": f"tel:{re.sub(r'[^0-9+]', '', telefon_ham)}" if telefon_ham else "",
+                "yol_tarifi": tarif,
                 "nobet_durumu": "Sabaha kadar açık",
                 "enlem": enlem,
                 "boylam": boylam,
