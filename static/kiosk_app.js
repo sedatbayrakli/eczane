@@ -2078,6 +2078,13 @@ function arayuzuGuncelle(veri, isOffline = false, savedTime = '') {
 
     // 1.2 Gündüz Modu Kontrolü (Digital Signage / Karşılama Ekranı)
     if (veri.day_mode && veri.day_mode.active && !veri.is_on_duty_today) {
+        if (Array.isArray(veri.eczaneler) && elPharmacyCount) {
+            elPharmacyCount.textContent = veri.eczaneler.length;
+        }
+        if (elLastSyncTime) {
+            const simdiSaat = new Date().toLocaleTimeString('tr-TR');
+            elLastSyncTime.textContent = veri.onbellek_zamani ? (veri.onbellek_zamani.split(' ')[1] || veri.onbellek_zamani) : simdiSaat;
+        }
         slaytDongusunuDurdur();
         if (elOnDutyBanner) elOnDutyBanner.classList.remove('active');
         if (elKioskLayout) {
