@@ -133,6 +133,7 @@
         {% endwith %}
 
         <form method="POST" action="/admin/login">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="form-group">
                 <label for="username">Kullanıcı Adı</label>
                 <input type="text" id="username" name="username" class="form-control" required autofocus placeholder="admin">

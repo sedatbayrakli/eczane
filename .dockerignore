@@ -9,3 +9,9 @@ env/
 .gitignore
 .DS_Store
 README.md
+.env
+data/
+*.db
+*.sqlite3
+cookies*.txt
+*_backup.json

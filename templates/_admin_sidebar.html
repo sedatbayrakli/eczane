@@ -1,4 +1,7 @@
 <!-- Ortak Modern Sidebar Bileşeni -->
+<!-- Global CSRF Token Meta -->
+<meta name="csrf-token" content="{{ csrf_token() }}">
+
 <!-- Mobil Karartma Overlay -->
 <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleMobileSidebar()"></div>
 
@@ -111,4 +114,61 @@
             }
         } catch(e) {}
     });
+
+    // Otomatik CSRF Token Entegrasyonu (Tüm formlara ve fetch çağrılarına token bağlar)
+    (function() {
+        function getCsrfToken() {
+            const meta = document.querySelector('meta[name="csrf-token"]');
+            return meta ? meta.getAttribute('content') : '';
+        }
+
+        function injectCsrfInputs() {
+            const token = getCsrfToken();
+            if (!token) return;
+            document.querySelectorAll('form[method="POST"], form[method="post"]').forEach(function(f) {
+                if (!f.querySelector('input[name="csrf_token"]')) {
+                    const inp = document.createElement('input');
+                    inp.type = 'hidden';
+                    inp.name = 'csrf_token';
+                    inp.value = token;
+                    f.appendChild(inp);
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', injectCsrfInputs);
+        document.addEventListener('submit', function(e) {
+            const form = e.target;
+            const token = getCsrfToken();
+            if (token && form && form.method && form.method.toUpperCase() === 'POST') {
+                if (!form.querySelector('input[name="csrf_token"]')) {
+                    const inp = document.createElement('input');
+                    inp.type = 'hidden';
+                    inp.name = 'csrf_token';
+                    inp.value = token;
+                    form.appendChild(inp);
+                }
+            }
+        }, true);
+
+        const rawFetch = window.fetch;
+        window.fetch = function(url, init) {
+            init = init || {};
+            const method = (init.method || 'GET').toUpperCase();
+            if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
+                const token = getCsrfToken();
+                if (token) {
+                    if (init.headers instanceof Headers) {
+                        if (!init.headers.has('X-CSRFToken')) init.headers.append('X-CSRFToken', token);
+                    } else if (Array.isArray(init.headers)) {
+                        init.headers.push(['X-CSRFToken', token]);
+                    } else {
+                        init.headers = init.headers || {};
+                        if (!init.headers['X-CSRFToken']) init.headers['X-CSRFToken'] = token;
+                    }
+                }
+            }
+            return rawFetch.call(this, url, init);
+        };
+    })();
 </script>

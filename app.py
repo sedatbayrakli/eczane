@@ -7,6 +7,7 @@ import os
 import time
 import json
 import re
+import secrets
 import urllib.parse
 from datetime import datetime, timedelta
 from functools import wraps
@@ -16,6 +17,8 @@ from flask import (
     Flask, render_template, jsonify, request, 
     redirect, url_for, session, flash, make_response
 )
+from flask_wtf.csrf import CSRFProtect
+from werkzeug.middleware.proxy_fix import ProxyFix
 import requests
 
 from models import (
@@ -38,10 +41,6 @@ from services.pharmacy_service import (
 # Flask uygulamasının başlatılması
 app = Flask(__name__)
 
-# Oturum ve güvenlik yapılandırması
-app.secret_key = os.getenv("SECRET_KEY", "eczane-kiosk-secret-key-2026-secure-random")
-app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=7)
-
 # SQLite Veritabanı Yolu Belirleme (Kalıcı /data dizini veya yerel fallback)
 VARSAYILAN_DATA_DIR = "/data"
 if not os.path.exists(VARSAYILAN_DATA_DIR):
@@ -50,6 +49,49 @@ if not os.path.exists(VARSAYILAN_DATA_DIR):
     except Exception:
         VARSAYILAN_DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
         os.makedirs(VARSAYILAN_DATA_DIR, exist_ok=True)
+
+def _guvenli_secret_key_al(data_dir: str) -> str:
+    """
+    Kriptografik güvenli oturum anahtarı üretir veya ortam değişkeninden okur.
+    Statik zayıf varsayılanlara düşmeyi engeller.
+    """
+    env_key = os.getenv("SECRET_KEY")
+    if env_key and env_key.strip() and env_key != "eczane-kiosk-secret-key-2026-secure-random":
+        return env_key.strip()
+    
+    key_file = os.path.join(data_dir, ".secret_key")
+    if os.path.exists(key_file):
+        try:
+            with open(key_file, "r") as f:
+                saved_key = f.read().strip()
+                if saved_key:
+                    return saved_key
+        except Exception:
+            pass
+            
+    new_key = secrets.token_hex(32)
+    try:
+        with open(key_file, "w") as f:
+            f.write(new_key)
+        os.chmod(key_file, 0o600)
+    except Exception:
+        pass
+    return new_key
+
+# Oturum ve güvenlik yapılandırması
+app.secret_key = _guvenli_secret_key_al(VARSAYILAN_DATA_DIR)
+app.config.update(
+    PERMANENT_SESSION_LIFETIME=timedelta(days=7),
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SECURE=os.getenv("SESSION_COOKIE_SECURE", "false").lower() in ("true", "1"),
+    SESSION_COOKIE_SAMESITE="Lax",
+)
+
+# Reverse proxy (Traefik, Coolify, Nginx) arkasında gerçek IP ve HTTPS protokolünü belirleme
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+
+# Global CSRF Koruması
+csrf = CSRFProtect(app)
 
 DB_PATH = os.getenv("DATABASE_PATH", os.path.join(VARSAYILAN_DATA_DIR, "app.db"))
 app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DB_PATH}"
@@ -291,20 +333,58 @@ def istemci_ip_al() -> str:
 # YÖNETİM PANELİ ROTALARI (/admin)
 # ==========================================
 
+# Başarısız giriş denemelerini takip için bellek içi sayaç (IP tabanlı)
+_GIRIS_DENEMELERI = {}
+_MAKS_GIRIS_DENEMESI = 5
+_KILITLEME_SURESI_SANIYE = 300  # 5 dakika
+
+def _giris_engelli_mi(ip: str) -> Tuple[bool, int]:
+    """IP adresinin kilitli olup olmadığını ve kalan saniyeyi döner."""
+    now = datetime.now()
+    kayitlar = _GIRIS_DENEMELERI.get(ip, [])
+    gecerli_denemeler = [t for t in kayitlar if (now - t).total_seconds() < _KILITLEME_SURESI_SANIYE]
+    _GIRIS_DENEMELERI[ip] = gecerli_denemeler
+    if len(gecerli_denemeler) >= _MAKS_GIRIS_DENEMESI:
+        en_eski = gecerli_denemeler[0]
+        kalan = int(_KILITLEME_SURESI_SANIYE - (now - en_eski).total_seconds())
+        return True, max(1, kalan)
+    return False, 0
+
+def _basarisiz_giris_kaydet(ip: str):
+    """Başarısız giriş denemesini kaydeder."""
+    now = datetime.now()
+    if ip not in _GIRIS_DENEMELERI:
+        _GIRIS_DENEMELERI[ip] = []
+    _GIRIS_DENEMELERI[ip].append(now)
+
+def _basarili_giris_temizle(ip: str):
+    """Başarılı girişte deneme sayacını sıfırlar."""
+    _GIRIS_DENEMELERI.pop(ip, None)
+
+
 @app.route("/admin/login", methods=["GET", "POST"])
 def admin_login():
-    """Yönetici giriş sayfası."""
+    """Yönetici giriş sayfası (Kaba kuvvet / Brute-force korumalı)."""
+    client_ip = istemci_ip_al()
+    kilitli, kalan_sn = _giris_engelli_mi(client_ip)
+    if kilitli:
+        flash(f"Çok fazla hatalı giriş denemesi yapıldı! Güvenliğiniz için lütfen {kalan_sn} saniye sonra tekrar deneyiniz.", "danger")
+        return render_template("admin_login.html"), 429
+
     if request.method == "POST":
         kullanici_adi = request.form.get("username", "").strip()
         sifre = request.form.get("password", "").strip()
 
         admin = AdminUser.query.filter_by(username=kullanici_adi).first()
         if admin and admin.sifre_kontrol(sifre):
+            _basarili_giris_temizle(client_ip)
+            session.clear()  # Session fixation saldırılarını engelle
             session["admin_logged_in"] = True
             session["admin_username"] = admin.username
             flash("Başarıyla giriş yapıldı.", "success")
             return redirect(url_for("admin_dashboard"))
         else:
+            _basarisiz_giris_kaydet(client_ip)
             flash("Kullanıcı adı veya şifre hatalı!", "danger")
 
     return render_template("admin_login.html")
@@ -456,6 +536,7 @@ def admin_whatsapp_logs_clear():
 
 
 @app.route("/webhooks/evolution", methods=["POST", "GET"])
+@csrf.exempt
 def webhook_evolution():
     """
     Evolution API Webhook Uç Noktası.
@@ -1994,9 +2075,11 @@ def api_kiosk_ping():
 
 
 @app.route("/api/kiosk-upload-screenshot", methods=["POST"])
+@csrf.exempt
 def api_kiosk_upload_screenshot():
     """
     Kiosk TV ekranının html2canvas ile ürettiği ekran görüntüsünü (Base64 JPEG) yükler.
+    DoS ve bellek şişmesine karşı maksimum 3.5 MB veri sınırı ve format doğrulaması içerir.
     """
     key = request.args.get("key", "").strip().upper() or request.cookies.get("kiosk_license_key", "").strip().upper()
     device_token = request.args.get("device_token", "").strip() or request.cookies.get("kiosk_device_token", "").strip()
@@ -2005,6 +2088,14 @@ def api_kiosk_upload_screenshot():
     image_b64 = veri.get("image", "").strip()
     if not image_b64:
         return jsonify({"success": False, "error": "Boş ekran görüntüsü verisi"}), 400
+
+    # Güvenlik & DoS Koruması: Maksimum 3.5 MB Base64 (~2.5 MB JPEG) veri boyutu sınırı
+    if len(image_b64) > 3_500_000:
+        return jsonify({"success": False, "error": "Ekran görüntüsü dosya boyutu çok büyük (maks 3.5MB)"}), 413
+
+    # Format denetimi: Sadece geçerli base64 resim verileri kabul edilir
+    if not (image_b64.startswith("data:image/jpeg;base64,") or image_b64.startswith("data:image/png;base64,")):
+        return jsonify({"success": False, "error": "Geçersiz resim formatı"}), 400
 
     eczane = Pharmacy.query.filter(db.func.upper(Pharmacy.license_key) == key).first() if key else None
     if not eczane:
@@ -2108,8 +2199,11 @@ def api_health():
 
 @app.after_request
 def ekle_guvenlik_basliklari(response):
-    """TV Kiosk önizleme penceresinin iframe içinde açılabilmesini sağlar."""
+    """TV Kiosk önizleme penceresinin iframe içinde açılabilmesini sağlar ve güvenlik başlıklarını ekler."""
     response.headers["X-Frame-Options"] = "SAMEORIGIN"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=()"
     return response
 
 

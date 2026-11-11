@@ -18,6 +18,10 @@ data/
 *.swp
 *.swo
 
+# Geçici / Hassas Oturum ve Yedek Dosyaları
+cookies*.txt
+*_backup.json
+
 # İşletim Sistemi
 .DS_Store
 Thumbs.db
