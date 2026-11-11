@@ -20,7 +20,8 @@ import requests
 
 from models import (
     db, AdminUser, Pharmacy, KioskDevice, SystemSetting, 
-    TickerTemplate, DeviceLog, WhatsAppLog, lisans_anahtari_uret
+    TickerTemplate, DeviceLog, WhatsAppLog, lisans_anahtari_uret,
+    turkiye_saati
 )
 from evolution_service import evolution_whatsapp_gonder, telefon_formatla
 from services.pharmacy_service import (
@@ -30,7 +31,8 @@ from services.pharmacy_service import (
     rota_linki_olustur,
     qr_kod_url_olustur,
     eczane_detay_bilgisi_ara,
-    onbellek_temizle
+    onbellek_temizle,
+    ieo_resmi_tatil_bilgisi
 )
 
 # Flask uygulamasının başlatılması
@@ -55,6 +57,21 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 # Veritabanını Flask uygulamasına bağlama
 db.init_app(app)
+
+# SQLite Yüksek Eşzamanlılık (Concurrency) - WAL Modu ve Hızlı Yazma
+from sqlalchemy import event
+from sqlalchemy.engine import Engine
+
+@event.listens_for(Engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    try:
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA synchronous=NORMAL")
+        cursor.execute("PRAGMA busy_timeout=5000")
+        cursor.close()
+    except Exception:
+        pass
 
 # Yapılandırma ve ortam değişkenleri
 VARSAYILAN_IL = os.getenv("DEFAULT_PROVINCE", "istanbul").lower().strip()
@@ -128,6 +145,12 @@ def init_db():
                         conn.execute(text("ALTER TABLE pharmacies ADD COLUMN institution_type VARCHAR(50) DEFAULT 'pharmacy'"))
                     if "institution_settings" not in mevcut_kolonlar:
                         conn.execute(text("ALTER TABLE pharmacies ADD COLUMN institution_settings TEXT DEFAULT '{}'"))
+                    if "day_mode_title" not in mevcut_kolonlar:
+                        conn.execute(text("ALTER TABLE pharmacies ADD COLUMN day_mode_title VARCHAR(150) DEFAULT 'Eczanemiz Hizmetinizdedir'"))
+                    if "day_mode_message" not in mevcut_kolonlar:
+                        conn.execute(text("ALTER TABLE pharmacies ADD COLUMN day_mode_message TEXT DEFAULT 'Reçeteli ve reçetesiz ilaçlarınız, medikal ürünler ve danışmanlık için hizmetinizdeyiz.'"))
+                    if "ieo_device_serial_no" not in mevcut_kolonlar:
+                        conn.execute(text("ALTER TABLE pharmacies ADD COLUMN ieo_device_serial_no VARCHAR(100)"))
                     conn.commit()
 
             if "kiosk_devices" in tablolar:
@@ -153,6 +176,16 @@ def init_db():
                         conn.execute(text("ALTER TABLE kiosk_devices ADD COLUMN is_visible BOOLEAN DEFAULT 1"))
                     if "last_visibility_change" not in mevcut_dev_kolonlar:
                         conn.execute(text("ALTER TABLE kiosk_devices ADD COLUMN last_visibility_change DATETIME"))
+                    if "screenshot_requested" not in mevcut_dev_kolonlar:
+                        conn.execute(text("ALTER TABLE kiosk_devices ADD COLUMN screenshot_requested BOOLEAN DEFAULT 0"))
+                    if "last_screenshot" not in mevcut_dev_kolonlar:
+                        conn.execute(text("ALTER TABLE kiosk_devices ADD COLUMN last_screenshot TEXT"))
+                    if "last_screenshot_at" not in mevcut_dev_kolonlar:
+                        conn.execute(text("ALTER TABLE kiosk_devices ADD COLUMN last_screenshot_at DATETIME"))
+                    if "last_background_alert_at" not in mevcut_dev_kolonlar:
+                        conn.execute(text("ALTER TABLE kiosk_devices ADD COLUMN last_background_alert_at DATETIME"))
+                    if "last_offline_alert_at" not in mevcut_dev_kolonlar:
+                        conn.execute(text("ALTER TABLE kiosk_devices ADD COLUMN last_offline_alert_at DATETIME"))
                     conn.commit()
 
             if "admin_users" in tablolar:
@@ -181,6 +214,16 @@ def init_db():
                         conn.execute(text("ALTER TABLE system_settings ADD COLUMN whatsapp_notify_admin BOOLEAN DEFAULT 1"))
                     if "whatsapp_notify_pharmacy" not in mevcut_sys_kolonlar:
                         conn.execute(text("ALTER TABLE system_settings ADD COLUMN whatsapp_notify_pharmacy BOOLEAN DEFAULT 1"))
+                    if "day_mode_enabled" not in mevcut_sys_kolonlar:
+                        conn.execute(text("ALTER TABLE system_settings ADD COLUMN day_mode_enabled BOOLEAN DEFAULT 1"))
+                    if "day_mode_start_time" not in mevcut_sys_kolonlar:
+                        conn.execute(text("ALTER TABLE system_settings ADD COLUMN day_mode_start_time VARCHAR(10) DEFAULT '08:30'"))
+                    if "day_mode_end_time" not in mevcut_sys_kolonlar:
+                        conn.execute(text("ALTER TABLE system_settings ADD COLUMN day_mode_end_time VARCHAR(10) DEFAULT '19:00'"))
+                    if "webhook_secret" not in mevcut_sys_kolonlar:
+                        conn.execute(text("ALTER TABLE system_settings ADD COLUMN webhook_secret VARCHAR(100) DEFAULT 'eczane-webhook-secret-2026'"))
+                    if "ieo_device_serial_no" not in mevcut_sys_kolonlar:
+                        conn.execute(text("ALTER TABLE system_settings ADD COLUMN ieo_device_serial_no VARCHAR(100) DEFAULT ''"))
                     conn.commit()
         except Exception as hata:
             print(f"[UYARI] Veritabanı kolon denetim hatası: {hata}")
@@ -214,7 +257,7 @@ def init_db():
                 mobile_phone="0532 111 22 33",
                 address="Bahçelievler Mahallesi, Çakırlar Caddesi No: 12 Bahçelievler / İstanbul",
                 license_key="ECZ-CAKIRLAR-001",
-                expires_at=datetime.now() + timedelta(days=365),
+                expires_at=turkiye_saati() + timedelta(days=365),
                 is_active=True,
                 ticker_text="Çakırlar Eczanesi sağlıklı günler diler. Reçeteli ilaçlarınız ve medikal ihtiyaçlarınız için danışabilirsiniz."
             )
@@ -420,6 +463,19 @@ def webhook_evolution():
     """
     if request.method == "GET":
         return jsonify({"status": "active", "service": "Eczane Kiosk Evolution Webhook"}), 200
+
+    # Webhook Güvenlik Doğrulaması
+    s_ayar = SystemSetting.get_settings()
+    req_secret = request.headers.get("apikey") or request.headers.get("X-Webhook-Secret") or request.args.get("secret")
+    gecerli_anahtarlar = [
+        s_ayar.webhook_secret,
+        s_ayar.evolution_global_key,
+        s_ayar.evolution_instance_key
+    ]
+    gecerli_anahtarlar = [k for k in gecerli_anahtarlar if k and k.strip()]
+    if gecerli_anahtarlar and (not req_secret or req_secret.strip() not in gecerli_anahtarlar):
+        print(f"[WEBHOOK GÜVENLİK ENGELİ] Yetkisiz webhook isteği engellendi (IP: {istemci_ip_al()})")
+        return jsonify({"status": "unauthorized", "error": "Geçersiz veya eksik webhook güvenlik anahtarı"}), 401
 
     try:
         veri = request.get_json(force=True, silent=True) or {}
@@ -673,6 +729,7 @@ def admin_add_pharmacy():
     
     eczaci_adi = request.form.get("pharmacist_name", "").strip()
     oda_sicil = request.form.get("chamber_registration_no", "").strip()
+    ieo_sno = request.form.get("ieo_device_serial_no", "").strip()
     telefon = request.form.get("phone", "").strip()
     cep_telefonu = request.form.get("mobile_phone", "").strip()
     acik_adres = request.form.get("address", "").strip()
@@ -696,6 +753,7 @@ def admin_add_pharmacy():
         longitude=boylam,
         pharmacist_name=eczaci_adi,
         chamber_registration_no=oda_sicil,
+        ieo_device_serial_no=ieo_sno or None,
         phone=telefon,
         mobile_phone=cep_telefonu,
         address=acik_adres,
@@ -703,7 +761,7 @@ def admin_add_pharmacy():
         max_devices=max(1, cihaz_limiti),
         screen_scale=ekran_olcegi,
         license_key=lisans_anahtari_uret(),
-        expires_at=datetime.now() + timedelta(days=lisans_gun),
+        expires_at=turkiye_saati() + timedelta(days=lisans_gun),
         is_active=True,
         ticker_text=kayan_yazi or f"{isim} sağlıklı günler diler."
     )
@@ -731,6 +789,7 @@ def admin_edit_pharmacy(eczane_id):
     
     eczane.pharmacist_name = request.form.get("pharmacist_name", eczane.pharmacist_name).strip()
     eczane.chamber_registration_no = request.form.get("chamber_registration_no", eczane.chamber_registration_no).strip()
+    eczane.ieo_device_serial_no = request.form.get("ieo_device_serial_no", "").strip() or None
     eczane.phone = request.form.get("phone", eczane.phone).strip()
     eczane.mobile_phone = request.form.get("mobile_phone", eczane.mobile_phone).strip()
     eczane.address = request.form.get("address", eczane.address).strip()
@@ -879,7 +938,7 @@ def admin_extend_pharmacy(eczane_id):
     eczane = Pharmacy.query.get_or_404(eczane_id)
     eklenecek_gun = request.form.get("days", 30, type=int)
 
-    baslangic = eczane.expires_at if (eczane.expires_at and eczane.expires_at > datetime.now()) else datetime.now()
+    baslangic = eczane.expires_at if (eczane.expires_at and eczane.expires_at > turkiye_saati()) else turkiye_saati()
     eczane.expires_at = baslangic + timedelta(days=eklenecek_gun)
     eczane.is_active = True
     db.session.commit()
@@ -977,7 +1036,7 @@ def admin_api_health_check_devices():
         "success": True,
         "pharmacies": sonuc,
         "online_count": cevrimici_sayisi,
-        "checked_at": datetime.now().strftime("%H:%M:%S")
+        "checked_at": turkiye_saati().strftime("%H:%M:%S")
     })
 
 
@@ -1020,7 +1079,7 @@ def admin_api_pharmacy_health_check(eczane_id):
             "device_count": len(dev_list),
             "online_device_count": sum(1 for d in dev_list if d["is_online"])
         },
-        "checked_at": datetime.now().strftime("%H:%M:%S")
+        "checked_at": turkiye_saati().strftime("%H:%M:%S")
     })
 
 
@@ -1050,7 +1109,7 @@ def admin_api_device_health_check(eczane_id, device_id):
             "resolution": cihaz.screen_resolution,
             "scale": cihaz.screen_scale
         },
-        "checked_at": datetime.now().strftime("%H:%M:%S")
+        "checked_at": turkiye_saati().strftime("%H:%M:%S")
     })
 
 
@@ -1067,14 +1126,20 @@ def admin_duty_pharmacies():
     """İl, ilçe ve tarih bazında nöbetçi eczaneleri sorgulama ve listeleme sayfası."""
     il = request.args.get("il", "İstanbul")
     ilce = request.args.get("ilce", "Bahçelievler")
-    tarih = request.args.get("tarih", datetime.now().strftime("%Y-%m-%d"))
+    tarih = request.args.get("tarih", turkiye_saati().strftime("%Y-%m-%d"))
     kaynak = request.args.get("kaynak", "hepsi")
+
+    ayar = SystemSetting.get_settings()
+    has_ieo_sno = bool(ayar.ieo_device_serial_no and ayar.ieo_device_serial_no.strip())
+
     return render_template(
         "admin_duty_pharmacies.html",
         secili_il=il,
         secili_ilce=ilce,
         secili_tarih=tarih,
         secili_kaynak=kaynak,
+        has_ieo_sno=has_ieo_sno,
+        ieo_sno=ayar.ieo_device_serial_no or "",
         aktif_sayfa="duty"
     )
 
@@ -1089,6 +1154,25 @@ def admin_api_duty_pharmacies():
     kaynak = request.args.get("kaynak", "hepsi").strip()
     force_refresh = request.args.get("refresh", "0") in ("1", "true", "True")
 
+    # İEO Cihaz Seri No kontrolü (Parametreden veya Sistem Ayarlarından)
+    ayar = SystemSetting.get_settings()
+    sno = request.args.get("sno", "").strip() or (ayar.ieo_device_serial_no or "").strip()
+
+    bugun_str = turkiye_saati().strftime("%Y-%m-%d")
+    is_bugun = (not tarih) or (tarih == bugun_str)
+
+    # KURAL: Seri No boşsa, bugün dışındaki tarih sorgulamalarına izin verilmez
+    if not is_bugun and not sno:
+        return jsonify({
+            "success": False,
+            "error": "İleri veya geçmiş tarihli haftalık nöbet listelerini sorgulamak için İEO Cihaz Seri No / Kodu tanımlanmalıdır. Lütfen Genel Ayarlar bölümünden seri numaranızı tanımlayınız.",
+            "sno_required": True,
+            "eczaneler": [],
+            "il": il,
+            "ilce": ilce,
+            "tarih": tarih
+        })
+
     # Özel kaynak seçimi yapılmışsa öncelik listesini ona göre ayarla
     kaynak_siralamasi = [kaynak] if (kaynak and kaynak not in ("hepsi", "auto", "tum")) else None
     cache_suresi = 0 if force_refresh else None
@@ -1099,8 +1183,20 @@ def admin_api_duty_pharmacies():
             ilce=ilce,
             cache_suresi_dakika=cache_suresi,
             kaynak_siralamasi=kaynak_siralamasi,
-            tarih=tarih
+            tarih=tarih,
+            sno=sno
         )
+        if not sonuc.get("success", False):
+            return jsonify({
+                "success": False,
+                "error": sonuc.get("error") or "Nöbetçi eczane listesi alınamadı.",
+                "sno_required": sonuc.get("sno_required", False),
+                "eczaneler": [],
+                "il": il,
+                "ilce": ilce,
+                "tarih": tarih or bugun_str
+            })
+
         return jsonify({
             "success": True,
             "eczaneler": sonuc.get("eczaneler", []),
@@ -1108,8 +1204,9 @@ def admin_api_duty_pharmacies():
             "guncellenme_zamani": sonuc.get("guncellenme_zamani", ""),
             "il": il,
             "ilce": ilce,
-            "tarih": tarih or datetime.now().strftime("%Y-%m-%d"),
-            "kaynak": kaynak
+            "tarih": tarih or bugun_str,
+            "kaynak": kaynak,
+            "has_sno": bool(sno)
         })
     except Exception as e:
         app.logger.error(f"Nöbetçi eczane sorgu hatası: {e}")
@@ -1138,7 +1235,7 @@ def admin_approve_single_device(eczane_id, device_id):
     eczane = Pharmacy.query.get_or_404(eczane_id)
     cihaz = KioskDevice.query.filter_by(id=device_id, pharmacy_id=eczane.id).first_or_404()
     cihaz.is_approved = True
-    cihaz.approved_at = datetime.now()
+    cihaz.approved_at = turkiye_saati()
     db.session.commit()
 
     if request.is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest" or "application/json" in request.headers.get("Accept", ""):
@@ -1269,7 +1366,7 @@ def admin_toggle_duty_test(eczane_id):
         db.session.commit()
         flash(f"'{eczane.name}' için 1 saatlik hızlı nöbet testi kapatıldı.", "info")
     else:
-        eczane.manual_duty_override_until = datetime.now() + timedelta(hours=1)
+        eczane.manual_duty_override_until = turkiye_saati() + timedelta(hours=1)
         db.session.commit()
         bitis_saati = eczane.manual_duty_override_until.strftime("%H:%M")
         flash(f"'{eczane.name}' 1 saatliğine test amaçlı NÖBETÇİ moduna alındı! (Bitiş: {bitis_saati})", "success")
@@ -1310,6 +1407,7 @@ def admin_settings():
             ayar.heartbeat_tolerance_min = max(1, tolerance)
             ayar.max_search_distance_km = max(1, max_dist)
             ayar.map_theme = map_theme or "cartodb_dark"
+            ayar.ieo_device_serial_no = (request.form.get("ieo_device_serial_no") or "").strip()
 
             # Evolution API WhatsApp Ayarları
             ayar.whatsapp_enabled = (request.form.get("whatsapp_enabled") == "1")
@@ -1317,10 +1415,16 @@ def admin_settings():
             ayar.evolution_instance = (request.form.get("evolution_instance") or "").strip()
             ayar.evolution_instance_key = (request.form.get("evolution_instance_key") or "").strip()
             ayar.evolution_global_key = (request.form.get("evolution_global_key") or "").strip()
+            ayar.webhook_secret = (request.form.get("webhook_secret") or "").strip()
             ayar.whatsapp_notify_admin = (request.form.get("whatsapp_notify_admin") == "1")
             ayar.whatsapp_notify_pharmacy = (request.form.get("whatsapp_notify_pharmacy") == "1")
 
-            ayar.updated_at = datetime.utcnow()
+            # Gündüz Modu Ayarları
+            ayar.day_mode_enabled = (request.form.get("day_mode_enabled") == "1")
+            ayar.day_mode_start_time = (request.form.get("day_mode_start_time") or "08:30").strip()
+            ayar.day_mode_end_time = (request.form.get("day_mode_end_time") or "18:30").strip()
+
+            ayar.updated_at = turkiye_saati()
 
             db.session.commit()
             flash("Sistem genel ayarları ve WhatsApp yapılandırması başarıyla güncellendi!", "success")
@@ -1570,7 +1674,7 @@ def api_kiosk_data():
                         "license_key": eczane.license_key
                     }), 403
         else:
-            eczane.last_ping = datetime.now()
+            eczane.last_ping = turkiye_saati()
             eczane.last_ip = client_ip
             db.session.commit()
 
@@ -1591,7 +1695,8 @@ def api_kiosk_data():
         kendi_lat, 
         kendi_lon,
         cache_suresi_dakika=sistem_ayari.cache_duration_minutes,
-        kaynak_siralamasi=kaynak_sirasi
+        kaynak_siralamasi=kaynak_sirasi,
+        sno=eczane.get_ieo_serial_no()
     )
 
     # Otomatik nöbetçi tespiti
@@ -1659,6 +1764,26 @@ def api_kiosk_data():
     # Manuel test veya otomatik tespit kontrolü
     nihai_nobet_durumu = eczane.nobetci_mi()
 
+    # Resmi Tatil ve Bayram Bilgisi (İEO Resmi Takvimi Entegrasyonu)
+    tatil_bilgisi = ieo_resmi_tatil_bilgisi()
+
+    # Gündüz Modu Kararı (Digital Signage Modu)
+    simdi_saat = turkiye_saati().strftime("%H:%M")
+    is_day_mode = False
+    if sistem_ayari.day_mode_enabled and not tatil_bilgisi.get("is_holiday"):
+        g_baslangic = sistem_ayari.day_mode_start_time or "08:30"
+        g_bitis = sistem_ayari.day_mode_end_time or "19:00"
+        if (g_baslangic <= simdi_saat < g_bitis) and not nihai_nobet_durumu:
+            is_day_mode = True
+
+    day_mode_bilgisi = {
+        "active": is_day_mode,
+        "title": eczane.day_mode_title or "Eczanemiz Hizmetinizdedir",
+        "message": eczane.day_mode_message or "Reçeteli ve reçetesiz ilaçlarınız, medikal ürünler ve danışmanlık için hizmetinizdeyiz.",
+        "start_time": sistem_ayari.day_mode_start_time,
+        "end_time": sistem_ayari.day_mode_end_time
+    }
+
     return jsonify({
         "success": True,
         "license_valid": True,
@@ -1686,6 +1811,8 @@ def api_kiosk_data():
         "identify": identify_bilgisi,
         "is_on_duty_today": nihai_nobet_durumu,
         "duty_test_active": eczane.duty_test_aktif_mi(),
+        "holiday_info": tatil_bilgisi,
+        "day_mode": day_mode_bilgisi,
         "eczaneler": veri.get("eczaneler", []),
         "kaynak": veri.get("kaynak"),
         "veri_saglayici": veri.get("veri_saglayici"),
@@ -1694,7 +1821,8 @@ def api_kiosk_data():
             "poll_interval_sec": sistem_ayari.kiosk_poll_interval_sec,
             "duty_start_time": sistem_ayari.duty_start_time,
             "duty_end_time": sistem_ayari.duty_end_time,
-            "map_theme": sistem_ayari.map_theme
+            "map_theme": sistem_ayari.map_theme,
+            "day_mode_enabled": sistem_ayari.day_mode_enabled
         }
     })
 
@@ -1731,7 +1859,7 @@ def api_kiosk_ping():
         if not aktif_cihaz and device_token:
             aktif_cihaz = eczane.devices.filter_by(device_token=device_token).first()
         if not aktif_cihaz and local_ip and not local_ip.startswith("127.") and local_ip != "-":
-            pasiflik_siniri = datetime.now() - timedelta(minutes=10)
+            pasiflik_siniri = turkiye_saati() - timedelta(minutes=10)
             aktif_cihaz = eczane.devices.filter(
                 KioskDevice.local_ip == local_ip,
                 KioskDevice.is_approved == True,
@@ -1739,7 +1867,7 @@ def api_kiosk_ping():
             ).first()
 
         if aktif_cihaz:
-            aktif_cihaz.last_ping = datetime.now()
+            aktif_cihaz.last_ping = turkiye_saati()
             if client_ip: aktif_cihaz.ip_address = client_ip
             if local_ip: aktif_cihaz.local_ip = local_ip
             if resolution: aktif_cihaz.screen_resolution = resolution
@@ -1748,7 +1876,7 @@ def api_kiosk_ping():
                 yeni_durum = "Ön Planda (Açık)" if yeni_visible else "Arka Planda (Gizli/Launcher)"
                 print(f"[EKRAN DURUMU DEĞİŞTİ] {eczane.name} - Cihaz: {aktif_cihaz.device_name} ({aktif_cihaz.mac_address}) -> {eski_durum} ===> {yeni_durum}")
                 aktif_cihaz.is_visible = yeni_visible
-                aktif_cihaz.last_visibility_change = datetime.now()
+                aktif_cihaz.last_visibility_change = turkiye_saati()
 
                 # 1. DeviceLog tablosuna olay kaydı aç
                 log_sev = "warning" if not yeni_visible else "success"
@@ -1767,40 +1895,52 @@ def api_kiosk_ping():
                 )
                 db.session.add(yeni_log)
 
-                # 2. WhatsApp Bildirimi Gönderimi (Arka plana düşme veya kritik olaylarda)
+                # 2. WhatsApp Bildirimi Gönderimi (Arka plana düşme veya kritik olaylarda - Spam Korumalı)
                 try:
                     s_ayar = SystemSetting.get_settings()
                     if s_ayar.whatsapp_enabled:
-                        wa_mesaj = (
-                            f"🔔 *NÖBETÇİ ECZANE TV BİLDİRİMİ*\n\n"
-                            f"🏢 *Kurum:* {eczane.name}\n"
-                            f"📺 *Cihaz:* {aktif_cihaz.device_name}\n"
-                            f"⚠️ *Durum:* {yeni_durum}\n"
-                            f"🕒 *Zaman:* {datetime.now().strftime('%d.%m.%Y %H:%M:%S')}\n"
-                            f"ℹ️ *Açıklama:* {log_mesaj}\n\n"
-                            f"_Lütfen TV kumandasından TV Bro / Tarayıcı uygulamasını kontrol ediniz._"
-                        )
-                        mesaj_iletildi = False
-                        # Admin'e gönder
-                        if s_ayar.whatsapp_notify_admin:
-                            admin_usr = AdminUser.query.first()
-                            if admin_usr and admin_usr.phone:
-                                ok_adm, _ = evolution_whatsapp_gonder(admin_usr.phone, wa_mesaj, s_ayar)
-                                if ok_adm: mesaj_iletildi = True
-                        # Kurum yetkilisine gönder
-                        if s_ayar.whatsapp_notify_pharmacy and eczane.mobile_phone:
-                            ok_pha, _ = evolution_whatsapp_gonder(eczane.mobile_phone, wa_mesaj, s_ayar)
-                            if ok_pha: mesaj_iletildi = True
-                        
-                        if mesaj_iletildi:
-                            yeni_log.whatsapp_sent = True
+                        spam_engellendi = False
+                        if not yeni_visible:
+                            if aktif_cihaz.last_background_alert_at:
+                                gecen_sn = (turkiye_saati() - aktif_cihaz.last_background_alert_at).total_seconds()
+                                if gecen_sn < 900:  # Son 15 dakika içinde zaten uyarı gönderildi
+                                    spam_engellendi = True
+
+                        if not spam_engellendi:
+                            wa_mesaj = (
+                                f"🔔 *NÖBETÇİ ECZANE TV BİLDİRİMİ*\n\n"
+                                f"🏢 *Kurum:* {eczane.name}\n"
+                                f"📺 *Cihaz:* {aktif_cihaz.device_name}\n"
+                                f"⚠️ *Durum:* {yeni_durum}\n"
+                                f"🕒 *Zaman:* {turkiye_saati().strftime('%d.%m.%Y %H:%M:%S')}\n"
+                                f"ℹ️ *Açıklama:* {log_mesaj}\n\n"
+                                f"_Lütfen TV kumandasından TV Bro / Tarayıcı uygulamasını kontrol ediniz._"
+                            )
+                            mesaj_iletildi = False
+                            # Admin'e gönder
+                            if s_ayar.whatsapp_notify_admin:
+                                admin_usr = AdminUser.query.first()
+                                if admin_usr and admin_usr.phone:
+                                    ok_adm, _ = evolution_whatsapp_gonder(admin_usr.phone, wa_mesaj, s_ayar)
+                                    if ok_adm: mesaj_iletildi = True
+                            # Kurum yetkilisine gönder
+                            if s_ayar.whatsapp_notify_pharmacy and eczane.mobile_phone:
+                                ok_pha, _ = evolution_whatsapp_gonder(eczane.mobile_phone, wa_mesaj, s_ayar)
+                                if ok_pha: mesaj_iletildi = True
+                            
+                            if mesaj_iletildi:
+                                yeni_log.whatsapp_sent = True
+                                if not yeni_visible:
+                                    aktif_cihaz.last_background_alert_at = turkiye_saati()
+                        else:
+                            yeni_log.message += " (Spam Koruması: Son 15 dakika içinde bildirim gönderildiği için WhatsApp uyarısı tekrarlanmadı.)"
                 except Exception as wa_err:
                     print(f"[UYARI] WhatsApp bildirim hatası: {wa_err}")
 
             elif aktif_cihaz.is_visible is None:
                 aktif_cihaz.is_visible = yeni_visible
 
-    eczane.last_ping = datetime.now()
+    eczane.last_ping = turkiye_saati()
     if client_ip: eczane.last_ip = client_ip
     db.session.commit()
 
@@ -1839,14 +1979,88 @@ def api_kiosk_ping():
         "ticker_text": eczane.ticker_text or ""
     }
 
+    take_screenshot_emri = bool(aktif_cihaz.screenshot_requested) if aktif_cihaz else False
+
     return jsonify({
         "success": True,
         "online": True,
         "pharmacy_id": eczane.id,
         "device_id": aktif_cihaz.id if aktif_cihaz else None,
         "identify": identify_bilgisi,
+        "take_screenshot": take_screenshot_emri,
         "config": config_bilgisi,
-        "server_time": datetime.now().strftime("%H:%M:%S")
+        "server_time": turkiye_saati().strftime("%H:%M:%S")
+    })
+
+
+@app.route("/api/kiosk-upload-screenshot", methods=["POST"])
+def api_kiosk_upload_screenshot():
+    """
+    Kiosk TV ekranının html2canvas ile ürettiği ekran görüntüsünü (Base64 JPEG) yükler.
+    """
+    key = request.args.get("key", "").strip().upper() or request.cookies.get("kiosk_license_key", "").strip().upper()
+    device_token = request.args.get("device_token", "").strip() or request.cookies.get("kiosk_device_token", "").strip()
+
+    veri = request.get_json(force=True, silent=True) or {}
+    image_b64 = veri.get("image", "").strip()
+    if not image_b64:
+        return jsonify({"success": False, "error": "Boş ekran görüntüsü verisi"}), 400
+
+    eczane = Pharmacy.query.filter(db.func.upper(Pharmacy.license_key) == key).first() if key else None
+    if not eczane:
+        return jsonify({"success": False, "error": "Geçersiz lisans"}), 403
+
+    aktif_cihaz = None
+    if device_token:
+        aktif_cihaz = eczane.devices.filter_by(device_token=device_token).first()
+    if not aktif_cihaz:
+        aktif_cihaz = eczane.devices.first()
+
+    if aktif_cihaz:
+        aktif_cihaz.last_screenshot = image_b64
+        aktif_cihaz.last_screenshot_at = turkiye_saati()
+        aktif_cihaz.screenshot_requested = False
+
+        yeni_log = DeviceLog(
+            pharmacy_id=eczane.id,
+            device_id=aktif_cihaz.id,
+            event_type="screenshot",
+            severity="info",
+            title=f"📸 Ekran Görüntüsü Alındı ({aktif_cihaz.device_name})",
+            message=f"{eczane.name} bünyesindeki '{aktif_cihaz.device_name}' TV ekranının anlık görüntüsü başarıyla alındı.",
+            whatsapp_sent=False
+        )
+        db.session.add(yeni_log)
+        db.session.commit()
+        return jsonify({"success": True, "message": "Ekran görüntüsü başarıyla kaydedildi."})
+
+    return jsonify({"success": False, "error": "Cihaz bulunamadı"}), 404
+
+
+@app.route("/admin/pharmacy/<int:eczane_id>/device/<int:device_id>/request-screenshot", methods=["POST"])
+@login_required
+def admin_request_screenshot(eczane_id, device_id):
+    """TV cihazından bir sonraki heartbeat'te ekran görüntüsü almasını talep eder."""
+    cihaz = KioskDevice.query.filter_by(id=device_id, pharmacy_id=eczane_id).first_or_404()
+    cihaz.screenshot_requested = True
+    db.session.commit()
+    return jsonify({
+        "success": True,
+        "message": f"'{cihaz.device_name}' cihazından ekran görüntüsü talep edildi. TV açık olduğunda birkaç saniye içinde yüklenecektir."
+    })
+
+
+@app.route("/admin/pharmacy/<int:eczane_id>/device/<int:device_id>/screenshot", methods=["GET"])
+@login_required
+def admin_get_screenshot(eczane_id, device_id):
+    """Cihazın son kaydedilen ekran görüntüsünü ve zamanını döndürür."""
+    cihaz = KioskDevice.query.filter_by(id=device_id, pharmacy_id=eczane_id).first_or_404()
+    return jsonify({
+        "success": True,
+        "has_screenshot": bool(cihaz.last_screenshot),
+        "screenshot": cihaz.last_screenshot,
+        "screenshot_at": cihaz.last_screenshot_at.strftime("%d.%m.%Y %H:%M:%S") if cihaz.last_screenshot_at else None,
+        "screenshot_requested": bool(cihaz.screenshot_requested)
     })
 
 
@@ -1887,7 +2101,7 @@ def api_health():
     """Konteyner sağlık kontrolü."""
     return jsonify({
         "status": "healthy",
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": turkiye_saati().isoformat(),
         "database": "connected"
     }), 200
 
@@ -1898,6 +2112,93 @@ def ekle_guvenlik_basliklari(response):
     response.headers["X-Frame-Options"] = "SAMEORIGIN"
     return response
 
+
+# ==========================================
+# ÇEVRİMDIŞI TV CİHAZ GÖZCÜSÜ (OFFLINE WATCHDOG)
+# ==========================================
+import threading
+
+def _cevrimdisi_cihaz_gozcusu_calistir():
+    """
+    Arka planda her 60 saniyede bir çalışarak bağlantısı kesilen TV'leri kontrol eder.
+    Belirlenen tolerans süresi aşıldığında bir kez WhatsApp uyarısı gönderir.
+    """
+    time.sleep(15)  # Uygulama açılışında 15 saniye bekle
+    while True:
+        try:
+            with app.app_context():
+                s_ayar = SystemSetting.get_settings()
+                if s_ayar.whatsapp_enabled:
+                    tolerans = s_ayar.heartbeat_tolerance_min or 5
+                    pasiflik_zamani = turkiye_saati() - timedelta(minutes=tolerans)
+
+                    # Onaylı ve aktif eczanelerin cihazlarını kontrol et
+                    cihazlar = KioskDevice.query.filter(
+                        KioskDevice.is_approved == True,
+                        KioskDevice.last_ping != None,
+                        KioskDevice.last_ping < pasiflik_zamani
+                    ).all()
+
+                    for c in cihazlar:
+                        # Spam koruması: son 30 dakika içinde çevrimdışı uyarısı atıldıysa atma
+                        if c.last_offline_alert_at:
+                            gecen_sn = (turkiye_saati() - c.last_offline_alert_at).total_seconds()
+                            if gecen_sn < 1800:
+                                continue
+
+                        ecz = c.pharmacy
+                        if not ecz or not ecz.lisans_gecerli_mi():
+                            continue
+
+                        fark_dk = max(tolerans, int((turkiye_saati() - c.last_ping).total_seconds() // 60))
+                        c.last_offline_alert_at = turkiye_saati()
+
+                        log_baslik = f"🔴 Cihaz Çevrimdışı ({c.device_name})"
+                        log_mesaj = f"{ecz.name} bünyesindeki '{c.device_name}' TV ekranından {fark_dk} dakikadır sinyal alınamıyor. (Cihazın fişi veya internet bağlantısı kesilmiş olabilir)."
+
+                        yeni_log = DeviceLog(
+                            pharmacy_id=ecz.id,
+                            device_id=c.id,
+                            event_type="offline",
+                            severity="danger",
+                            title=log_baslik,
+                            message=log_mesaj,
+                            whatsapp_sent=False
+                        )
+                        db.session.add(yeni_log)
+
+                        wa_mesaj = (
+                            f"⚠️ *NÖBETÇİ ECZANE TV KESİNTİ UYARISI*\n\n"
+                            f"🏢 *Kurum:* {ecz.name}\n"
+                            f"📺 *Cihaz:* {c.device_name}\n"
+                            f"🔴 *Durum:* Çevrimdışı (Sinyal Kesildi)\n"
+                            f"⏱️ *Kesinti Süresi:* ~{fark_dk} dakika\n"
+                            f"🕒 *Zaman:* {turkiye_saati().strftime('%d.%m.%Y %H:%M:%S')}\n\n"
+                            f"ℹ️ _Lütfen TV Box cihazının elektrik fişini ve Wi-Fi / Ethernet bağlantısını kontrol ediniz._"
+                        )
+
+                        mesaj_gitti = False
+                        if s_ayar.whatsapp_notify_admin:
+                            admin_u = AdminUser.query.first()
+                            if admin_u and admin_u.phone:
+                                ok_a, _ = evolution_whatsapp_gonder(admin_u.phone, wa_mesaj, s_ayar)
+                                if ok_a: mesaj_gitti = True
+
+                        if s_ayar.whatsapp_notify_pharmacy and ecz.mobile_phone:
+                            ok_p, _ = evolution_whatsapp_gonder(ecz.mobile_phone, wa_mesaj, s_ayar)
+                            if ok_p: mesaj_gitti = True
+
+                        if mesaj_gitti:
+                            yeni_log.whatsapp_sent = True
+
+                    db.session.commit()
+        except Exception as err:
+            print(f"[UYARI] Çevrimdışı cihaz gözcüsü hatası: {err}")
+
+        time.sleep(60)
+
+_watchdog_thread = threading.Thread(target=_cevrimdisi_cihaz_gozcusu_calistir, daemon=True)
+_watchdog_thread.start()
 
 # Uygulama ayağa kalktığında veritabanını başlat
 init_db()
